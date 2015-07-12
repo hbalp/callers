@@ -1,5 +1,14 @@
 #include <stdio.h>
 
+class B
+{
+public:
+  B() {}
+  ~B() {}
+  
+  int b();
+};
+
 class A
 {
 public:
@@ -8,8 +17,10 @@ public:
   
   int a();
 
+  B* get_b();
+
 private:
-  int b();
+  B m_b;
 };
 
 int c()
@@ -18,7 +29,7 @@ int c()
   return 0;
 }
 
-int A::b()
+int B::b()
 {
   printf("b()\n");
   c();
@@ -28,14 +39,22 @@ int A::b()
 int A::a()
 {
   printf("a()\n");
-  b();
+  get_b()->b();
   return 0;
+}
+
+B* A::get_b()
+{
+  printf("get_b()\n");
+  return &m_b;
 }
 
 int main()
 {
   A* a = new A();
   a->a();
+  B* b = a->get_b();
+  b->b();
   return 0;
 }
 

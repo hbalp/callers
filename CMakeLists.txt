@@ -9,13 +9,13 @@ add_clang_executable(callers
   )
 
 target_link_libraries(callers
-  # clangAST
-  # clangBasic
-  # clangDriver
-  # clangFrontend
-  # clangRewriteFrontend
-  # clangStaticAnalyzerFrontend
-  # clangTooling
+  clangAST
+  clangBasic
+  clangDriver
+  clangFrontend
+  clangRewriteFrontend
+  clangStaticAnalyzerFrontend
+  clangTooling
   )
 
 install(TARGETS callers

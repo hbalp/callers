@@ -35,10 +35,19 @@
 #define CLANG_VERSION_GREATER_OR_EQUAL_3_3_5
 #endif
 
-clang::ASTConsumer*
+// clang::ASTConsumer*
+std::unique_ptr<clang::ASTConsumer> 
 CallersAction::CreateASTConsumer(clang::CompilerInstance& compilerInstance,
       clang::StringRef inputFile)
-{  return new Visitor(fOut, compilerInstance); }
+// {  return new Visitor(fOut, compilerInstance); }
+{  
+  return llvm::make_unique<Visitor>(fOut, compilerInstance); 
+}
+
+// std::unique_ptr<ASTConsumer> RenamingAction::newASTConsumer() {
+//   return llvm::make_unique<RenamingASTConsumer>(NewName, PrevName, USRs,
+//                                                 Replaces, PrintLocations);
+// }
 
 void
 CallersAction::Visitor::HandleTranslationUnit(clang::ASTContext &context) {

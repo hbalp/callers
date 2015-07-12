@@ -21,7 +21,8 @@ class CallersAction : public clang::ASTFrontendAction {
   public:
    CallersAction(const std::string& out, clang::CompilerInstance& compilerInstance)
       :  fOut(out), ciCompilerInstance(compilerInstance), _doesGenerateImplicitMethods(false) {}
-   virtual clang::ASTConsumer* CreateASTConsumer(clang::CompilerInstance& compilerInstance,
+   std::unique_ptr<clang::ASTConsumer> 
+   /* virtual clang::ASTConsumer* */ CreateASTConsumer(clang::CompilerInstance& compilerInstance,
       clang::StringRef inputFile);
    void setGenerateImplicitMethods() { _doesGenerateImplicitMethods = true; }
 

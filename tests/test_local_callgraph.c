@@ -3,23 +3,27 @@
 int c()
 {
   printf("c()\n");
+  return 0;
 }
 
 int b()
 {
   printf("b()\n");
   c();
+  return 0;
 }
 
 int a()
 {
   printf("a()\n");
   b();
+  return 0;
 }
 
 int main()
 {
   a();
+  return 0;
 }
 
 /* Local Variables: */

@@ -661,7 +661,7 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
    std::string result = name;
    result += printTemplateKind(function);
    result += printArgumentSignature(function);
-   osOut << printParentFunction() << " <- " << result << '\n';
+   osOut << printParentFunction() << " -> " << result << '\n';
    return true;
 }
 
@@ -674,7 +674,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
       result += ' ';
       result += printQualifiedName(function);
       result += printArgumentSignature(function);
-      osOut << printParentFunction() << " <- " << result << '\n';
+      osOut << printParentFunction() << " -> " << result << '\n';
       return true;
    };
    const auto* recordDecl = deleteExpr->getType()->getPointeeCXXRecordDecl();
@@ -686,7 +686,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
       if (destructor) {
          std::string result = printQualifiedName(*destructor);
          result += "()";
-         osOut << printParentFunction() << " <- " << result << '\n';
+         osOut << printParentFunction() << " -> " << result << '\n';
       };
    };
    return true;
@@ -719,7 +719,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
       if (builtinID > 0)
          return true;
       std::string result = writeFunction(*fd);
-      osOut << printParentFunction() << " <- " << result << '\n';
+      osOut << printParentFunction() << " -> " << result << '\n';
    }
    return true;
 }

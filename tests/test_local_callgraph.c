@@ -27,5 +27,5 @@ int main()
 }
 
 /* Local Variables: */
-/* compile-command: "clang -g  -I /c/ProgramFiles/MinGW/include -o test_local_callgraph test_local_callgraph.c" */
+/* compile-command: "clang -g  -I /c/ProgramFiles/MinGW/include -o test_local_callgraph_c test_local_callgraph.c" */
 /* End: */

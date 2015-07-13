@@ -38,10 +38,11 @@
 // clang::ASTConsumer*
 std::unique_ptr<clang::ASTConsumer> 
 CallersAction::CreateASTConsumer(clang::CompilerInstance& compilerInstance,
-      clang::StringRef inputFile)
-// {  return new Visitor(fOut, compilerInstance); }
+				 clang::StringRef inputFile)
 {  
-  return llvm::make_unique<Visitor>(fOut, compilerInstance); 
+  std::cout << "file: " << inputFile.str() << std::endl;
+  return llvm::make_unique<Visitor>(inputFile, fOut, compilerInstance); 
+  // return new Visitor(fOut, compilerInstance);
 }
 
 // std::unique_ptr<ASTConsumer> RenamingAction::newASTConsumer() {
@@ -661,7 +662,7 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
    std::string result = name;
    result += printTemplateKind(function);
    result += printArgumentSignature(function);
-   osOut << printParentFunction() << " -> " << result << '\n';
+   osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
    return true;
 }
 
@@ -674,7 +675,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
       result += ' ';
       result += printQualifiedName(function);
       result += printArgumentSignature(function);
-      osOut << printParentFunction() << " -> " << result << '\n';
+      osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
       return true;
    };
    const auto* recordDecl = deleteExpr->getType()->getPointeeCXXRecordDecl();
@@ -686,7 +687,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
       if (destructor) {
          std::string result = printQualifiedName(*destructor);
          result += "()";
-         osOut << printParentFunction() << " -> " << result << '\n';
+         osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
       };
    };
    return true;
@@ -719,7 +720,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
       if (builtinID > 0)
          return true;
       std::string result = writeFunction(*fd);
-      osOut << printParentFunction() << " -> " << result << '\n';
+      osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
    }
    return true;
 }

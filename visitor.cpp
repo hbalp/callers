@@ -51,8 +51,26 @@ CallersAction::Visitor::HandleTranslationUnit(clang::ASTContext &context) {
       std::cerr << std::endl;
       exit(2);
    };
-   // clang::SourceManager& sources = context.getSourceManager();
+   psSources = &context.getSourceManager();
    TraverseDecl(context.getTranslationUnitDecl());
+}
+
+std::string
+CallersAction::Visitor::printLocation(const clang::SourceRange& rangeLocation) const {
+   assert(psSources);
+   auto start = psSources->getPresumedLoc(rangeLocation.getBegin());
+   const char* startFile = start.getFilename();
+   int startLine = 0;
+   if (!startFile)
+      startFile = "<unknown>";
+   else
+      startLine = start.getLine();
+   std::string result = startFile;
+   result += ':';
+   std::ostringstream out;
+   out << startLine;
+   result += out.str();
+   return result;
 }
 
 std::string
@@ -62,10 +80,10 @@ CallersAction::Visitor::printTemplateExtension(const clang::TemplateArgumentList
    int sizeArguments = arguments.size();
    for (int index = 0; index < sizeArguments; ++index) {
       const auto& templateArgument = arguments[index];
-      if (isFirst) {
+      if (isFirst)
          isFirst = false;
+      else
          result += ",";
-      };
       switch (templateArgument.getKind()) {
          case clang::TemplateArgument::Null:
             // an empty template argument, e.g., one that has not been deduced
@@ -134,8 +152,8 @@ CallersAction::Visitor::printTemplateKind(const clang::RecordDecl& decl) const {
 }
 
 std::string
-CallersAction::Visitor::printBuiltinType(const clang::Type* type) const {
-   switch(type->getTypeClass()) {
+CallersAction::Visitor::printBuiltinType(const clang::BuiltinType* type) const {
+   switch(type->getKind()) {
       case clang::BuiltinType::Void: return "void";
       case clang::BuiltinType::Bool: return "bool";
       case clang::BuiltinType::Char_U: return "char";
@@ -602,6 +620,8 @@ CallersAction::Visitor::printQualification(const clang::DeclContext* context) co
          if (result.length() > 0)
             result += "::";
          result += static_cast<const clang::TagDecl*>(context)->getName().str();
+         if (kind >= clang::Decl::firstCXXRecord && kind <= clang::Decl::lastCXXRecord)
+            result += printTemplateKind(*static_cast<const clang::CXXRecordDecl*>(context));
       };
       return result;
    };
@@ -609,24 +629,34 @@ CallersAction::Visitor::printQualification(const clang::DeclContext* context) co
 }
 
 std::string
-CallersAction::Visitor::printQualifiedName(const clang::NamedDecl& namedDecl) const {
+CallersAction::Visitor::printQualifiedName(const clang::NamedDecl& namedDecl, bool* isEmpty) const {
    std::string result = printQualification(namedDecl.getDeclContext());
    if (result.length() > 0)
       result += "::";
-   result += namedDecl.getName().str();
+   std::string pureName = namedDecl.getNameAsString();
+   if (isEmpty)
+      *isEmpty = pureName.length() == 0;
+   result += pureName;
    return result;
 }
 
 std::string
-CallersAction::Visitor::writeFunction(const clang::FunctionDecl& function) const {
+CallersAction::Visitor::writeFunction(const clang::FunctionDecl& function, bool isUnqualified) const {
    std::string result = printResultSignature(function);
    result += ' ';
-   std::string name = printQualifiedName(function);
-   if (name.length() == 0) {
+   bool isEmptyName = false;
+   std::string name;
+   if (!isUnqualified)
+      name = printQualifiedName(function, &isEmptyName);
+   else {
+      name = function.getName().str();
+      isEmptyName = name.length() == 0;
+   };
+   if (isEmptyName) {
       if (function.getKind() == clang::Decl::CXXConstructor)
-         name = "constructor-special";
+         name += "constructor-special";
       else if (function.getKind() == clang::Decl::CXXDestructor)
-         name = "destructor-special";
+         name += "destructor-special";
       else { // see build-llvm/tools/clang/include/clang/AST/DeclNodes.inc
 
       };
@@ -652,7 +682,7 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
    std::string result = name;
    result += printTemplateKind(function);
    result += printArgumentSignature(function);
-   osOut << printParentFunction() << " <- " << result << '\n';
+   osOut << "  " << printParentFunction() << " -> " << result << '\n';
    return true;
 }
 
@@ -665,7 +695,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
       result += ' ';
       result += printQualifiedName(function);
       result += printArgumentSignature(function);
-      osOut << printParentFunction() << " <- " << result << '\n';
+      osOut << "  " << printParentFunction() << " -> " << result << '\n';
       return true;
    };
    const auto* recordDecl = deleteExpr->getType()->getPointeeCXXRecordDecl();
@@ -677,7 +707,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
       if (destructor) {
          std::string result = printQualifiedName(*destructor);
          result += "()";
-         osOut << printParentFunction() << " <- " << result << '\n';
+         osOut << "  " << printParentFunction() << " -> " << result << '\n';
       };
    };
    return true;
@@ -710,8 +740,12 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
       if (builtinID > 0)
          return true;
       std::string result = writeFunction(*fd);
-      osOut << printParentFunction() << " <- " << result << '\n';
+      osOut << "  " << printParentFunction() << " -> " << result << '\n';
+      return true;
    }
+   if (callExpr->getCallee()->getStmtClass() == clang::Stmt::CXXPseudoDestructorExprClass)
+      return true;
+   osOut << "  " << printParentFunction() << " -> dynamic call\n";
    return true;
 }
 
@@ -723,27 +757,18 @@ CallersAction::Visitor::VisitMemberCallExpr(const clang::CXXMemberCallExpr* call
       assert(llvm::dyn_cast<const clang::MemberExpr>(callee));
       isVirtualCall = !static_cast<const clang::MemberExpr*>(callee)->hasQualifier();
    }
-   // if (isVirtualCall) {
-   //    clang::CXXRecordDecl* baseClass = callExpr->getMethodDecl()->getParent();
-   //    // _callersAction->registerDerivedCalls(sParent, baseClass, callExpr->getMethodDecl());
-   // };
-   return true;
-}
-
-bool
-CallersAction::Visitor::TraverseFunctionDecl(clang::FunctionDecl* Decl) {
-   if (Decl->getTemplatedKind() == clang::FunctionDecl::TK_FunctionTemplate)
-      return true;
-   if (Decl->getBuiltinID())
-      return true;
-   return Parent::TraverseFunctionDecl(Decl);
-}
-
-bool
-CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
-   if (Decl->isThisDeclarationADefinition()) {
-      pfdParent = Decl;
-      sParent = writeFunction(*Decl);
+   const clang::FunctionDecl* directCall = callExpr->getMethodDecl();
+   if (isVirtualCall) {
+      clang::CXXRecordDecl* baseClass = callExpr->getMethodDecl()->getParent();
+      // _callersAction->registerDerivedCalls(sParent, baseClass, callExpr->getMethodDecl());
+      std::string result = writeFunction(*directCall);
+      osOut << printParentFunction() << " -> derived of class "
+         << printQualifiedName(*baseClass)
+         << " method " << result << '\n';
+   }
+   else {
+      std::string result = writeFunction(*directCall);
+      osOut << "  " << printParentFunction() << " -> " << result << '\n';
    };
    return true;
 }
@@ -758,34 +783,184 @@ isTemplateInstance(clang::TemplateSpecializationKind kind) {
 }
 
 bool
-CallersAction::Visitor::TraverseRecordDecl(clang::RecordDecl* Decl) {
-   const clang::CXXRecordDecl *RD = llvm::dyn_cast<clang::CXXRecordDecl>(Decl);
+CallersAction::Visitor::isTemplate(clang::CXXRecordDecl* RD) const {
    const clang::ClassTemplateSpecializationDecl* TSD = NULL;
-   if (Decl->getKind() == clang::Decl::ClassTemplateSpecialization)
-      TSD = llvm::dyn_cast<clang::ClassTemplateSpecializationDecl>(Decl);
-   if (RD &&
+   if (RD->getKind() == clang::Decl::ClassTemplateSpecialization)
+      TSD = llvm::dyn_cast<clang::ClassTemplateSpecializationDecl>(RD);
+   return (RD &&
          (((RD->getDescribedClassTemplate() && RD->getDescribedClassTemplate()->getTemplatedDecl() == RD)
          || (RD->getKind() == clang::Decl::ClassTemplatePartialSpecialization))
-               && (!RD || !TSD || !isTemplateInstance(RD->getTemplateSpecializationKind()))))
-      return true;
-   return Parent::TraverseRecordDecl(Decl);
+               && (!RD || !TSD || !isTemplateInstance(RD->getTemplateSpecializationKind()))));
 }
 
-/*
+bool
+CallersAction::Visitor::TraverseFunctionDecl(clang::FunctionDecl* Decl) {
+   if (Decl->getTemplatedKind() == clang::FunctionDecl::TK_FunctionTemplate)
+      return true;
+   if (Decl->getBuiltinID())
+      return true;
+   clang::DeclContext* context = Decl->getDeclContext();
+   auto kind = context->getDeclKind();
+   while (kind >= clang::Decl::firstRecord && kind <= clang::Decl::lastRecord) {
+      if ((kind >= clang::Decl::firstCXXRecord && kind <= clang::Decl::lastCXXRecord)
+            && isTemplate(static_cast<clang::CXXRecordDecl*>(context)))
+         return true;
+      context = static_cast<clang::RecordDecl*>(context)->getDeclContext();
+      kind = context->getDeclKind();
+   };
+   return Parent::TraverseFunctionDecl(Decl);
+}
+
+bool
+CallersAction::Visitor::TraverseVarDecl(clang::VarDecl* Decl) {
+   clang::DeclContext* context = Decl->getDeclContext();
+   auto kind = context->getDeclKind();
+   while (kind >= clang::Decl::firstRecord && kind <= clang::Decl::lastRecord) {
+      if ((kind >= clang::Decl::firstCXXRecord && kind <= clang::Decl::lastCXXRecord)
+            && isTemplate(static_cast<clang::CXXRecordDecl*>(context)))
+         return true;
+      context = static_cast<clang::RecordDecl*>(context)->getDeclContext();
+      kind = context->getDeclKind();
+   };
+   return Parent::TraverseVarDecl(Decl);
+}
+
+bool
+CallersAction::Visitor::TraverseCXXMethodDecl(clang::CXXMethodDecl* Decl) {
+   if (Decl->getTemplatedKind() == clang::FunctionDecl::TK_FunctionTemplate)
+      return true;
+   clang::DeclContext* context = Decl->getDeclContext();
+   auto kind = context->getDeclKind();
+   while (kind >= clang::Decl::firstRecord && kind <= clang::Decl::lastRecord) {
+      if ((kind >= clang::Decl::firstCXXRecord && kind <= clang::Decl::lastCXXRecord)
+            && isTemplate(static_cast<clang::CXXRecordDecl*>(context)))
+         return true;
+      context = static_cast<clang::RecordDecl*>(context)->getDeclContext();
+      kind = context->getDeclKind();
+   };
+   return Parent::TraverseCXXMethodDecl(Decl);
+}
+
+bool
+CallersAction::Visitor::TraverseCXXConstructorDecl(clang::CXXConstructorDecl* Decl) {
+   if (Decl->getTemplatedKind() == clang::FunctionDecl::TK_FunctionTemplate)
+      return true;
+   clang::DeclContext* context = Decl->getDeclContext();
+   auto kind = context->getDeclKind();
+   while (kind >= clang::Decl::firstRecord && kind <= clang::Decl::lastRecord) {
+      if ((kind >= clang::Decl::firstCXXRecord && kind <= clang::Decl::lastCXXRecord)
+            && isTemplate(static_cast<clang::CXXRecordDecl*>(context)))
+         return true;
+      context = static_cast<clang::RecordDecl*>(context)->getDeclContext();
+      kind = context->getDeclKind();
+   };
+   return Parent::TraverseCXXConstructorDecl(Decl);
+}
+
+bool
+CallersAction::Visitor::TraverseCXXConversionDecl(clang::CXXConversionDecl* Decl) {
+   if (Decl->getTemplatedKind() == clang::FunctionDecl::TK_FunctionTemplate)
+      return true;
+   clang::DeclContext* context = Decl->getDeclContext();
+   auto kind = context->getDeclKind();
+   while (kind >= clang::Decl::firstRecord && kind <= clang::Decl::lastRecord) {
+      if ((kind >= clang::Decl::firstCXXRecord && kind <= clang::Decl::lastCXXRecord)
+            && isTemplate(static_cast<clang::CXXRecordDecl*>(context)))
+         return true;
+      context = static_cast<clang::RecordDecl*>(context)->getDeclContext();
+      kind = context->getDeclKind();
+   };
+   return Parent::TraverseCXXConversionDecl(Decl);
+}
+
+bool
+CallersAction::Visitor::TraverseCXXDestructorDecl(clang::CXXDestructorDecl* Decl) {
+   if (Decl->getTemplatedKind() == clang::FunctionDecl::TK_FunctionTemplate)
+      return true;
+   clang::DeclContext* context = Decl->getDeclContext();
+   auto kind = context->getDeclKind();
+   while (kind >= clang::Decl::firstRecord && kind <= clang::Decl::lastRecord) {
+      if ((kind >= clang::Decl::firstCXXRecord && kind <= clang::Decl::lastCXXRecord)
+            && isTemplate(static_cast<clang::CXXRecordDecl*>(context)))
+         return true;
+      context = static_cast<clang::RecordDecl*>(context)->getDeclContext();
+      kind = context->getDeclKind();
+   };
+   return Parent::TraverseCXXDestructorDecl(Decl);
+}
+
+bool
+CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
+   if (Decl->isThisDeclarationADefinition()) {
+      pfdParent = Decl;
+      sParent = writeFunction(*Decl);
+      osOut << "visiting function " << sParent
+            << " at " << printLocation(Decl->getSourceRange()) << '\n';
+   };
+   return true;
+}
+
+bool
+CallersAction::Visitor::TraverseCXXRecordDecl(clang::CXXRecordDecl* Decl) {
+   if (isTemplate(Decl))
+      return true;
+   clang::DeclContext* context = Decl->getDeclContext();
+   auto kind = context->getDeclKind();
+   while (kind >= clang::Decl::firstRecord && kind <= clang::Decl::lastRecord) {
+      if ((kind >= clang::Decl::firstCXXRecord && kind <= clang::Decl::lastCXXRecord)
+            && isTemplate(static_cast<clang::CXXRecordDecl*>(context)))
+         return true;
+      context = static_cast<clang::RecordDecl*>(context)->getDeclContext();
+      kind = context->getDeclKind();
+   };
+   return Parent::TraverseCXXRecordDecl(Decl);
+}
+
 void
 CallersAction::Visitor::VisitInheritanceList(clang::CXXRecordDecl* cxxDecl) {
    clang::CXXRecordDecl::base_class_iterator endBase = cxxDecl->bases_end();
+   bool isFirst = true;
    for (clang::CXXRecordDecl::base_class_iterator
          iterBase = cxxDecl->bases_begin(); iterBase != endBase; ++iterBase) {
       const clang::Type* type = iterBase->getType().getTypePtr();
       const clang::CXXRecordDecl* base = type->getAsCXXRecordDecl();
       if (!base) {
-         std::cerr << "Unsupported Inheritance Type:"
-               << iterBase->getType().getAsString ()
-               << "\nAborting\n";
-         exit(2);
+         continue;
+         // std::cerr << "Unsupported Inheritance Type:"
+         //       << iterBase->getType().getAsString ()
+         //       << "\nAborting\n";
+         // exit(2);
       };
+      if (!isFirst)
+         osOut << ",\n                  ";
+      else
+         isFirst = false;
+      osOut << printQualifiedName(*base);
    };
 }
-*/
 
+bool
+CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
+   clang::Decl::Kind declKind = Decl->getDeclContext()->getDeclKind();
+   if ((declKind >= clang::Decl::firstFunction && declKind <= clang::Decl::lastFunction))
+      return true;
+
+   clang::CXXRecordDecl *RD = llvm::dyn_cast<clang::CXXRecordDecl>(Decl);
+   if (Decl->isThisDeclarationADefinition() && RD && RD->isCompleteDefinition()) {
+      auto tagKind = Decl->getTagKind();
+      if (tagKind == clang::TTK_Struct || tagKind == clang::TTK_Class) { // avoid unions
+         bool isAnonymousRecord = false;
+         std::string recordName = printQualifiedName(*Decl, &isAnonymousRecord);
+         recordName += printTemplateKind(*Decl);
+         if (!isAnonymousRecord) {
+            osOut << "visiting record " << recordName
+                  << " at " << printLocation(Decl->getSourceRange()) << '\n';
+            osOut << "    inherits from ";
+            VisitInheritanceList(RD);
+            osOut << '\n';
+         };
+      }
+   };
+
+   return true;
+}

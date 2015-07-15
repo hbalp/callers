@@ -664,11 +664,6 @@ CallersAction::Visitor::writeFunction(const clang::FunctionDecl& function, bool 
    result += name;
    result += printTemplateKind(function);
    result += printArgumentSignature(function);
-   auto kind = function.getKind();
-   if (kind >= clang::Decl::firstCXXMethod && kind <= clang::Decl::lastCXXMethod) {
-      if (static_cast<const clang::CXXMethodDecl&>(function).isConst())
-         result += " const";
-   }
    return result;
 }
 
@@ -723,11 +718,6 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
       if (newExpr->isArray())
          result += " [] ";
       result += printArgumentSignature(operatorNew);
-      auto kind = operatorNew.getKind();
-      if (kind >= clang::Decl::firstCXXMethod && kind <= clang::Decl::lastCXXMethod) {
-         if (static_cast<const clang::CXXMethodDecl&>(operatorNew).isConst())
-            result += " const";
-      }
    };
    return true;
 }
@@ -763,7 +753,7 @@ CallersAction::Visitor::VisitMemberCallExpr(const clang::CXXMemberCallExpr* call
       // _callersAction->registerDerivedCalls(sParent, baseClass, callExpr->getMethodDecl());
       std::string result = writeFunction(*directCall);
       osOut << printParentFunction() << " -> derived of class "
-         << printQualifiedName(*baseClass)
+         << printQualifiedName(*baseClass) << printTemplateKind(*baseClass)
          << " method " << result << '\n';
    }
    else {
@@ -936,6 +926,7 @@ CallersAction::Visitor::VisitInheritanceList(clang::CXXRecordDecl* cxxDecl) {
       else
          isFirst = false;
       osOut << printQualifiedName(*base);
+      osOut << printTemplateKind(*base);
    };
 }
 

@@ -9,8 +9,12 @@
 //   clang -> file containing called functions
 //
 
+#define NOT_USE_BOOST_REGEX
+
 #include <climits>
+#ifndef NOT_USE_BOOST_REGEX
 #include <boost/regex.hpp>
+#endif
 #include <cstddef>
 #include <fstream>
 #include <iostream>
@@ -44,21 +48,29 @@
 #define CLANG_VERSION_GREATER_OR_EQUAL_3_3_5
 #endif
 
+#ifndef NOT_USE_BOOST_REGEX
 #ifndef NOT_USE_BOOST
 void boost::throw_exception(std::exception const&)
 {
   std::cerr << "HBDBG EXCEPTION TBC" << std::endl;
 }
 #endif
+#endif
 
-// clang::ASTConsumer*
+#ifdef CLANG_VERSION_GREATER_OR_EQUAL_3_7
 std::unique_ptr<clang::ASTConsumer> 
+#else
+clang::ASTConsumer*
+#endif
 CallersAction::CreateASTConsumer(clang::CompilerInstance& compilerInstance,
 				 clang::StringRef inputFile)
 {  
   std::cout << "file: " << inputFile.str() << std::endl;
+#ifdef CLANG_VERSION_GREATER_OR_EQUAL_3_7
   return llvm::make_unique<Visitor>(inputFile, dOutFname, fOut, dOut, compilerInstance); 
-  // return new Visitor(fOut, compilerInstance);
+#else
+  return new Visitor(inputFile, dOutFname, fOut, dOut, compilerInstance);
+#endif
 }
 
 // std::unique_ptr<ASTConsumer> RenamingAction::newASTConsumer() {
@@ -679,9 +691,10 @@ CallersAction::Visitor::printQualifiedName(const clang::NamedDecl& namedDecl, bo
 
 std::string
 CallersAction::Visitor::getDotIdentifier(const std::string& name) const {
-
+#ifndef NOT_USE_BOOST_REGEX
   //std::string s = "que se passe t'il ici ?";
   std::string s = name;
+
   boost::regex expr{"\\s|:|\\(|\\)|\\*|\\.|<|>|,|&|\\/"};
   std::string fmt{"_"};
   s = boost::regex_replace(s, expr, fmt);
@@ -691,6 +704,10 @@ CallersAction::Visitor::getDotIdentifier(const std::string& name) const {
   std::cerr << "getDotIdentifier(" << name << ") == " << s << std::endl;
   //std::string s = "toto";
   //std::cout << std::regex_replace (name, r, "_");
+#else
+  std::string s = std::string("\"") + name + "\"";
+#endif
+
   return s;
 }
 

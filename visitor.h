@@ -12,6 +12,22 @@
 #ifndef CLANG_VisitorH
 #define CLANG_VisitorH
 
+#include "clang/Basic/Version.h"
+#if (CLANG_VERSION_MAJOR > 3)                                 \
+    || (CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR >= 4)
+#define CLANG_VERSION_GREATER_OR_EQUAL_3_4
+#endif
+
+#if (CLANG_VERSION_MAJOR > 3)                                 \
+    || (CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR >= 5)
+#define CLANG_VERSION_GREATER_OR_EQUAL_3_5
+#endif
+
+#if (CLANG_VERSION_MAJOR > 3)                                 \
+    || (CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR >= 7)
+#define CLANG_VERSION_GREATER_OR_EQUAL_3_7
+#endif
+
 class CallersAction : public clang::ASTFrontendAction {
   private:
    std::ofstream fOut;
@@ -23,9 +39,13 @@ class CallersAction : public clang::ASTFrontendAction {
   public:
    CallersAction(const std::string& out, const std::string& dout, clang::CompilerInstance& compilerInstance)
      :  fOut(out), dOut(dout), dOutFname(dout), ciCompilerInstance(compilerInstance), _doesGenerateImplicitMethods(false) {}
-   std::unique_ptr<clang::ASTConsumer> 
-   /* virtual clang::ASTConsumer* */ CreateASTConsumer(clang::CompilerInstance& compilerInstance,
-      clang::StringRef inputFile);
+#ifdef CLANG_VERSION_GREATER_OR_EQUAL_3_7
+   virtual std::unique_ptr<clang::ASTConsumer> 
+#else
+   virtual clang::ASTConsumer*
+#endif
+      CreateASTConsumer(clang::CompilerInstance& compilerInstance,
+         clang::StringRef inputFile);
    void setGenerateImplicitMethods() { _doesGenerateImplicitMethods = true; }
 
   private:

@@ -41,11 +41,13 @@ class ProcessArguments {
    std::string _dotfilename;
    std::vector<std::string> _includes;
    bool _doesGenerateImplicitMethods;
+   bool _isVersion;
 
   public:
    ProcessArguments(/* clang::CompilerInvocation* invocation, */
          int argc, char** argv)
-      : _isValid(true), /* _invocation(invocation), */ _doesGenerateImplicitMethods(false)
+      : _isValid(true), /* _invocation(invocation), */ _doesGenerateImplicitMethods(false),
+        _isVersion(false)
       { int uArg = argc-2;
          while (_isValid && (uArg >= 0))
             _isValid = process(argv + (argc - uArg - 1), uArg);
@@ -64,6 +66,7 @@ class ProcessArguments {
          std::cout << std::endl;
       }
    bool isValid() const { return _isValid; }
+   bool isVersion() const { return _isVersion; }
    bool doesGenerateImplicitMethods() const { return _doesGenerateImplicitMethods; }
    const std::string& getOutputFile() const { return _output; }
    const std::string& getDotOutputFile() const { return _dotfilename; }
@@ -74,25 +77,30 @@ ProcessArguments::process(char** argument, int& currentArgument) {
    if (argument[0][0] == '-') {
       switch (argument[0][1]) {
          case 'o':
-	   {
-	     char dotfilename[150];
-	     dotfilename[0] = '\0';
-	     if (currentArgument == 0 || _output != "") {
-               printUsage(std::cout);
-               return false;
-	     };
-	     currentArgument -= 2;
-	     _output = argument[1];
-	     strcat(dotfilename, argument[1]);
-	     strcat(dotfilename, ".dot");
-	     _dotfilename = dotfilename;
-	     _isValid = true;
-	     return true;
-	   }
+         {
+           std::string dotfilename;
+           if (currentArgument == 0 || _output != "") {
+              printUsage(std::cout);
+              return false;
+           };
+           currentArgument -= 2;
+           _output = argument[1];
+           dotfilename += argument[1];
+           dotfilename += ".dot";
+           _dotfilename = dotfilename;
+           _isValid = true;
+           return true;
+         }
          case '-':
-	   {
-	     //TBC
-	   }
+           if (strcmp(argument[0], "--version") == 0) {
+              std::cout << "Ubuntu " << clang::getClangToolFullVersion(llvm::StringRef("callers")) << "\n"
+                        << "Target: i386-pc-linux-gnu\n"
+                        << "Thread model: posix\n";
+              _isVersion = true;
+              --currentArgument;
+              return true;
+           };
+           // no break
          default:
             --currentArgument;
             return true;
@@ -124,6 +132,9 @@ main(int argc, char** argv) {
       processArgument.printUsage(std::cout);
       return 0;
    };
+
+   if (processArgument.isVersion())
+      return 0;
 
    int clang_argc = argc;
    llvm::MutableArrayRef<const char*> Argv((const char**)argv, clang_argc+1);

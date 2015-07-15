@@ -682,7 +682,7 @@ CallersAction::Visitor::getDotIdentifier(const std::string& name) const {
 
   //std::string s = "que se passe t'il ici ?";
   std::string s = name;
-  boost::regex expr{"\\s|:|\\(|\\)|\\*|\\.|<|>|,|&|\\/"};
+  boost::regex expr{"\\s|:|\\(|\\)|\\*|\\.|<|>|,|&|\\/|\\[|\\]|=|-|\\+|!|~"};
   std::string fmt{"_"};
   s = boost::regex_replace(s, expr, fmt);
   // std::regex replace ("[^\\w]+");

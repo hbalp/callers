@@ -9,6 +9,19 @@
 //   clang -> file containing called functions
 //
 
+#include <climits>
+#include <boost/regex.hpp>
+#include <cstddef>
+#include <fstream>
+#include <iostream>
+#include <list>
+//#include <regex>
+#include <sstream>
+
+#ifdef NOT_USE_BOOST
+#define __STDC_LIMIT_MACROS 
+#endif
+
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/ASTConsumer.h"
@@ -23,16 +36,19 @@
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Host.h"
 #include "llvm/ADT/ArrayRef.h"
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <cstddef>
-#include <list>
+
 #include "visitor.h"
 
 #if (CLANG_VERSION_MAJOR > 3)                                 \
     || (CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR >= 5)
 #define CLANG_VERSION_GREATER_OR_EQUAL_3_3_5
+#endif
+
+#ifndef NOT_USE_BOOST
+void boost::throw_exception(std::exception const&)
+{
+  std::cerr << "HBDBG EXCEPTION TBC" << std::endl;
+}
 #endif
 
 // clang::ASTConsumer*
@@ -41,7 +57,7 @@ CallersAction::CreateASTConsumer(clang::CompilerInstance& compilerInstance,
 				 clang::StringRef inputFile)
 {  
   std::cout << "file: " << inputFile.str() << std::endl;
-  return llvm::make_unique<Visitor>(inputFile, fOut, compilerInstance); 
+  return llvm::make_unique<Visitor>(inputFile, dOutFname, fOut, dOut, compilerInstance); 
   // return new Visitor(fOut, compilerInstance);
 }
 
@@ -62,7 +78,18 @@ CallersAction::Visitor::HandleTranslationUnit(clang::ASTContext &context) {
       exit(2);
    };
    // clang::SourceManager& sources = context.getSourceManager();
+   {
+     // presentation headers (temporaire avant sortie json intermediaire)
+     dotOut << "digraph " << getDotIdentifier(inputFile) << " {\n" << std::endl;
+   }
    TraverseDecl(context.getTranslationUnitDecl());
+   {
+     // presentation ends (temporaire avant sortie json intermediaire)
+     dotOut << "}\n\n" << std::endl;     
+     dotOut << "// Local Variables:" << std::endl;
+     dotOut << "// compile-command: \"dot -Tpng " << dotOutFname << " > " << dotOutFname << ".png\"" << std::endl;
+     dotOut << "// End:"  << std::endl;
+   }
 }
 
 std::string
@@ -628,6 +655,23 @@ CallersAction::Visitor::printQualifiedName(const clang::NamedDecl& namedDecl) co
 }
 
 std::string
+CallersAction::Visitor::getDotIdentifier(const std::string& name) const {
+
+  //std::string s = "que se passe t'il ici ?";
+  std::string s = name;
+  boost::regex expr{"\\s|:|\\(|\\)|\\*|\\.|<|>|,|&|\\/"};
+  std::string fmt{"_"};
+  s = boost::regex_replace(s, expr, fmt);
+  // std::regex replace ("[^\\w]+");
+  // std::string by ("_");
+  // s = std::regex_replace (s, replace, by);
+  std::cerr << "getDotIdentifier(" << name << ") == " << s << std::endl;
+  //std::string s = "toto";
+  //std::cout << std::regex_replace (name, r, "_");
+  return s;
+}
+
+std::string
 CallersAction::Visitor::writeFunction(const clang::FunctionDecl& function) const {
    std::string result = printResultSignature(function);
    result += ' ';
@@ -663,6 +707,9 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
    result += printTemplateKind(function);
    result += printArgumentSignature(function);
    osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
+   dotOut << getDotIdentifier(printParentFunction()) << " [ label=\"" << inputFile << "\\n" << printParentFunction() << "\" ] \n";
+   dotOut << getDotIdentifier(result) << " [ label=\"" << inputFile << "\\n" << result << "\" ] \n";
+   dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(result) << '\n';
    return true;
 }
 
@@ -676,6 +723,9 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
       result += printQualifiedName(function);
       result += printArgumentSignature(function);
       osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
+      dotOut << getDotIdentifier(printParentFunction()) << " [ label=\"" << inputFile << "\\n" << printParentFunction() << "\" ] \n";
+      dotOut << getDotIdentifier(result) << " [ label=\"" << inputFile << "\\n" << result << "\" ] \n";
+      dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(result) << '\n';
       return true;
    };
    const auto* recordDecl = deleteExpr->getType()->getPointeeCXXRecordDecl();
@@ -688,6 +738,9 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
          std::string result = printQualifiedName(*destructor);
          result += "()";
          osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
+	 dotOut << getDotIdentifier(printParentFunction()) << " [ label=\"" << inputFile << "\\n" << printParentFunction() << "\" ] \n";
+	 dotOut << getDotIdentifier(result) << " [ label=\"" << inputFile << "\\n" << result << "\" ] \n";
+         dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(result) << '\n';
       };
    };
    return true;
@@ -721,6 +774,9 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
          return true;
       std::string result = writeFunction(*fd);
       osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
+      dotOut << getDotIdentifier(printParentFunction()) << " [ label=\"" << inputFile << "\\n" << printParentFunction() << "\" ] \n";
+      dotOut << getDotIdentifier(result) << " [ label=\"" << inputFile << "\\n" << result << "\" ] \n";
+      dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(result) << '\n';
    }
    return true;
 }

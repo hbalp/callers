@@ -15,12 +15,14 @@
 class CallersAction : public clang::ASTFrontendAction {
   private:
    std::ofstream fOut;
+   std::ofstream dOut;
+   std::string dOutFname;
    clang::CompilerInstance& ciCompilerInstance;
    bool _doesGenerateImplicitMethods;
 
   public:
-   CallersAction(const std::string& out, clang::CompilerInstance& compilerInstance)
-      :  fOut(out), ciCompilerInstance(compilerInstance), _doesGenerateImplicitMethods(false) {}
+   CallersAction(const std::string& out, const std::string& dout, clang::CompilerInstance& compilerInstance)
+     :  fOut(out), dOut(dout), dOutFname(dout), ciCompilerInstance(compilerInstance), _doesGenerateImplicitMethods(false) {}
    std::unique_ptr<clang::ASTConsumer> 
    /* virtual clang::ASTConsumer* */ CreateASTConsumer(clang::CompilerInstance& compilerInstance,
       clang::StringRef inputFile);
@@ -35,16 +37,23 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   typedef clang::RecursiveASTVisitor<Visitor> Parent;
   std::string inputFile;
   std::ostream& osOut;
+  std::ostream& dotOut;
+  std::string dotOutFname;
   clang::CompilerInstance& ciCompilerInstance;
   const clang::FunctionDecl* pfdParent;
   mutable std::string sParent;
 
   std::string writeFunction(const clang::FunctionDecl& function) const;
+  
   const std::string& printParentFunction() const
-  {  if (pfdParent && sParent.length() == 0)
+  {  
+    if (pfdParent && sParent.length() == 0)
       sParent = writeFunction(*pfdParent);
     return sParent;
   };
+
+  // convert function signature to a dot identifier
+  std::string getDotIdentifier(const std::string& name) const;
       
   std::string printTemplateExtension(const clang::TemplateArgumentList& arguments) const;
   std::string printTemplateKind(const clang::FunctionDecl& function) const;
@@ -60,8 +69,8 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   std::string printQualifiedName(const clang::NamedDecl& namedDecl) const;
 
  public:
- Visitor(std::string in, std::ostream& out, clang::CompilerInstance& compilerInstance)
-   : inputFile(in), osOut(out), ciCompilerInstance(compilerInstance), pfdParent(nullptr) {}
+ Visitor(std::string in, std::string doutfname, std::ostream& sout, std::ostream& dout, clang::CompilerInstance& compilerInstance)
+   : inputFile(in), osOut(sout), dotOut(dout), dotOutFname(doutfname), ciCompilerInstance(compilerInstance), pfdParent(nullptr) {}
 
   virtual bool VisitCXXConstructExpr(const clang::CXXConstructExpr* constructor);
   virtual bool VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExpr);

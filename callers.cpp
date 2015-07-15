@@ -9,6 +9,13 @@
 //   clang -> file containing called functions
 //
 
+#include <string.h>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <cstddef>
+#include <list>
+
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/ASTConsumer.h"
@@ -23,11 +30,6 @@
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Host.h"
 #include "llvm/ADT/ArrayRef.h"
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <cstddef>
-#include <list>
 
 #include "visitor.h"
 
@@ -36,6 +38,7 @@ class ProcessArguments {
    bool _isValid;
    // clang::CompilerInvocation* _invocation;
    std::string _output;
+   std::string _dotfilename;
    std::vector<std::string> _includes;
    bool _doesGenerateImplicitMethods;
 
@@ -55,6 +58,7 @@ class ProcessArguments {
       { std::cout << "Usage of callers :\n"
             << "callers [option]+ input-files -o callers-outfile \n"
             << "   where option can be one of the following options:\n";
+         std::cout << "      --version or\n";
          std::cout << "      -Idirectory\tfor specifying an include directory\n";
          std::cout << "\nexample: callers -I. myfile.cpp -o myfile.fir\n";
          std::cout << std::endl;
@@ -62,6 +66,7 @@ class ProcessArguments {
    bool isValid() const { return _isValid; }
    bool doesGenerateImplicitMethods() const { return _doesGenerateImplicitMethods; }
    const std::string& getOutputFile() const { return _output; }
+   const std::string& getDotOutputFile() const { return _dotfilename; }
 };
 
 bool
@@ -69,14 +74,25 @@ ProcessArguments::process(char** argument, int& currentArgument) {
    if (argument[0][0] == '-') {
       switch (argument[0][1]) {
          case 'o':
-            if (currentArgument == 0 || _output != "") {
+	   {
+	     char dotfilename[150];
+	     dotfilename[0] = '\0';
+	     if (currentArgument == 0 || _output != "") {
                printUsage(std::cout);
                return false;
-            };
-            currentArgument -= 2;
-            _output = argument[1];
-            _isValid = true;
-            return true;
+	     };
+	     currentArgument -= 2;
+	     _output = argument[1];
+	     strcat(dotfilename, argument[1]);
+	     strcat(dotfilename, ".dot");
+	     _dotfilename = dotfilename;
+	     _isValid = true;
+	     return true;
+	   }
+         case '-':
+	   {
+	     //TBC
+	   }
          default:
             --currentArgument;
             return true;
@@ -139,7 +155,9 @@ main(int argc, char** argv) {
    invocation->getFrontendOpts().ProgramAction = clang::frontend::ParseSyntaxOnly;
    compiler.setInvocation(invocation);
 
-   CallersAction callersAction(processArgument.getOutputFile(), compiler);
+   CallersAction callersAction(processArgument.getOutputFile(), 
+			       processArgument.getDotOutputFile(), 
+			       compiler);
    if (processArgument.doesGenerateImplicitMethods())
       callersAction.setGenerateImplicitMethods();
    compiler.ExecuteAction(callersAction);

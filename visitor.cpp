@@ -320,8 +320,9 @@ CallersAction::Visitor::printPlainType(clang::QualType const& qt) const {
             const auto* memberPointerType = static_cast<clang::MemberPointerType const*>(type);
             std::string className = printQualifiedName(*memberPointerType->getMostRecentCXXRecordDecl());
             if (memberPointerType->isMemberFunctionPointer()) {
-               const auto* prototype = static_cast<const clang::FunctionProtoType*>
-                  (memberPointerType->getPointeeType().getTypePtr());
+               const auto* prototype = (memberPointerType->getPointeeType()
+                     .getTypePtr()->getAs<clang::FunctionProtoType>());
+               assert(prototype);
 #ifdef CLANG_VERSION_GREATER_OR_EQUAL_3_3_5
                std::string result = printType(prototype->getReturnType());
 #else

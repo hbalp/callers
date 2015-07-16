@@ -22,10 +22,6 @@
 //#include <regex>
 #include <sstream>
 
-#ifdef NOT_USE_BOOST
-#define __STDC_LIMIT_MACROS 
-#endif
-
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/ASTConsumer.h"
@@ -695,8 +691,7 @@ CallersAction::Visitor::getDotIdentifier(const std::string& name) const {
 #ifndef NOT_USE_BOOST_REGEX
   //std::string s = "que se passe t'il ici ?";
   std::string s = name;
-
-  boost::regex expr{"\\s|:|\\(|\\)|\\*|\\.|<|>|,|&|\\/"};
+  boost::regex expr{"\\s|:|\\(|\\)|\\*|\\.|<|>|,|&|\\/|\\[|\\]|=|-|\\+|!|~"};
   std::string fmt{"_"};
   s = boost::regex_replace(s, expr, fmt);
   // std::regex replace ("[^\\w]+");

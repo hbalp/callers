@@ -1,5 +1,5 @@
 /****
-     Copyright (C) 2015 Commissariat à l'Energie Atomique, Thales Communication
+     Copyright (C) 2015 Commissariat à l'Energie Atomique, Thales Communication & Security
        - All Rights Reserved
      coded by Franck Vedrine, Hugues Balp
 ****/

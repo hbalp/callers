@@ -22,10 +22,6 @@
 //#include <regex>
 #include <sstream>
 
-#ifdef NOT_USE_BOOST
-#define __STDC_LIMIT_MACROS 
-#endif
-
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/ASTConsumer.h"

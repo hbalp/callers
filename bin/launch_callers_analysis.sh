@@ -36,8 +36,6 @@ func_version ()
 #echo "nb_params: " $#
 
 callers_launch_script=launch.gen.sh
-# # dot2png_script=dot2png.gen.sh
-# # dot2svg_script=dot2svg.gen.sh
 
 # system_includes
 # retrieve the system include files required by clang
@@ -102,11 +100,11 @@ elif test $# = 2; then
     case $2 in
 	"all" )
 	    echo "analyze all files...";
-	    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.out\ /g | awk '{ print "&& " $N " \\" }' | sed -e s#-o\ CMakeFiles[^\ ]*/#-o\ callers-analysis-report/dot/#g  >> $callers_launch_script
+	    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.out\ /g | awk '{ print "&& " $N " \\" }' | sed -e s#-o\ CMakeFiles[^\ ]*/#-o\ callers-analysis-report/dot/unsorted/#g  >> $callers_launch_script
 	    ;;
 	*)
 	    echo "analyze file $2..."; 
-	    cat $compile_commands_json | grep \"command\" | grep $2 | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.out\ /g | awk '{ print "&& " $N " \\" }' | sed -e s#-o\ CMakeFiles[^\ ]*/#-o\ callers-analysis-report/dot/#g >> $callers_launch_script
+	    cat $compile_commands_json | grep \"command\" | grep $2 | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.out\ /g | awk '{ print "&& " $N " \\" }' | sed -e s#-o\ CMakeFiles[^\ ]*/#-o\ callers-analysis-report/dot/unsorted/#g >> $callers_launch_script
 	    ;;
     esac
 
@@ -120,31 +118,77 @@ chmod +x $callers_launch_script
 
 echo "generated launcher script: ${callers_launch_script}"
 
-mkdir -p callers-analysis-report/dot
+mkdir -p callers-analysis-report/dot/unsorted
 
 echo "launch the analysis..."
 
 ./launch.gen.sh
 
-echo "convert the generated dot files into png and svg images"
-
-# convert the generated dot files into png and svg images
-dot_files=`find callers-analysis-report -type f -name "*.dot"`
-mkdir -p callers-analysis-report/png
-mkdir -p callers-analysis-report/svg
-for f in $dot_files
+# sort the body of dot files to remove duplicated lines
+echo "sort the body of dot files to remove duplicated lines..."
+mkdir -p callers-analysis-report/dot/sorted
+unsorted_dot_files=`find callers-analysis-report/dot/unsorted -type f -name "*.dot"`
+for f in $unsorted_dot_files
 do
 b=`basename $f`
-dot -Tpng $f > callers-analysis-report/png/$b.png
-dot -Tsvg $f > callers-analysis-report/svg/$b.svg
+head -1 callers-analysis-report/dot/unsorted/$b > .tmp.gen.header
+tail -6 callers-analysis-report/dot/unsorted/$b > .tmp.gen.footer
+cat callers-analysis-report/dot/unsorted/$b | egrep -v "{|}" | sort -u > .tmp.gen.body
+cat .tmp.gen.header .tmp.gen.body .tmp.gen.footer > callers-analysis-report/dot/sorted/$b
+done
+rm -f .tmp.gen.header .tmp.gen.body .tmp.gen.footer
+
+# concatenate all the sorted dot files into one unique dot file named all.dot
+echo "concatenate all the sorted dot files into one unique dot file named all.unsorted.dot"
+all_unsorted_dot_file=callers-analysis-report/dot/all.unsorted.dot
+sorted_dot_files=`find callers-analysis-report/dot/sorted -type f -name "*.dot"`
+for f in $sorted_dot_files
+do
+    b=`basename $f`
+    cat $f | egrep -v "{|}">> $all_unsorted_dot_file
 done
 
-# # generate a script to convert dot files into png and svg images
-# # echo "mkdir -p callers-report/png" > $dot2png_script
-# # grep \"file\" compile_commands.json | cut -d '"' -f4 | awk '{ printf( "dot -Tpng %s > callers-analysis-report/png/", $1 ); system("basename " $1) }' | sed -e s/$/.png/g >> $dot2png_script
-# # chmod +x $dot2png_script
+# sort the body of the all.unsorted.dot file to remove duplicated lines
+echo "sort the body of the all.unsorted.dot file to remove duplicated lines"
+all_sorted_dot_file=callers-analysis-report/dot/all.sorted.dot
+all_dot_file=`basename $all_sorted_dot_file`
+echo "digraph all {" > $all_sorted_dot_file
+cat $all_unsorted_dot_file | sort -u >> $all_sorted_dot_file
+echo "}" >> $all_sorted_dot_file
+echo "generated ${all_dot_file} file: ${all_sorted_dot_file}"
 
-# # generate a script to convert dot files into svg images
-# # echo "mkdir -p callers-report/svg" > $dot2svg_script
-# # grep \"file\" compile_commands.json | cut -d '"' -f4 | awk '{ printf( "dot -Tsvg %s > callers-analysis-report/svg/", $1 ); system("basename " $1) }' | sed -e s/$/.svg/g >> $dot2svg_script
-# # chmod +x $dot2svg_script
+# convert when possible the resulting all.sorted.dot file into an image
+echo "convert when possible the resulting ${all_dot_file} file into an image"
+#mkdir -p callers-analysis-report/png
+mkdir -p callers-analysis-report/svg
+dot_file_max_nb_lines=5000
+nb_lines=`wc -l ${all_sorted_dot_file} | awk '{ print $1 }'`
+echo "nb_lines: ${nb_lines}"
+# launch dot only if the number of lines is lower then a given threshold
+if [ $nb_lines -le $dot_file_max_nb_lines ];
+then
+    echo "${nb_lines} <= ${dot_file_max_nb_lines}, so we can convert the ${all_dot_file} graph into an image"
+    #dot -Tpng $f > callers-analysis-report/png/$b.png
+    dot -Tsvg ${all_sorted_dot_file} > callers-analysis-report/${all_dot_file}.svg
+else
+    echo "${nb_lines} > ${dot_file_max_nb_lines}, so we cannot convert the ${all_dot_file} graph into an image"    
+fi
+
+# convert the generated sorted dot files into images
+echo "try to convert the generated dot files into images only if the line number is lower than ${dot_file_max_nb_lines}..."
+for f in $sorted_dot_files
+do
+    b=`basename $f`
+    nb_lines=`wc -l $f | awk '{ print $1 }'`
+    echo "file: $f"
+    echo "nb_lines: ${nb_lines}"
+    # launch dot only if the number of lines is lower then a given threshold
+    if [ $nb_lines -le $dot_file_max_nb_lines ];
+    then
+	echo "${nb_lines} <= ${dot_file_max_nb_lines}, so we can convert the dot graph into an image"
+	#dot -Tpng $f > callers-analysis-report/png/$b.png
+	dot -Tsvg $f > callers-analysis-report/svg/$b.svg
+    else
+	echo "${nb_lines} > ${dot_file_max_nb_lines}, so we cannot convert the dot graph into an image"    
+    fi
+done

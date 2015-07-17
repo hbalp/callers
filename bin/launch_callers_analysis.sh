@@ -6,6 +6,9 @@
 
 progname=$0
 version=0.0.1
+# to configure when needed
+dot_file_max_nb_lines=1000
+#dot_file_max_nb_lines=5000
 
 # func_usage
 # outputs to stdout the --help usage message.
@@ -69,6 +72,58 @@ launch_script_footer ()
     echo "echo \"End function call graph analysis.\"" >> $callers_launch_script
 }
 
+dot_subgraph ()
+{
+    dot_filepath=$1
+    dot_filename=`basename ${dot_filepath}`
+    nb_lines=`wc -l ${dot_filepath} | awk '{ print $1 }'`
+    subgraph_nb_lines=$2
+    subgraph_dot_filepath=$3
+    subgraph_dot_filename=`basename ${subgraph_dot_filepath}`
+    echo "digraph \"${subgraph_dot_filename}\" {" >> ${subgraph_dot_filepath}
+    #echo "HBDBG: if [ $subgraph_nb_lines -ge $nb_lines ];"
+    if [ $subgraph_nb_lines -ge $nb_lines ];
+    then
+	echo "ERROR:dot_subgraph: ${subgraph_nb_lines} >= ${nb_lines} and the subgraph cannot contain more lines than the input file \"${dot_filename}\""
+	exit 0
+    else
+	echo "${subgraph_nb_lines} < ${nb_lines}, so we extract the subgraph \"${subgraph_dot_filename}\" from input file \"${dot_filename}\""	
+	cat $dot_filepath | tail -${subgraph_nb_lines} >> ${subgraph_dot_filepath}
+    fi
+    #echo "}" >> ${subgraph_dot_filepath}
+}
+
+# convert the dot graph defined in input file into an image (svg by default, png commented)
+convert_dot_file ()
+{
+    dot_filepath=$1
+    dot_filename=`basename ${dot_filepath}`
+    nb_lines=`wc -l ${dot_filepath} | awk '{ print $1 }'`
+    echo "file: ${dot_filepath}"
+    echo "nb_lines: ${nb_lines}"
+    # launch dot only if the number of lines is lower then a given threshold
+    if [ $nb_lines -le $dot_file_max_nb_lines ];
+    then
+	echo "${nb_lines} <= ${dot_file_max_nb_lines}, so we can convert the dot graph defined in file \"${dot_filename}\" into an image"
+	#dot -Tpng ${dot_filepath} > callers-analysis-report/png/${dot_filename}.png
+	dot -Tsvg ${dot_filepath} > callers-analysis-report/svg/${dot_filename}.svg
+    else
+	# build the subgraph containing the first ${dot_file_max_nb_lines}"
+	echo "${nb_lines} > ${dot_file_max_nb_lines}, so we cannot convert the whole graph named defined in file \"${dot_filename}\" into an image"    
+	subgraph_dot_filepath=`echo ${dot_filepath} | sed -e s/\\\\.dot/.subgraph.dot/g`
+	subgraph_dot_filename=`basename ${subgraph_dot_filepath}`
+	# echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
+	# echo "HBDBG: dot_filepath=${dot_filepath}"
+	# echo "HBDBG: subgraph_dot_filepath=${subgraph_dot_filepath}"
+	# echo "HBDBG: subgraph_dot_filename=${subgraph_dot_filename}"
+	# echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
+	echo "however, we will build the subgraph \"${subgraph_dot_filename}\" containing the first ${dot_file_max_nb_lines}"
+	dot_subgraph ${dot_filepath} ${dot_file_max_nb_lines} ${subgraph_dot_filepath}
+	#dot -Tpng ${subgraph_dot_filepath} > callers-analysis-report/png/${subgraph_dot_filename}.png
+	dot -Tsvg ${subgraph_dot_filepath} > callers-analysis-report/svg/${subgraph_dot_filename}.svg
+    fi
+}
+
 if test $# = 0; then
     func_usage; 
     exit 0
@@ -122,7 +177,7 @@ mkdir -p callers-analysis-report/dot/unsorted
 
 echo "launch the analysis..."
 
-./launch.gen.sh
+./launch.gen.sh 2>&1 | tee callers-analysis-report/callers.analysis.gen.log
 
 # sort the body of dot files to remove duplicated lines
 echo "sort the body of dot files to remove duplicated lines..."
@@ -161,34 +216,29 @@ echo "generated ${all_dot_file} file: ${all_sorted_dot_file}"
 echo "convert when possible the resulting ${all_dot_file} file into an image"
 #mkdir -p callers-analysis-report/png
 mkdir -p callers-analysis-report/svg
-dot_file_max_nb_lines=5000
-nb_lines=`wc -l ${all_sorted_dot_file} | awk '{ print $1 }'`
-echo "nb_lines: ${nb_lines}"
-# launch dot only if the number of lines is lower then a given threshold
-if [ $nb_lines -le $dot_file_max_nb_lines ];
-then
-    echo "${nb_lines} <= ${dot_file_max_nb_lines}, so we can convert the ${all_dot_file} graph into an image"
-    #dot -Tpng $f > callers-analysis-report/png/$b.png
-    dot -Tsvg ${all_sorted_dot_file} > callers-analysis-report/${all_dot_file}.svg
-else
-    echo "${nb_lines} > ${dot_file_max_nb_lines}, so we cannot convert the ${all_dot_file} graph into an image"    
-fi
+convert_dot_file ${all_sorted_dot_file}
 
-# convert the generated sorted dot files into images
-echo "try to convert the generated dot files into images only if the line number is lower than ${dot_file_max_nb_lines}..."
-for f in $sorted_dot_files
-do
-    b=`basename $f`
-    nb_lines=`wc -l $f | awk '{ print $1 }'`
-    echo "file: $f"
-    echo "nb_lines: ${nb_lines}"
-    # launch dot only if the number of lines is lower then a given threshold
-    if [ $nb_lines -le $dot_file_max_nb_lines ];
-    then
-	echo "${nb_lines} <= ${dot_file_max_nb_lines}, so we can convert the dot graph into an image"
-	#dot -Tpng $f > callers-analysis-report/png/$b.png
-	dot -Tsvg $f > callers-analysis-report/svg/$b.svg
-    else
-	echo "${nb_lines} > ${dot_file_max_nb_lines}, so we cannot convert the dot graph into an image"    
-    fi
-done
+# nb_lines=`wc -l ${all_sorted_dot_file} | awk '{ print $1 }'`
+# echo "nb_lines: ${nb_lines}"
+# # launch dot only if the number of lines is lower then a given threshold
+# if [ $nb_lines -le $dot_file_max_nb_lines ];
+# then
+#     echo "${nb_lines} <= ${dot_file_max_nb_lines}, so we can convert the ${all_dot_file} graph into an image"
+#     #dot -Tpng $f > callers-analysis-report/png/$b.png
+#     dot -Tsvg ${all_sorted_dot_file} > callers-analysis-report/${all_dot_file}.svg
+# else
+#     # build the subgraph containing the first ${dot_file_max_nb_lines}"
+#     echo "${nb_lines} > ${dot_file_max_nb_lines}, so we cannot convert the whole ${all_dot_file} graph into an image"    
+#     echo "however, we will build the subgraph containing the first ${dot_file_max_nb_lines}"
+#     all_subgraph_dot_filepath=callers-analysis-report/dot/all.subgraph.dot
+#     all_subgraph_dot_filename=`basename ${all_subgraph_dot_filepath}`
+#     dot_subgraph ${all_sorted_dot_file} ${dot_file_max_nb_lines} ${all_subgraph_dot_filepath}
+#     dot -Tsvg ${all_subgraph_dot_filepath} > callers-analysis-report/${all_subgraph_dot_filename}.svg
+# fi
+
+# # convert the generated sorted dot files into images
+# echo "try to convert the generated dot files into images only if the line number is lower than ${dot_file_max_nb_lines}..."
+# for f in $sorted_dot_files
+# do
+#     convert_dot_file $f
+# done

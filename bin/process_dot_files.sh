@@ -144,6 +144,7 @@ rm -f .tmp.gen.header .tmp.gen.body .tmp.gen.footer
 
 # concatenate all the sorted dot files into one unique dot file named all.dot
 echo "concatenate all the sorted dot files into one unique dot file named all.unsorted.dot"
+mkdir -p callers-analysis-report/dot
 all_unsorted_dot_file=callers-analysis-report/dot/all.unsorted.dot
 sorted_dot_files=`find ${dot_root_dir} -type f -name "*.sorted.out.dot"`
 for f in $sorted_dot_files

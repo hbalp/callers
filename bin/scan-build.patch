@@ -1,8 +1,8 @@
 diff --git exec/bin/scan-build exec/bin/scan-build
-index 71b3ad2..607bf9d 100755
+index 71b3ad2..6f53899 100755
 --- exec/bin/scan-build
 +++ exec/bin/scan-build
-@@ -1652,8 +1652,10 @@ my $CmdCXX = "$AbsRealBin/libexec/c++-analyzer";
+@@ -1652,12 +1652,16 @@ my $CmdCXX = "$AbsRealBin/libexec/c++-analyzer";
  # file extension to determine if a file is executable (see Perl language
  # reference, perlport)
  if (!defined $Cmd || ! -e $Cmd) {
@@ -14,4 +14,12 @@ index 71b3ad2..607bf9d 100755
 +  Diag("HBDBG: use 'ccc-analyzer' present in the PATH '$Cmd'\n") if(! -e $Cmd);  
  }
  if (!defined $CmdCXX || ! -e $CmdCXX) {
-   $CmdCXX = "$AbsRealBin/c++-analyzer";
+-  $CmdCXX = "$AbsRealBin/c++-analyzer";
+-  DieDiag("'c++-analyzer' does not exist at '$CmdCXX'\n") if(! -e $CmdCXX);
++  # $CmdCXX = "$AbsRealBin/c++-analyzer";
++  # DieDiag("'c++-analyzer' does not exist at '$CmdCXX'\n") if(! -e $CmdCXX);
++  $CmdCXX = "c++-analyzer";
++  Diag("HBDBG: use 'c++-analyzer' present in the PATH '$CmdCXX'\n") if(! -e $Cmd);  
+ }
+ 
+ Diag("Using '$Clang' for static analysis\n");

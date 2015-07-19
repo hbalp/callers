@@ -9,7 +9,6 @@ add_clang_executable(callers
   )
 
 target_link_libraries(callers
-  boost_regex
   clangAST
   clangBasic
   clangDriver

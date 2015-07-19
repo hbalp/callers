@@ -7,7 +7,7 @@
 progname=$0
 version=0.0.1
 # to configure when needed
-dot_file_max_nb_lines=1000
+dot_file_max_nb_lines=3000
 #dot_file_max_nb_lines=5000
 
 # func_usage

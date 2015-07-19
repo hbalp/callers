@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# get the absolute path to the first file to be analyzed
+file=${!#}
+
+echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
+
+# localize clang
+clang=`which clang`
+
+# get build options
+build_options=$@
+
+# build the source file
+${clang} ${build_options}
+
+# retrieve the system include files required by clang
+system_includes=`strace -f -e verbose=all -s 256 -v ${clang} -std=c++11 $file |& grep execve |& grep "bin/clang" |& grep cc1 |& sed -e s/'"-internal-isystem", "'/'-I"'/g|& sed -e s/'"-internal-externc-isystem", "'/'-I"'/g |& sed -e s/", "/"\n"/g |& grep "\-I\"" | sed -e s/\"//g | awk '{print}' ORS=' ' `
+# get path
+path=`pwd`
+
+# define callers analysis options
+callers_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/\\\\.o\ /\.analysis.callers.out\ /g`
+#callers_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/\\\\.o\ /\.out\ /g | sed -e s#${file}#${path}/${file}#g `
+#| sed -e s#-o\ CMakeFiles[^\ ]*/#-o\ callers-analysis-report/dot/unsorted/#g >> $callers_launch_script
+
+# localize callers
+callers=`which callers`
+
+# build the callers analysis command    
+analysis="${callers} ${system_includes} ${callers_analysis_options}"
+
+cd $path
+echo "file: ${path}/${file}"
+echo "launch callers analysis..."
+echo "${analysis}" | tee .tmp.last.callers.analysis.sh
+source .tmp.last.callers.analysis.sh
+#exec "${analysis}"
+#exec "cd ${path} && ${analysis}"
+
+echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"

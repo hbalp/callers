@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -x
+set -x
 #     Copyright (C) 2015 Commissariat à l'Energie Atomique, Thales Communication & Security
 #       - All Rights Reserved
 #     coded by Franck Vedrine, Hugues Balp
@@ -7,7 +7,7 @@
 progname=$0
 version=0.0.1
 # to configure when needed
-dot_file_max_nb_lines=1000
+dot_file_max_nb_lines=3000
 #dot_file_max_nb_lines=5000
 
 # func_usage
@@ -155,11 +155,11 @@ elif test $# = 2; then
     case $2 in
 	"all" )
 	    echo "analyze all files...";
-	    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.out\ /g | awk '{ print "&& " $N " \\" }' | sed -e s#-o\ CMakeFiles[^\ ]*/#-o\ callers-analysis-report/dot/unsorted/#g  >> $callers_launch_script
+	    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.callers.unsorted.out\ /g | awk '{ print "&& " $N " \\" }' >> $callers_launch_script
 	    ;;
 	*)
 	    echo "analyze file $2..."; 
-	    cat $compile_commands_json | grep \"command\" | grep $2 | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.out\ /g | awk '{ print "&& " $N " \\" }' | sed -e s#-o\ CMakeFiles[^\ ]*/#-o\ callers-analysis-report/dot/unsorted/#g >> $callers_launch_script
+	    cat $compile_commands_json | grep \"command\" | grep $2 | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.callers.unsorted.out\ /g | awk '{ print "&& " $N " \\" }' >> $callers_launch_script
 	    ;;
     esac
 
@@ -173,30 +173,37 @@ chmod +x $callers_launch_script
 
 echo "generated launcher script: ${callers_launch_script}"
 
-mkdir -p callers-analysis-report/dot/unsorted
+mkdir -p callers-analysis-report/dot
 
 echo "launch the analysis..."
 
 ./launch.gen.sh 2>&1 | tee callers-analysis-report/callers.analysis.gen.log
 
+path=`pwd`
+echo "path=${path}"
+dot_root_dir="CMakeFiles"
+echo "dot_root_dir=./${dot_root_dir}"
+
 # sort the body of dot files to remove duplicated lines
 echo "sort the body of dot files to remove duplicated lines..."
-mkdir -p callers-analysis-report/dot/sorted
-unsorted_dot_files=`find callers-analysis-report/dot/unsorted -type f -name "*.dot"`
+#mkdir -p callers-analysis-report/dot/sorted
+unsorted_dot_files=`find ${dot_root_dir} -type f -name "*.unsorted.out.dot"`
 for f in $unsorted_dot_files
 do
 b=`basename $f`
-head -1 callers-analysis-report/dot/unsorted/$b > .tmp.gen.header
-tail -6 callers-analysis-report/dot/unsorted/$b > .tmp.gen.footer
-cat callers-analysis-report/dot/unsorted/$b | egrep -v "{|}" | sort -u > .tmp.gen.body
-cat .tmp.gen.header .tmp.gen.body .tmp.gen.footer > callers-analysis-report/dot/sorted/$b
+d=`dirname $f`
+head -1 $f > .tmp.gen.header
+tail -6 $f > .tmp.gen.footer
+cat $f | egrep -v "{|}" | sort -u > .tmp.gen.body
+sorted_filename=`echo $b | sed -e s/unsorted/sorted/g`
+cat .tmp.gen.header .tmp.gen.body .tmp.gen.footer > $d/${sorted_filename}
 done
 rm -f .tmp.gen.header .tmp.gen.body .tmp.gen.footer
 
 # concatenate all the sorted dot files into one unique dot file named all.dot
 echo "concatenate all the sorted dot files into one unique dot file named all.unsorted.dot"
 all_unsorted_dot_file=callers-analysis-report/dot/all.unsorted.dot
-sorted_dot_files=`find callers-analysis-report/dot/sorted -type f -name "*.dot"`
+sorted_dot_files=`find ${dot_root_dir} -type f -name "*.sorted.out.dot"`
 for f in $sorted_dot_files
 do
     b=`basename $f`
@@ -218,27 +225,9 @@ echo "convert when possible the resulting ${all_dot_file} file into an image"
 mkdir -p callers-analysis-report/svg
 convert_dot_file ${all_sorted_dot_file}
 
-# nb_lines=`wc -l ${all_sorted_dot_file} | awk '{ print $1 }'`
-# echo "nb_lines: ${nb_lines}"
-# # launch dot only if the number of lines is lower then a given threshold
-# if [ $nb_lines -le $dot_file_max_nb_lines ];
-# then
-#     echo "${nb_lines} <= ${dot_file_max_nb_lines}, so we can convert the ${all_dot_file} graph into an image"
-#     #dot -Tpng $f > callers-analysis-report/png/$b.png
-#     dot -Tsvg ${all_sorted_dot_file} > callers-analysis-report/${all_dot_file}.svg
-# else
-#     # build the subgraph containing the first ${dot_file_max_nb_lines}"
-#     echo "${nb_lines} > ${dot_file_max_nb_lines}, so we cannot convert the whole ${all_dot_file} graph into an image"    
-#     echo "however, we will build the subgraph containing the first ${dot_file_max_nb_lines}"
-#     all_subgraph_dot_filepath=callers-analysis-report/dot/all.subgraph.dot
-#     all_subgraph_dot_filename=`basename ${all_subgraph_dot_filepath}`
-#     dot_subgraph ${all_sorted_dot_file} ${dot_file_max_nb_lines} ${all_subgraph_dot_filepath}
-#     dot -Tsvg ${all_subgraph_dot_filepath} > callers-analysis-report/${all_subgraph_dot_filename}.svg
-# fi
-
-# # convert the generated sorted dot files into images
-# echo "try to convert the generated dot files into images only if the line number is lower than ${dot_file_max_nb_lines}..."
-# for f in $sorted_dot_files
-# do
-#     convert_dot_file $f
-# done
+# convert the generated sorted dot files into images
+echo "try to convert the generated dot files into images only if the line number is lower than ${dot_file_max_nb_lines}..."
+for f in $sorted_dot_files
+do
+    convert_dot_file $f
+done

@@ -1,6 +1,0 @@
-#!/bin/sh
-../../../../../../build-llvm/Debug+Asserts/bin/callers -I/usr/lib/gcc/i686-linux-gnu/4.8/include -I/usr/lib/gcc/i686-linux-gnu/4.8/../../../../include/c++/4.8 -I/usr/lib/gcc/i686-linux-gnu/4.8/../../../../include/c++/4.8/i686-linux-gnu -I/usr/lib/gcc/i686-linux-gnu/4.8/../../../../include/c++/4.8/backward -I/usr/lib/gcc/i686-linux-gnu/4.8/../../../../include/i686-linux-gnu/c++/4.8 -I/usr/local/include -I/usr/include -I/usr/lib/gcc/i686-linux-gnu/4.8/include test_local_callgraph.c -o graph_test_local_callgraph.out
-../../../../../../build-llvm/Debug+Asserts/bin/callers -I/usr/lib/gcc/i686-linux-gnu/4.8/include -I/usr/lib/gcc/i686-linux-gnu/4.8/../../../../include/c++/4.8 -I/usr/lib/gcc/i686-linux-gnu/4.8/../../../../include/c++/4.8/i686-linux-gnu -I/usr/lib/gcc/i686-linux-gnu/4.8/../../../../include/c++/4.8/backward -I/usr/lib/gcc/i686-linux-gnu/4.8/../../../../include/i686-linux-gnu/c++/4.8 -I/usr/local/include -I/usr/include -I/usr/lib/gcc/i686-linux-gnu/4.8/include simple.cpp -o graph_simple.out
-../../../../../../build-llvm/Debug+Asserts/bin/callers -I/usr/local/include -I/usr/bin/../lib/clang/3.4/include -I/usr/include/clang/3.4/include/ -I/usr/include/i386-linux-gnu -I/usr/include/i686-linux-gnu dtest_local_callgraph.c -o graph_test_local_callgraph.out
-
-

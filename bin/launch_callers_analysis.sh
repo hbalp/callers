@@ -4,60 +4,241 @@
 #       - All Rights Reserved
 #     coded by Franck Vedrine, Hugues Balp
 
-export CC=`which clang`
-export CXX=`which clang++`
+progname=$0
+version=0.0.1
+# to configure when needed
+dot_file_max_nb_lines=1000
+#dot_file_max_nb_lines=5000
 
-cmake -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug .
+# func_usage
+# outputs to stdout the --help usage message.
+func_usage ()
+{
+    echo "################################################################################"
+    echo "# shell script to launch the clang \"callers\" analysis plugin"
+    echo "# version $version"
+    echo "################################################################################"
+    echo "# Usage:"
+    echo "launch_callers_analysis.sh <cmake_compile_commands.json> (all|<specific_file>)"
+}
 
-compile_commands_json="compile_commands.json"
+# func_version
+# outputs to stdout the --version message.
+func_version ()
+{
+    echo "################################################################################"
+    echo "clang callers plugin v$version"
+    echo "located at $progname"
+    echo "Copyright (C) 2015 Thales Communication & Security, Commissariat à l'Energie Atomique"
+    echo "Written by Hugues Balp and Franck Vedrine"
+    echo "  - All Rights Reserved"
+    echo "There is NO WARRANTY, to the extent permitted by law."
+    echo "################################################################################"
+}
+
+#echo "nb_params: " $#
 
 callers_launch_script=launch.gen.sh
-dot2png_script=dot2png.gen.sh
-dot2svg_script=dot2svg.gen.sh
 
-get the absolute path to the first file to be analyzed
-file=`grep \"file\" compile_commands.json | tail -1 | cut -d '"' -f4`
-clang=`which clang`
+# system_includes
+# retrieve the system include files required by clang
+system_includes ()
+{
+    compile_commands_json=$1
 
-system_includes=`strace -f -e verbose=all -s 256 -v ${clang} -std=c++11 $file |& grep execve |& grep "bin/clang" |& grep cc1 |& sed -e s/'"-internal-isystem", "'/'-I"'/g|& sed -e s/'"-internal-externc-isystem", "'/'-I"'/g |& sed -e s/", "/"\n"/g |& grep "\-I\"" | sed -e s/\"//g | awk '{print}' ORS=' ' `
+    # get the absolute path to the first file to be analyzed
+    file=`grep \"file\" ${compile_commands_json} | tail -1 | cut -d '"' -f4`
+    clang=`which clang`
+    
+    system_includes=`strace -f -e verbose=all -s 256 -v ${clang} -std=c++11 $file |& grep execve |& grep "bin/clang" |& grep cc1 |& sed -e s/'"-internal-isystem", "'/'-I"'/g|& sed -e s/'"-internal-externc-isystem", "'/'-I"'/g |& sed -e s/", "/"\n"/g |& grep "\-I\"" | sed -e s/\"//g | awk '{print}' ORS=' ' `
 
-echo "system_includes: $system_includes"
+    echo "system_includes: $system_includes"
 
-echo "#!/bin/bash -x" > $callers_launch_script
+    echo "system_includes=\"$system_includes\"" >> $callers_launch_script
+}
 
-echo "system_includes=\"$system_includes\"" >> $callers_launch_script
+launch_script_header ()
+{
+    compile_commands_json=$1
+    echo "#!/bin/bash" > $callers_launch_script
+    echo "#set -x" >> $callers_launch_script
+    system_includes $compile_commands_json;
+    echo "echo \"Begin function call graph analysis...\" \\" >> $callers_launch_script
+}
 
-echo "echo \"Begin function call graph analysis...\" \\" >> $callers_launch_script
+launch_script_footer ()
+{
+    echo "&& echo" >> $callers_launch_script
+    echo "echo \"End function call graph analysis.\"" >> $callers_launch_script
+}
 
-cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.out\ /g | awk '{ print "&& " $N " \\" }'  >> $callers_launch_script
+dot_subgraph ()
+{
+    dot_filepath=$1
+    dot_filename=`basename ${dot_filepath}`
+    nb_lines=`wc -l ${dot_filepath} | awk '{ print $1 }'`
+    subgraph_nb_lines=$2
+    subgraph_dot_filepath=$3
+    subgraph_dot_filename=`basename ${subgraph_dot_filepath}`
+    echo "digraph \"${subgraph_dot_filename}\" {" >> ${subgraph_dot_filepath}
+    #echo "HBDBG: if [ $subgraph_nb_lines -ge $nb_lines ];"
+    if [ $subgraph_nb_lines -ge $nb_lines ];
+    then
+	echo "ERROR:dot_subgraph: ${subgraph_nb_lines} >= ${nb_lines} and the subgraph cannot contain more lines than the input file \"${dot_filename}\""
+	exit 0
+    else
+	echo "${subgraph_nb_lines} < ${nb_lines}, so we extract the subgraph \"${subgraph_dot_filename}\" from input file \"${dot_filename}\""	
+	cat $dot_filepath | tail -${subgraph_nb_lines} >> ${subgraph_dot_filepath}
+    fi
+    #echo "}" >> ${subgraph_dot_filepath}
+}
 
-echo "echo" >> $callers_launch_script
-echo "echo \"End function call graph analysis.\"" >> $callers_launch_script
+# convert the dot graph defined in input file into an image (svg by default, png commented)
+convert_dot_file ()
+{
+    dot_filepath=$1
+    dot_filename=`basename ${dot_filepath}`
+    nb_lines=`wc -l ${dot_filepath} | awk '{ print $1 }'`
+    echo "file: ${dot_filepath}"
+    echo "nb_lines: ${nb_lines}"
+    # launch dot only if the number of lines is lower then a given threshold
+    if [ $nb_lines -le $dot_file_max_nb_lines ];
+    then
+	echo "${nb_lines} <= ${dot_file_max_nb_lines}, so we can convert the dot graph defined in file \"${dot_filename}\" into an image"
+	#dot -Tpng ${dot_filepath} > callers-analysis-report/png/${dot_filename}.png
+	dot -Tsvg ${dot_filepath} > callers-analysis-report/svg/${dot_filename}.svg
+    else
+	# build the subgraph containing the first ${dot_file_max_nb_lines}"
+	echo "${nb_lines} > ${dot_file_max_nb_lines}, so we cannot convert the whole graph named defined in file \"${dot_filename}\" into an image"    
+	subgraph_dot_filepath=`echo ${dot_filepath} | sed -e s/\\\\.dot/.subgraph.dot/g`
+	subgraph_dot_filename=`basename ${subgraph_dot_filepath}`
+	# echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
+	# echo "HBDBG: dot_filepath=${dot_filepath}"
+	# echo "HBDBG: subgraph_dot_filepath=${subgraph_dot_filepath}"
+	# echo "HBDBG: subgraph_dot_filename=${subgraph_dot_filename}"
+	# echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
+	echo "however, we will build the subgraph \"${subgraph_dot_filename}\" containing the first ${dot_file_max_nb_lines}"
+	dot_subgraph ${dot_filepath} ${dot_file_max_nb_lines} ${subgraph_dot_filepath}
+	#dot -Tpng ${subgraph_dot_filepath} > callers-analysis-report/png/${subgraph_dot_filename}.png
+	dot -Tsvg ${subgraph_dot_filepath} > callers-analysis-report/svg/${subgraph_dot_filename}.svg
+    fi
+}
+
+if test $# = 0; then
+    func_usage; 
+    exit 0
+    
+elif test $# = 1; then
+
+    case "$1" in
+	--help | --hel | --he | --h )
+	    func_usage; exit 0 ;;
+	--version | --versio | --versi | --vers | --ver | --ve | --v )
+	    func_version; exit 0 ;;
+	*)
+	    func_usage; exit 0 ;;
+    esac
+
+elif test $# = 2; then
+
+    compile_commands_json=$1
+    json_filename=`basename ${compile_commands_json}`
+    
+    case $json_filename in
+	"compile_commands.json" )
+	    echo "json_file: ${json_filename}";
+	    launch_script_header $compile_commands_json;;
+	*)
+	    func_usage; exit 0 ;;
+    esac
+
+    case $2 in
+	"all" )
+	    echo "analyze all files...";
+	    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.out\ /g | awk '{ print "&& " $N " \\" }' | sed -e s#-o\ CMakeFiles[^\ ]*/#-o\ callers-analysis-report/dot/unsorted/#g  >> $callers_launch_script
+	    ;;
+	*)
+	    echo "analyze file $2..."; 
+	    cat $compile_commands_json | grep \"command\" | grep $2 | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.out\ /g | awk '{ print "&& " $N " \\" }' | sed -e s#-o\ CMakeFiles[^\ ]*/#-o\ callers-analysis-report/dot/unsorted/#g >> $callers_launch_script
+	    ;;
+    esac
+
+    launch_script_footer;
+
+else
+    func_usage; exit 0
+fi
 
 chmod +x $callers_launch_script
 
 echo "generated launcher script: ${callers_launch_script}"
 
+mkdir -p callers-analysis-report/dot/unsorted
+
 echo "launch the analysis..."
 
-./launch.gen.sh
+./launch.gen.sh 2>&1 | tee callers-analysis-report/callers.analysis.gen.log
 
-echo "convert the generated dot files into png and svg images"
-
-# convert the generated dot files into png and svg images
-dot_files=`find CMakeFiles -type f -name "*.dot"`
-for f in $dot_files
+# sort the body of dot files to remove duplicated lines
+echo "sort the body of dot files to remove duplicated lines..."
+mkdir -p callers-analysis-report/dot/sorted
+unsorted_dot_files=`find callers-analysis-report/dot/unsorted -type f -name "*.dot"`
+for f in $unsorted_dot_files
 do
-dot -Tpng $f > $f.png
-dot -Tsvg $f > $f.svg
+b=`basename $f`
+head -1 callers-analysis-report/dot/unsorted/$b > .tmp.gen.header
+tail -6 callers-analysis-report/dot/unsorted/$b > .tmp.gen.footer
+cat callers-analysis-report/dot/unsorted/$b | egrep -v "{|}" | sort -u > .tmp.gen.body
+cat .tmp.gen.header .tmp.gen.body .tmp.gen.footer > callers-analysis-report/dot/sorted/$b
+done
+rm -f .tmp.gen.header .tmp.gen.body .tmp.gen.footer
+
+# concatenate all the sorted dot files into one unique dot file named all.dot
+echo "concatenate all the sorted dot files into one unique dot file named all.unsorted.dot"
+all_unsorted_dot_file=callers-analysis-report/dot/all.unsorted.dot
+sorted_dot_files=`find callers-analysis-report/dot/sorted -type f -name "*.dot"`
+for f in $sorted_dot_files
+do
+    b=`basename $f`
+    cat $f | egrep -v "{|}">> $all_unsorted_dot_file
 done
 
-# generate a script to convert dot files into png and svg images
-# echo "mkdir -p callers-report/png" > $dot2png_script
-# grep \"file\" compile_commands.json | cut -d '"' -f4 | awk '{ printf( "dot -Tpng %s > callers-report/png/", $1 ); system("basename " $1) }' | sed -e s/$/.png/g >> $dot2png_script
-# chmod +x $dot2png_script
+# sort the body of the all.unsorted.dot file to remove duplicated lines
+echo "sort the body of the all.unsorted.dot file to remove duplicated lines"
+all_sorted_dot_file=callers-analysis-report/dot/all.sorted.dot
+all_dot_file=`basename $all_sorted_dot_file`
+echo "digraph all {" > $all_sorted_dot_file
+cat $all_unsorted_dot_file | sort -u >> $all_sorted_dot_file
+echo "}" >> $all_sorted_dot_file
+echo "generated ${all_dot_file} file: ${all_sorted_dot_file}"
 
-# generate a script to convert dot files into svg images
-# echo "mkdir -p callers-report/svg" > $dot2svg_script
-# grep \"file\" compile_commands.json | cut -d '"' -f4 | awk '{ printf( "dot -Tsvg %s > callers-report/svg/", $1 ); system("basename " $1) }' | sed -e s/$/.svg/g >> $dot2svg_script
-# chmod +x $dot2svg_script
+# convert when possible the resulting all.sorted.dot file into an image
+echo "convert when possible the resulting ${all_dot_file} file into an image"
+#mkdir -p callers-analysis-report/png
+mkdir -p callers-analysis-report/svg
+convert_dot_file ${all_sorted_dot_file}
+
+# nb_lines=`wc -l ${all_sorted_dot_file} | awk '{ print $1 }'`
+# echo "nb_lines: ${nb_lines}"
+# # launch dot only if the number of lines is lower then a given threshold
+# if [ $nb_lines -le $dot_file_max_nb_lines ];
+# then
+#     echo "${nb_lines} <= ${dot_file_max_nb_lines}, so we can convert the ${all_dot_file} graph into an image"
+#     #dot -Tpng $f > callers-analysis-report/png/$b.png
+#     dot -Tsvg ${all_sorted_dot_file} > callers-analysis-report/${all_dot_file}.svg
+# else
+#     # build the subgraph containing the first ${dot_file_max_nb_lines}"
+#     echo "${nb_lines} > ${dot_file_max_nb_lines}, so we cannot convert the whole ${all_dot_file} graph into an image"    
+#     echo "however, we will build the subgraph containing the first ${dot_file_max_nb_lines}"
+#     all_subgraph_dot_filepath=callers-analysis-report/dot/all.subgraph.dot
+#     all_subgraph_dot_filename=`basename ${all_subgraph_dot_filepath}`
+#     dot_subgraph ${all_sorted_dot_file} ${dot_file_max_nb_lines} ${all_subgraph_dot_filepath}
+#     dot -Tsvg ${all_subgraph_dot_filepath} > callers-analysis-report/${all_subgraph_dot_filename}.svg
+# fi
+
+# # convert the generated sorted dot files into images
+# echo "try to convert the generated dot files into images only if the line number is lower than ${dot_file_max_nb_lines}..."
+# for f in $sorted_dot_files
+# do
+#     convert_dot_file $f
+# done

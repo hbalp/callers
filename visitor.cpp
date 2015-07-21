@@ -703,8 +703,14 @@ CallersAction::Visitor::getDotIdentifier(const std::string& name) const {
 #else
   std::string s = std::string("\"") + name + "\"";
 #endif
-
   return s;
+}
+
+std::string
+CallersAction::Visitor::getBasename(const clang::StringRef& filename) const {
+
+  std::pair<clang::StringRef, clang::StringRef> fullName = filename.rsplit('/');
+  return fullName.second.str();
 }
 
 std::string
@@ -745,8 +751,8 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
    result += printTemplateKind(function);
    result += printArgumentSignature(function);
    osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
-   dotOut << getDotIdentifier(printParentFunction()) << " [ label=\"" << inputFile << "\\n" << printParentFunction() << "\" ] \n";
-   dotOut << getDotIdentifier(result) << " [ label=\"" << inputFile << "\\n" << result << "\" ] \n";
+   dotOut << getDotIdentifier(printParentFunction()) << " [ label=\"" << getBasename(inputFile) << "\\n" << printParentFunction() << "\" ] \n";
+   dotOut << getDotIdentifier(result) << " [ label=\"" << getBasename(inputFile) << "\\n" << result << "\" ] \n";
    dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(result) << '\n';
    return true;
 }
@@ -761,8 +767,8 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
       result += printQualifiedName(function);
       result += printArgumentSignature(function);
       osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
-      dotOut << getDotIdentifier(printParentFunction()) << " [ label=\"" << inputFile << "\\n" << printParentFunction() << "\" ] \n";
-      dotOut << getDotIdentifier(result) << " [ label=\"" << inputFile << "\\n" << result << "\" ] \n";
+      dotOut << getDotIdentifier(printParentFunction()) << " [ label=\"" << getBasename(inputFile) << "\\n" << printParentFunction() << "\" ] \n";
+      dotOut << getDotIdentifier(result) << " [ label=\"" << getBasename(inputFile) << "\\n" << result << "\" ] \n";
       dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(result) << '\n';
       return true;
    };
@@ -776,8 +782,8 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
          std::string result = printQualifiedName(*destructor);
          result += "()";
          osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
-	 dotOut << getDotIdentifier(printParentFunction()) << " [ label=\"" << inputFile << "\\n" << printParentFunction() << "\" ] \n";
-	 dotOut << getDotIdentifier(result) << " [ label=\"" << inputFile << "\\n" << result << "\" ] \n";
+	 dotOut << getDotIdentifier(printParentFunction()) << " [ label=\"" << getBasename(inputFile) << "\\n" << printParentFunction() << "\" ] \n";
+	 dotOut << getDotIdentifier(result) << " [ label=\"" << getBasename(inputFile) << "\\n" << result << "\" ] \n";
          dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(result) << '\n';
       };
    };
@@ -807,8 +813,8 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
          return true;
       std::string result = writeFunction(*fd);
       osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
-      dotOut << getDotIdentifier(printParentFunction()) << " [ label=\"" << inputFile << "\\n" << printParentFunction() << "\" ] \n";
-      dotOut << getDotIdentifier(result) << " [ label=\"" << inputFile << "\\n" << result << "\" ] \n";
+      dotOut << getDotIdentifier(printParentFunction()) << " [ label=\"" << getBasename(inputFile) << "\\n" << printParentFunction() << "\" ] \n";
+      dotOut << getDotIdentifier(result) << " [ label=\"" << getBasename(inputFile) << "\\n" << result << "\" ] \n";
       dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(result) << '\n';
       return true;
    }

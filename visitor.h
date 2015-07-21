@@ -74,6 +74,8 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
     return sParent;
   };
 
+  // get the basename of a file from its unix-like full path
+  std::string getBasename(const clang::StringRef& filename) const;
   // convert function signature to a dot identifier
   std::string getDotIdentifier(const std::string& name) const;
 

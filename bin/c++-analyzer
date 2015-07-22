@@ -11,7 +11,7 @@ clang=`which clang`
 # get build options
 build_options=$@
 
-# build the source file
+# build the source file to enable link edition
 ${clang} ${build_options}
 
 # retrieve the system include files required by clang
@@ -27,8 +27,11 @@ callers_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/\\
 # localize callers
 callers=`which callers`
 
+# add some options when required
+callers_options="-std=c++11"
+
 # build the callers analysis command    
-analysis="${callers} ${system_includes} ${callers_analysis_options}"
+analysis="${callers} ${callers_options} ${system_includes} ${callers_analysis_options}"
 
 cd $path
 echo "file: ${path}/${file}"

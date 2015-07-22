@@ -153,19 +153,19 @@ main(int argc, char** argv) {
       exit(2);
    }
 
-   invocation->getLangOpts()->C99 = true;
-   // invocation->getLangOpts()->Bool = true;
-   // invocation->getLangOpts()->WChar = true;
-   // invocation->getLangOpts()->Exceptions = true;
-   // invocation->getLangOpts()->CXXExceptions = true;
+   invocation->getLangOpts()->CPlusPlus = true;
+   invocation->getLangOpts()->Bool = true;
+   invocation->getLangOpts()->WChar = true;
+   invocation->getLangOpts()->Exceptions = true;
+   invocation->getLangOpts()->CXXExceptions = true;
    invocation->getLangOpts()->EmitAllDecls = true;
    invocation->getLangOpts()->GNUInline = true;
    invocation->getLangOpts()->Deprecated = true;
-   // invocation->getLangOpts()->ShortWChar = true;
+   invocation->getLangOpts()->ShortWChar = true;
    invocation->getLangOpts()->ImplicitInt = false;
    // equivalent command-line option: callers -std=c++11
    // enable to analyze C++11 source code like clang version 3.7.0 (trunk 240320)
-   // invocation->getLangOpts()->CPlusPlus11 = true;
+   invocation->getLangOpts()->CPlusPlus11 = true;
    invocation->getFrontendOpts().ProgramAction = clang::frontend::ParseSyntaxOnly;
    compiler.setInvocation(invocation);
 

@@ -8,6 +8,11 @@ add_clang_executable(callers
   visitor.cpp
   )
 
+add_clang_executable(callers++
+  callers++.cpp
+  visitor.cpp
+  )
+
 target_link_libraries(callers
   clangAST
   clangBasic
@@ -18,5 +23,17 @@ target_link_libraries(callers
   clangTooling
   )
 
+target_link_libraries(callers++
+  clangAST
+  clangBasic
+  clangDriver
+  clangFrontend
+  clangRewriteFrontend
+  clangStaticAnalyzerFrontend
+  clangTooling
+  )
+
 install(TARGETS callers
+  RUNTIME DESTINATION bin)
+install(TARGETS callers++
   RUNTIME DESTINATION bin)

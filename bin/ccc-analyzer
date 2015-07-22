@@ -27,8 +27,11 @@ callers_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/\\
 # localize callers
 callers=`which callers`
 
+# add some options when required
+callers_options=""
+
 # build the callers analysis command    
-analysis="${callers} ${system_includes} ${callers_analysis_options}"
+analysis="${callers} ${callers_options} ${system_includes} ${callers_analysis_options}"
 
 cd $path
 echo "file: ${path}/${file}"

@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -x
+set -x
 #     Copyright (C) 2015 Commissariat à l'Energie Atomique, Thales Communication & Security
 #       - All Rights Reserved
 #     coded by Franck Vedrine, Hugues Balp
@@ -55,6 +55,7 @@ system_includes ()
 launch_script_header ()
 {
     compile_commands_json=$1
+    echo "#!/bin/bash" > $debug_launch_script
     echo "#!/bin/bash" > $callers_launch_script
     echo "#set -x" >> $callers_launch_script
     system_includes $compile_commands_json;
@@ -98,10 +99,17 @@ elif test $# = 2; then
     case $2 in
 	"all" )
 	    echo "analyze all files...";
+	    # make sure the output directories are well created before calling the analysis
+	    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e "s/.*-o //g" | awk '{ print $1 }' | xargs dirname | awk '{ print "&& mkdir -p " $N " \\" }' >> $callers_launch_script
+	    # build the analysis command from the build one listed in file compile_commands.json
 	    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.callers.unsorted.out\ /g | awk '{ print "&& " $N " \\" }' >> $callers_launch_script
 	    ;;
 	*)
 	    echo "analyze file $2..."; 
+	    # make sure the output directory is well created before calling the analysis
+	    cat $compile_commands_json | grep \"command\" | grep $2 | cut -d '"' -f4 | sed -e "s/.*-o //g" | awk '{ print $1 }' | xargs dirname | awk '{ print "&& mkdir -p " $N " \\" }' >> $callers_launch_script
+#	    cat $compile_commands_json | grep \"command\" | grep $2 | cut -d '"' -f4 | sed -e "s/.*-o //g" | awk '{ print $1 }' | xargs dirname | xargs echo "mkdir -p " >> $callers_launch_script
+	    # build the analysis command from the build one listed in file compile_commands.json
 	    cat $compile_commands_json | grep \"command\" | grep $2 | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.callers.unsorted.out\ /g | awk '{ print "&& " $N " \\" }' >> $callers_launch_script
 	    ;;
     esac
@@ -120,7 +128,7 @@ mkdir -p callers-analysis-report/dot
 
 echo "launch the analysis..."
 
-./launch.gen.sh 2>&1 | tee callers-analysis-report/callers.analysis.gen.log
+./${callers_launch_script} 2>&1 | tee callers-analysis-report/callers.analysis.gen.log
 
 path=`pwd`
 

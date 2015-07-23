@@ -58,11 +58,11 @@ class ProcessArguments {
    bool process(char** argument, int& currentArgument);
    void printUsage(std::ostream& osOut) const
       { std::cout << "Usage of callers :\n"
-            << "callers [option]+ input-files -o callers-outfile \n"
+            << "callers++ [option]+ input-files -o callers-outfile \n"
             << "   where option can be one of the following options:\n";
          std::cout << "      --version or\n";
          std::cout << "      -Idirectory\tfor specifying an include directory\n";
-         std::cout << "\nexample: callers -I. myfile.cpp -o myfile.fir\n";
+         std::cout << "\nexample: callers++ -I. myfile.cpp -o myfile.fir\n";
          std::cout << std::endl;
       }
    bool isValid() const { return _isValid; }
@@ -93,7 +93,7 @@ ProcessArguments::process(char** argument, int& currentArgument) {
          }
          case '-':
            if (strcmp(argument[0], "--version") == 0) {
-              std::cout << "Ubuntu " << clang::getClangToolFullVersion(llvm::StringRef("callers")) << "\n"
+              std::cout << "Ubuntu " << clang::getClangToolFullVersion(llvm::StringRef("callers++")) << "\n"
                         << "Target: i386-pc-linux-gnu\n"
                         << "Thread model: posix\n";
               _isVersion = true;

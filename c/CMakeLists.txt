@@ -3,14 +3,11 @@ set(LLVM_LINK_COMPONENTS
   Support
   )
 
+include_directories(..)
+
 add_clang_executable(callers
   callers.cpp
-  visitor.cpp
-  )
-
-add_clang_executable(callers++
-  callers++.cpp
-  visitor.cpp
+  ../visitor.cpp
   )
 
 target_link_libraries(callers
@@ -23,17 +20,5 @@ target_link_libraries(callers
   clangTooling
   )
 
-target_link_libraries(callers++
-  clangAST
-  clangBasic
-  clangDriver
-  clangFrontend
-  clangRewriteFrontend
-  clangStaticAnalyzerFrontend
-  clangTooling
-  )
-
 install(TARGETS callers
-  RUNTIME DESTINATION bin)
-install(TARGETS callers++
   RUNTIME DESTINATION bin)

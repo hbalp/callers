@@ -100,7 +100,7 @@ elif test $# = 2; then
 	"all" )
 	    echo "analyze all files...";
 	    # make sure the output directories are well created before calling the analysis
-	    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e "s/.*-o //g" | awk '{ print $1 }' | xargs dirname | awk '{ print "&& mkdir -p " $N " \\" }' >> $callers_launch_script
+	    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e "s/.*-o //g" | awk '{ print $1 }' | sort -u | xargs dirname | awk '{ print "&& mkdir -p " $N " \\" }' >> $callers_launch_script
 	    # build the analysis command from the build one listed in file compile_commands.json
 	    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.callers.unsorted.out\ /g | awk '{ print "&& " $N " \\" }' >> $callers_launch_script
 	    ;;

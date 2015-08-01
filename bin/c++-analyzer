@@ -1,15 +1,160 @@
 #!/bin/bash -x
 
-# get the absolute path to the first file to be analyzed
-file=${!#}
+#$include "shared-utilities"
+#$include /tools/llvm/trunk/tools/clang/tools/extra/callers/bin/shared-utilities
+
+function exit_script()
+{
+    lastArg=${!#}
+    args=$@
+    echo "CPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCP"
+    echo "c++-analyzer: last provided argument is ${lastArg} while expecting a filename, so we exit without executing any callers analysis"
+    echo "ignored arguments are: $@"
+    echo "WARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWAR"
+    #exit 255
+    exit 0
+}
+
+function is_option()
+{
+    id=$1
+    if [ ${id:0:1} == "-" ]
+    then
+	#echo "id: ${id} is an option"
+	return 0
+    else
+	#echo "id: ${id} is not an option"
+	return 1
+    fi
+}
+
+function has_extension()
+{
+    file=$1
+    ext=$2
+    bname=`basename $file`
+    fname=`basename $file $ext`
+    if [ $fname == $bname ]
+    then
+	#echo "ext of file ${file} is not ${ext}"
+	return 1
+    else
+	#echo "ext of file ${file} is ${ext}"
+	return 0
+    fi
+}
+
+function get_file()
+{
+    file_ext=$1
+    shift 1
+    args=$@
+    #echo "file_ext: ${file_ext}"
+    #echo "args: ${args}"
+    for a in $args
+    do
+	#echo "check whether ${a} is an option:"
+	is_option ${a}
+	is_opt=$?
+	if [ $is_opt -eq 1 ]
+	then
+	    #echo "check whether ${a} is a file with ext=${file_ext}:"
+	    has_extension ${a} ${file_ext}
+	    has_ext=$?
+	    if [ $has_ext -eq 0 ]
+	    then
+	        #echo "file of ext ${file_ext} is ${a}"
+		echo "${a}"
+		return 0
+	    fi
+	fi
+    done
+    #echo "No file of ext ${file_ext} has been found in $@"
+    return 1
+}
+
+function build_conftest()
+{
+    file=${!#}
+    args=$@
+    echo "CPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCP"
+    echo "c++-analyzer: last provided argument is ${file}, so we compile it without analysis"
+    #echo "CXX=${CXX} $@"
+    echo "g++ $@"
+    g++ "$@"
+    #clang "$@"
+    #$CXX "$@"
+    echo "CONFTESTCONFTESTCONFTESTCONFTESTCONFTESTCONFTESTCONFTESTCONFTESTCONFTESTCONFTEST"
+    exit 0
+}
+
+# function check_ld()
+# {
+#     lastArg=${!#}
+#     args=$@
+#     echo "CPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCP"
+#     echo "c++-analyzer: last provided argument is ${lastArg}, so we provide a dummy ld"
+#     echo "ld: $@"
+#     export LD=/usr/bin/ld
+#     echo "LDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLD"
+#     exit 0
+# }
+
+# function check_args()
+# {
+#     lastArg=${!#}
+
+#     if
+# 	[ $lastArg == "conftest.cpp" ]
+#     then
+# 	build_conftest $@
+#     elif
+# 	[ $lastArg == "-print-prog-name=ld" ]
+#     then
+# 	check_ld $@
+#     elif
+# 	[ $lastArg == "-V" ]||
+# 	[ $lastArg == "-v" ]||
+# 	[ $lastArg == "-qversion" ]
+#     then
+# 	exit_script $@
+#     fi
+# }
+
+# check expected arguments
+#check_args $@
+#lastArg=${!#}
 
 echo "CPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCP"
+
+# get the absolute path to the first source file to be analyzed
+#file=$lastArg
+build_args=$@
+#analysis_args=echo "${build_args}" | sed -e s/\\.o/\.gen\.callers\.unsorted\.out/g
+analysis_args=$@
+file=`get_file .cpp ${analysis_args}`
+echo "c++-analyzer arguments are: $@"
+
+if [ -z "${file}" ]
+then
+    echo "No .cpp source file has been found in arguments, so we bypass the callers analysis"
+    exit_script ${analysis_args}
+fi
+
+bfile=`basename $file`
+
+if [ ${bfile} == "conftest.cpp" ]
+then
+    build_conftest ${analysis_args}
+fi
+
+echo "cpp_file: ${file}"
 
 # localize clang
 clang=`which clang`
 
 # get build options
-build_options=$@
+build_options=${build_args}
 
 # build the source file to enable link edition and to be sure output directories are well created 
 ${clang} ${build_options}
@@ -20,12 +165,12 @@ system_includes=`strace -f -e verbose=all -s 256 -v ${clang} -std=c++11 $file |&
 path=`pwd`
 
 # define callers analysis options
-callers_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/\\\\.o\ /\.callers.unsorted.out\ /g`
-#callers_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/\\\\.o\ /\.out\ /g | sed -e s#${file}#${path}/${file}#g `
+callers_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/\\\\.o/\.callers.unsorted.out/g`
+#callers_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/\\\\.o/\.out\ /g | sed -e s#${file}#${path}/${file}#g `
 #| sed -e s#-o\ CMakeFiles[^\ ]*/#-o\ callers-analysis-report/dot/unsorted/#g >> $callers_launch_script
 
 # localize callers
-callers=`which callers`
+callers=`which callers++`
 
 # add some options when required
 callers_options="-std=c++11"
@@ -34,7 +179,6 @@ callers_options="-std=c++11"
 analysis="${callers} ${callers_options} ${system_includes} ${callers_analysis_options}"
 
 cd $path
-echo "file: ${path}/${file}"
 echo "launch callers analysis..."
 echo "${analysis}" | tee .tmp.last.callers.analysis.sh
 source .tmp.last.callers.analysis.sh
@@ -42,4 +186,3 @@ source .tmp.last.callers.analysis.sh
 #exec "cd ${path} && ${analysis}"
 
 echo "CPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCP"
-

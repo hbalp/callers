@@ -1,27 +1,28 @@
 #!/bin/bash
 set -x
-#     Copyright (C) 2015 Commissariat à l'Energie Atomique, Thales Communication & Security
+#     Copyright (C) 2015 Thales Communication & Security, Commissariat à l'Energie Atomique
 #       - All Rights Reserved
-#     coded by Franck Vedrine, Hugues Balp
+#     coded by Hugues Balp and Franck Vedrine
 
 progname=$0
 version=0.0.1
 
 # func_usage
 # outputs to stdout the --help usage message.
-func_usage ()
+function func_usage ()
 {
     echo "################################################################################"
     echo "# shell script to launch the clang \"callers\" analysis plugin"
     echo "# version $version"
     echo "################################################################################"
     echo "# Usage:"
-    echo "launch_callers_analysis.sh <cmake_compile_commands.json> (all|<specific_file>)"
+    echo "cmake_callers_analysis.sh <cmake_compile_commands.json> (all|<specific_file>) <callers_analysis_report_dir>"
+    exit 0
 }
 
 # func_version
 # outputs to stdout the --version message.
-func_version ()
+function func_version ()
 {
     echo "################################################################################"
     echo "clang callers plugin v$version"
@@ -31,13 +32,14 @@ func_version ()
     echo "  - All Rights Reserved"
     echo "There is NO WARRANTY, to the extent permitted by law."
     echo "################################################################################"
+    exit 0
 }
 
 callers_launch_script=launch.gen.sh
 
 # system_includes
 # retrieve the system include files required by clang
-system_includes ()
+function system_includes ()
 {
     compile_commands_json=$1
 
@@ -52,7 +54,7 @@ system_includes ()
     echo "system_includes=\"$system_includes\"" >> $callers_launch_script
 }
 
-launch_script_header ()
+function launch_script_header ()
 {
     compile_commands_json=$1
     echo "#!/bin/bash" > $debug_launch_script
@@ -62,7 +64,7 @@ launch_script_header ()
     echo "echo \"Begin function call graph analysis...\" \\" >> $callers_launch_script
 }
 
-launch_script_footer ()
+function launch_script_footer ()
 {
     echo "&& echo" >> $callers_launch_script
     echo "echo \"End function call graph analysis.\"" >> $callers_launch_script
@@ -78,12 +80,16 @@ elif test $# = 1; then
 	--help | --hel | --he | --h )
 	    func_usage; exit 0 ;;
 	--version | --versio | --versi | --vers | --ver | --ve | --v )
-	    func_version; exit 0 ;;
+	    func_version ;;
 	*)
-	    func_usage; exit 0 ;;
+	    func_usage ;;
     esac
 
 elif test $# = 2; then
+
+    func_usage
+
+elif test $# = 3; then
 
     compile_commands_json=$1
     json_filename=`basename ${compile_commands_json}`
@@ -93,7 +99,7 @@ elif test $# = 2; then
 	    echo "json_file: ${json_filename}";
 	    launch_script_header $compile_commands_json;;
 	*)
-	    func_usage; exit 0 ;;
+	    func_usage ;;
     esac
 
     case $2 in
@@ -116,20 +122,22 @@ elif test $# = 2; then
 
     launch_script_footer;
 
+    callers_analysis_report=$3
+
 else
-    func_usage; exit 0
+    func_usage
 fi
 
-chmod +x $callers_launch_script
+chmod +x ${callers_launch_script}
 
 echo "generated launcher script: ${callers_launch_script}"
 
-mkdir -p callers-analysis-report/dot
+mkdir -p ${callers_analysis_report}/dot
 
 echo "launch the analysis..."
 
-./${callers_launch_script} 2>&1 | tee callers-analysis-report/callers.analysis.gen.log
+./${callers_launch_script} 2>&1 | tee ${callers_analysis_report}/callers.analysis.gen.log
 
 path=`pwd`
 
-process_dot_files.sh "${path}/CMakeFiles"
+process_dot_files.sh "${path}/CMakeFiles" ${callers_analysis_report}

@@ -207,7 +207,7 @@ callers=`which callers`
 callers_options=""
 
 # build the callers analysis command    
-analysis="${callers} ${callers_options} OOO ${system_includes} PPP ${callers_analysis_options}"
+analysis="${callers} ${callers_options} ${system_includes} ${callers_analysis_options}"
 
 cd $path
 echo "launch callers analysis..."

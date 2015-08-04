@@ -94,9 +94,9 @@ CallersAction::Visitor::HandleTranslationUnit(clang::ASTContext &context) {
    {
      // presentation ends (temporaire avant sortie json intermediaire)
      dotOut << "}\n\n" << std::endl;     
-     dotOut << "// Local Variables:" << std::endl;
-     dotOut << "// compile-command: \"dot -Tpng " << dotOutFname << " > " << dotOutFname << ".png\"" << std::endl;
-     dotOut << "// End:"  << std::endl;
+     // dotOut << "// Local Variables:" << std::endl;
+     // dotOut << "// compile-command: \"dot -Tpng " << dotOutFname << " > " << dotOutFname << ".png\"" << std::endl;
+     // dotOut << "// End:"  << std::endl;
    }
 }
 
@@ -752,8 +752,10 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
    result += printArgumentSignature(function);
    osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
    dotOut << getDotIdentifier(printParentFunction()) << " [ label=\"" << getBasename(inputFile) << "\\n" << printParentFunction() << "\" ] \n";
-   dotOut << getDotIdentifier(result) << " [ label=\"" << getBasename(inputFile) << "\\n" << result << "\" ] \n";
-   dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(result) << '\n';
+   //dotOut << getDotIdentifier(result) << " [ label=\"" << getBasename(inputFile) << "\\n" << result << "\" ] \n";
+   dotOut << getDotIdentifier(writeFunction(function)) << " [ label=\"" << getBasename(inputFile) << "\\n" << writeFunction(function) << "\" ] \n";
+   //dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(result) << '\n';
+   dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(writeFunction(function)) << '\n';
    return true;
 }
 

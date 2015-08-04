@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+#set -x
 #     Copyright (C) 2015 Commissariat à l'Energie Atomique, Thales Communication & Security
 #       - All Rights Reserved
 #     coded by Franck Vedrine, Hugues Balp
@@ -55,7 +55,6 @@ system_includes ()
 launch_script_header ()
 {
     compile_commands_json=$1
-    echo "#!/bin/bash" > $debug_launch_script
     echo "#!/bin/bash" > $callers_launch_script
     echo "#set -x" >> $callers_launch_script
     system_includes $compile_commands_json;

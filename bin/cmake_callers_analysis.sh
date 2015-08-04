@@ -35,6 +35,7 @@ function func_version ()
     exit 0
 }
 
+gdb_launch_script=gdbinit
 callers_launch_script=launch.gen.sh
 
 # system_includes
@@ -52,6 +53,20 @@ function system_includes ()
     echo "system_includes: $system_includes"
 
     echo "system_includes=\"$system_includes\"" >> $callers_launch_script
+}
+
+function dump_gdbinit ()
+{
+    compile_commands_json=$1
+
+    # get the absolute path to the first file to be analyzed
+    file=`grep \"file\" ${compile_commands_json} | tail -1 | cut -d '"' -f4`
+    clang=`which clang`
+    
+    system_includes=`strace -f -e verbose=all -s 256 -v ${clang} -std=c++11 $file |& grep execve |& grep "bin/clang" |& grep cc1 |& sed -e s/'"-internal-isystem", "'/'-I"'/g|& sed -e s/'"-internal-externc-isystem", "'/'-I"'/g |& sed -e s/", "/"\n"/g |& grep "\-I\"" | sed -e s/\"//g | awk '{print}' ORS=' ' `
+
+    printf "set args ${system_includes} " >> $gdb_launch_script
+    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4  | sed -e s/^[^\ ]*//g >> $gdb_launch_script
 }
 
 function launch_script_header ()
@@ -108,6 +123,8 @@ elif test $# = 3; then
 	    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e "s/.*-o //g" | awk '{ print $1 }' | sort -u | xargs dirname | awk '{ print "&& mkdir -p " $N " \\" }' >> $callers_launch_script
 	    # build the analysis command from the build one listed in file compile_commands.json
 	    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.callers.unsorted.out\ /g | awk '{ print "&& " $N " \\" }' >> $callers_launch_script
+	    # prepare command arguments for gdbinit script
+	    dump_gdbinit $compile_commands_json
 	    ;;
 	*)
 	    echo "analyze file $2..."; 
@@ -115,7 +132,9 @@ elif test $# = 3; then
 	    cat $compile_commands_json | grep \"command\" | grep $2 | cut -d '"' -f4 | sed -e "s/.*-o //g" | awk '{ print $1 }' | xargs dirname | awk '{ print "&& mkdir -p " $N " \\" }' >> $callers_launch_script
 #	    cat $compile_commands_json | grep \"command\" | grep $2 | cut -d '"' -f4 | sed -e "s/.*-o //g" | awk '{ print $1 }' | xargs dirname | xargs echo "mkdir -p " >> $callers_launch_script
 	    # build the analysis command from the build one listed in file compile_commands.json
-	    cat $compile_commands_json | grep \"command\" | grep $2 | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.callers.unsorted.out\ /g | awk '{ print "&& " $N " \\" }' >> $callers_launch_script
+	    cat $compile_commands_json | grep \"command\" | grep $2 | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.callers.unsorted.out\ /g | awk '{ print "&& " $N " \\" }' >> $gdb_launch_script
+	    # prepare command arguments for gdbinit scrip
+	    echo "TBC" >> $gdb_launch_script
 	    ;;
     esac
 

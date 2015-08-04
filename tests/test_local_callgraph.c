@@ -13,11 +13,10 @@ int b()
   return 0;
 }
 
-int a()
+void a()
 {
   printf("a()\n");
   b();
-  return 0;
 }
 
 int main()

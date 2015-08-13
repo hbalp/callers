@@ -3,12 +3,19 @@ set(LLVM_LINK_COMPONENTS
   Support
   )
 
+#option(USE_CXX_EXCEPTIONS "Enable C++ exception support" ON)
+
+#set (CMAKE_CXX_FLAGS "-fexceptions")
+
 include_directories(..)
 
 add_clang_executable(callers++
   callers++.cpp
   ../visitor.cpp
+  ../CallersData.cpp
   )
+
+target_compile_options(callers++ PRIVATE -fexceptions)
 
 target_link_libraries(callers++
   clangAST
@@ -18,6 +25,8 @@ target_link_libraries(callers++
   clangRewriteFrontend
   clangStaticAnalyzerFrontend
   clangTooling
+  boost_filesystem
+  boost_system
   )
 
 install(TARGETS callers++

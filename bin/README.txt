@@ -1,5 +1,7 @@
 
-cp ../scan-callers /tools/exec/bin
+clang_path=`which clang`
+clang_bindir=`dirname $clang_path`
+cp ../scan-callers $clang_bindir
 
 ## obsolete
 # cd /tools/exec/bin

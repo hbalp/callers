@@ -39,6 +39,7 @@ class ProcessArguments {
    // clang::CompilerInvocation* _invocation;
    std::string _output;
    std::string _dotfilename;
+   std::string _jsonfilename;
    std::vector<std::string> _includes;
    bool _doesGenerateImplicitMethods;
    bool _isVersion;
@@ -70,6 +71,7 @@ class ProcessArguments {
    bool doesGenerateImplicitMethods() const { return _doesGenerateImplicitMethods; }
    const std::string& getOutputFile() const { return _output; }
    const std::string& getDotOutputFile() const { return _dotfilename; }
+   const std::string& getJsonOutputFile() const { return _jsonfilename; }
 };
 
 bool
@@ -79,15 +81,22 @@ ProcessArguments::process(char** argument, int& currentArgument) {
          case 'o':
          {
            std::string dotfilename;
+           std::string jsonfilename;
            if (currentArgument == 0 || _output != "") {
               printUsage(std::cout);
               return false;
            };
            currentArgument -= 2;
            _output = argument[1];
+
            dotfilename += argument[1];
            dotfilename += ".dot";
            _dotfilename = dotfilename;
+
+           jsonfilename += argument[1];
+           jsonfilename += ".json";
+           _jsonfilename = jsonfilename;
+
            _isValid = true;
            return true;
          }
@@ -171,6 +180,7 @@ main(int argc, char** argv) {
 
    CallersAction callersAction(processArgument.getOutputFile(), 
 			       processArgument.getDotOutputFile(), 
+			       processArgument.getJsonOutputFile(), 
 			       compiler);
    if (processArgument.doesGenerateImplicitMethods())
       callersAction.setGenerateImplicitMethods();

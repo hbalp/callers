@@ -12,7 +12,11 @@
 #ifndef CLANG_VisitorH
 #define CLANG_VisitorH
 
+#include <boost/filesystem.hpp>
+#include "libgen.h"
+#include "CallersData.hpp"
 #include "clang/Basic/Version.h"
+
 #if (CLANG_VERSION_MAJOR > 3)                                 \
     || (CLANG_VERSION_MAJOR == 3 && CLANG_VERSION_MINOR >= 4)
 #define CLANG_VERSION_GREATER_OR_EQUAL_3_4
@@ -33,19 +37,27 @@ class CallersAction : public clang::ASTFrontendAction {
    std::ofstream fOut;
    std::ofstream dOut;
    std::string dOutFname;
+   std::ofstream jOut;
+   std::string jOutFname;
    clang::CompilerInstance& ciCompilerInstance;
    bool _doesGenerateImplicitMethods;
 
   public:
-   CallersAction(const std::string& out, const std::string& dout, clang::CompilerInstance& compilerInstance)
-     :  fOut(out), dOut(dout), dOutFname(dout), ciCompilerInstance(compilerInstance), _doesGenerateImplicitMethods(false) {}
+   CallersAction(const std::string& out, 
+		 const std::string& dout, 
+		 const std::string& jout, 
+		 clang::CompilerInstance& compilerInstance)
+     : fOut(out),
+     dOut(dout), dOutFname(dout), 
+     jOut(jout), jOutFname(jout), 
+     ciCompilerInstance(compilerInstance), _doesGenerateImplicitMethods(false) {}
 #ifdef CLANG_VERSION_GREATER_OR_EQUAL_3_7
    virtual std::unique_ptr<clang::ASTConsumer> 
 #else
    virtual clang::ASTConsumer*
 #endif
-      CreateASTConsumer(clang::CompilerInstance& compilerInstance,
-         clang::StringRef inputFile);
+     CreateASTConsumer(clang::CompilerInstance& compilerInstance,
+		       clang::StringRef inputFile);
    void setGenerateImplicitMethods() { _doesGenerateImplicitMethods = true; }
 
   private:
@@ -60,6 +72,9 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   std::ostream& osOut;
   std::ostream& dotOut;
   std::string dotOutFname;
+  std::ostream& jsonOut;
+  std::string jsonOutFname;
+  CallersData::File jsonFile;
   clang::CompilerInstance& ciCompilerInstance;
   const clang::FunctionDecl* pfdParent;
   mutable std::string sParent;
@@ -78,6 +93,7 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   std::string getBasename(const clang::StringRef& filename) const;
   // convert function signature to a dot identifier
   std::string getDotIdentifier(const std::string& name) const;
+  std::string getJsonIdentifier(const std::string& name) const;
 
   std::string printLocation(const clang::SourceRange& rangeLocation) const;
   std::string printTemplateExtension(const clang::TemplateArgumentList& arguments) const;
@@ -97,8 +113,25 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   bool isTemplate(clang::CXXRecordDecl* RD) const;
 
  public:
- Visitor(std::string in, std::string doutfname, std::ostream& sout, std::ostream& dout, clang::CompilerInstance& compilerInstance)
-   : inputFile(in), osOut(sout), dotOut(dout), dotOutFname(doutfname), ciCompilerInstance(compilerInstance), pfdParent(nullptr), psSources(nullptr) {}
+ Visitor(const std::string& in,
+	 const std::string& file,
+	 const std::string& path,
+	 std::ostream& sout, 
+	 std::ostream& dout, std::string doutfname, 
+	 std::ostream& jout, std::string joutfname,
+	 clang::CompilerInstance& compilerInstance)
+   : inputFile(in), osOut(sout), 
+    dotOut(dout), dotOutFname(doutfname), 
+    jsonOut(jout), jsonOutFname(joutfname), 
+    jsonFile(file, path),
+    ciCompilerInstance(compilerInstance), 
+    pfdParent(nullptr), psSources(nullptr)
+  {}
+
+  ~Visitor()
+    {
+      jsonFile.output_json_desc();
+    }
 
   virtual bool VisitCXXConstructExpr(const clang::CXXConstructExpr* constructor);
   virtual bool VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExpr);

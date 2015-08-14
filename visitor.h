@@ -94,7 +94,10 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   // convert function signature to a dot identifier
   std::string getDotIdentifier(const std::string& name) const;
   std::string getJsonIdentifier(const std::string& name) const;
-
+  void addFunctionCall(std::string caller_id, 
+		       std::string caller_sign,
+		       std::string callee_id,
+		       std::string callee_sign);
   std::string printLocation(const clang::SourceRange& rangeLocation) const;
   std::string printTemplateExtension(const clang::TemplateArgumentList& arguments) const;
   std::string printTemplateKind(const clang::FunctionDecl& function) const;

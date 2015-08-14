@@ -765,8 +765,12 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
    dotOut << getDotIdentifier(printParentFunction()) << " [ label1=\"" << getBasename(inputFile) << "\\n" << printParentFunction() << "\" ] \n";
    //dotOut << getDotIdentifier(result) << " [ label=\"" << getBasename(inputFile) << "\\n" << result << "\" ] \n";
    dotOut << getDotIdentifier(writeFunction(function)) << " [ label2=\"" << getBasename(inputFile) << "\\n" << writeFunction(function) << "\" ] \n";
-   jsonFile.add_defined_function("TBC2", printParentFunction());
-   jsonFile.add_defined_function("TBC2", writeFunction(function));
+
+   this->addFunctionCall("TBC1_1", printParentFunction(), "TBC1_2", writeFunction(function));
+
+   // jsonFile.add_defined_function("TBC1_1", printParentFunction());
+   // jsonFile.add_defined_function("TBC1_2", writeFunction(function));
+
    //dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(result) << '\n';
    dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(writeFunction(function)) << '\n';
    return true;
@@ -782,9 +786,12 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
       result += printQualifiedName(function);
       result += printArgumentSignature(function);
       osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
+
       dotOut << getDotIdentifier(printParentFunction()) << " [ label3=\"" << getBasename(inputFile) << "\\n" << printParentFunction() << "\" ] \n";
       dotOut << getDotIdentifier(result) << " [ label4=\"" << getBasename(inputFile) << "\\n" << result << "\" ] \n";
       dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(result) << '\n';
+
+      this->addFunctionCall("TBC2_1", printParentFunction(), "TBC2_2", result);
       return true;
    };
    const auto* recordDecl = deleteExpr->getType()->getPointeeCXXRecordDecl();
@@ -797,9 +804,12 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
          std::string result = printQualifiedName(*destructor);
          result += "()";
          osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
+
 	 dotOut << getDotIdentifier(printParentFunction()) << " [ label5=\"" << getBasename(inputFile) << "\\n" << printParentFunction() << "\" ] \n";
 	 dotOut << getDotIdentifier(result) << " [ label6=\"" << getBasename(inputFile) << "\\n" << result << "\" ] \n";
          dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(result) << '\n';
+
+	 this->addFunctionCall("TBC4_1", printParentFunction(), "TBC4_2", result);
       };
    };
    return true;
@@ -819,6 +829,43 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
    return true;
 }
 
+/* Caller functions are supposed to be defined in the current inputFile.
+   If the callee function is not yet part of the current inputFile,
+   then it is considered as an external function.
+   However, this first attempt has to be consolidated in the future...
+*/
+void
+CallersAction::Visitor::addFunctionCall(std::string caller_id, 
+					std::string caller_sign,
+					std::string callee_id,
+					std::string callee_sign)
+{ 
+  jsonFile.add_defined_function(caller_id, caller_sign);
+  jsonFile.add_defined_function(callee_id, callee_sign);
+ 
+  std::set<CallersData::Fct>::const_iterator func;
+  // check whether the callee function is local
+  {
+    CallersData::Fct fct(callee_id, callee_sign);
+    func = jsonFile.defined.find(fct);
+    if(func != jsonFile.defined.end())
+      {
+	// add local caller to local callee
+	func->add_local_caller(caller_sign);
+      }
+  }
+  
+  // check whether the callee function is local
+  {
+    CallersData::Fct fct(caller_id, caller_sign);
+    func = jsonFile.defined.find(fct);
+    if(func != jsonFile.defined.end())
+      {
+	func->add_local_callee(callee_sign);
+      }
+  }
+}
+
 bool
 CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
    const clang::FunctionDecl* fd = callExpr->getDirectCallee();
@@ -832,8 +879,11 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
       dotOut << getDotIdentifier(result) << " [ label8=\"" << getBasename(inputFile) << "\\n" << result << "\" ] \n";
       dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(result) << '\n';
 
-      jsonFile.add_defined_function("TBC1", printParentFunction());
-      jsonFile.add_defined_function("TBC2", result);
+      this->addFunctionCall("TBC3_1", printParentFunction(), "TBC3_2", result);
+
+      /*
+      jsonFile.add_defined_function("TBC2_1", printParentFunction());
+      jsonFile.add_defined_function("TBC2_2", result);
 
       std::set<CallersData::Fct>::const_iterator func;
 
@@ -856,7 +906,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	    func->add_local_callee(result);
 	  }
       }
-
+      */
       return true;
    }
    if (callExpr->getCallee()->getStmtClass() == clang::Stmt::CXXPseudoDestructorExprClass)

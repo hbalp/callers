@@ -9,9 +9,13 @@
 //   clang -> file containing called functions
 //
 
+//#define NOT_USE_BOOST_FILESYSTEM
 #define NOT_USE_BOOST_REGEX
 
 #include <climits>
+#ifndef NOT_USE_BOOST_FILESYSTEM
+#include <boost/filesystem.hpp>
+#endif
 #ifndef NOT_USE_BOOST_REGEX
 #include <boost/regex.hpp>
 #endif
@@ -762,12 +766,12 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
    result += printTemplateKind(function);
    result += printArgumentSignature(function);
    osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
-   dotOut << getDotIdentifier(printParentFunction()) << " [ label1=\"" << getBasename(inputFile) << "\\n" << printParentFunction() << "\" ] \n";
+   dotOut << getDotIdentifier(printParentFunction()) << " [ label1=\"" << symbols.get_filename(printParentFunction()) << "\\n" << printParentFunction() << "\" ] \n";
    //dotOut << getDotIdentifier(result) << " [ label=\"" << getBasename(inputFile) << "\\n" << result << "\" ] \n";
-   dotOut << getDotIdentifier(writeFunction(function)) << " [ label2=\"" << getBasename(inputFile) << "\\n" << writeFunction(function) << "\" ] \n";
+   dotOut << getDotIdentifier(writeFunction(function)) << " [ label2=\"" << symbols.get_filename(writeFunction(function)) << "\\n" << writeFunction(function) << "\" ] \n";
 
    CallersData::FctCall fc("TBC1_1", printParentFunction(), "TBC1_2", writeFunction(function));
-   jsonFile.add_function_call(&fc);
+   jsonFile.add_function_call(&fc, symbols);
 
    // jsonFile.add_defined_function("TBC1_1", printParentFunction());
    // jsonFile.add_defined_function("TBC1_2", writeFunction(function));
@@ -793,7 +797,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
       dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(result) << '\n';
 
       CallersData::FctCall fc("TBC2_1", printParentFunction(), "TBC2_2", result);
-      jsonFile.add_function_call(&fc);
+      jsonFile.add_function_call(&fc, symbols);
 
       return true;
    };
@@ -813,7 +817,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
          dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(result) << '\n';
 
 	 CallersData::FctCall fc("TBC4_1", printParentFunction(), "TBC4_2", result);
-	 jsonFile.add_function_call(&fc);
+	 jsonFile.add_function_call(&fc, symbols);
       };
    };
    return true;
@@ -842,12 +846,12 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
          return true;
       std::string result = writeFunction(*fd);
       osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
-      dotOut << getDotIdentifier(printParentFunction()) << " [ label7=\"" << getBasename(inputFile) << "\\n" << printParentFunction() << "\" ] \n";
-      dotOut << getDotIdentifier(result) << " [ label8=\"" << getBasename(inputFile) << "\\n" << result << "\" ] \n";
+      dotOut << getDotIdentifier(printParentFunction()) << " [ label7=\"" << symbols.get_filename(printParentFunction()) << "\\n" << printParentFunction() << "\" ] \n";
+      dotOut << getDotIdentifier(result) << " [ label8=\"" << symbols.get_filename(result) << "\\n" << result << "\" ] \n";
       dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(result) << '\n';
 
       CallersData::FctCall fc("TBC3_1", printParentFunction(), "TBC3_2", result);
-      jsonFile.add_function_call(&fc);
+      jsonFile.add_function_call(&fc, symbols);
 
       /*
       jsonFile.add_defined_function("TBC2_1", printParentFunction());

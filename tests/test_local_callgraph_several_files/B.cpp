@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include "B.hpp"
-#include "A.hpp"
 
 int c()
 {
@@ -8,7 +7,11 @@ int c()
   return 0;
 }
 
-B::B() {}
+B::B() 
+{
+  // contournement du besoin d'ajouter les liens de type extcallers
+  //c();
+}
 
 int B::b()
 {

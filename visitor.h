@@ -12,7 +12,6 @@
 #ifndef CLANG_VisitorH
 #define CLANG_VisitorH
 
-#include <boost/filesystem.hpp>
 #include "libgen.h"
 #include "CallersData.hpp"
 #include "clang/Basic/Version.h"
@@ -79,6 +78,7 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   const clang::FunctionDecl* pfdParent;
   mutable std::string sParent;
   clang::SourceManager* psSources;
+  CallersData::Symbols symbols;
 
   std::string writeFunction(const clang::FunctionDecl& function, bool isUnqualified=false) const;
   
@@ -124,13 +124,13 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
     jsonOut(jout), jsonOutFname(joutfname), 
     jsonFile(file, path),
     ciCompilerInstance(compilerInstance), 
-    pfdParent(nullptr), psSources(nullptr)
+    pfdParent(nullptr), psSources(nullptr),
+    symbols("defined_symbols.json")
   {}
 
   ~Visitor()
     {
-      CallersData::Symbols symbols("defined_symbols.json");
-      jsonFile.sort_local_and_external_function_calls(symbols);
+      //jsonFile.sort_local_and_external_function_calls(symbols);
       jsonFile.output_json_desc();
     }
 

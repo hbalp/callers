@@ -9,8 +9,8 @@ class B;
 class A
 {
 public:
-  A() {}
-  ~A() {}
+  A();
+  ~A();
   
   int a();
 

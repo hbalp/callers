@@ -6,8 +6,8 @@
 class B
 {
 public:
-  B() {}
-  ~B() {}
+  B();
+  ~B();
   
   int b();
 };

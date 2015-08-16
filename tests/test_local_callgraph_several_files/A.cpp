@@ -3,6 +3,8 @@
 #include "A.hpp"
 #include "B.hpp"
 
+A::A() {}
+
 int A::a()
 {
   printf("a()\n");

@@ -1,11 +1,14 @@
 #include <stdio.h>
 #include "B.hpp"
+#include "A.hpp"
 
 int c()
 {
   printf("c()\n");
   return 0;
 }
+
+B::B() {}
 
 int B::b()
 {

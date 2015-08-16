@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+#set -x
 # Copyright (C) 2015 Thales Communication & Security
 #   - All Rights Reserved
 # author: Hugues Balp
@@ -84,7 +84,7 @@ elif test $# = 1; then
 	*)
 	    # We assume here that the provided argument is the <roodir>
 	    rootdir=$1
-	    defined_symbols_jsonfilename="build/defined_symbols.gen.json"
+	    defined_symbols_jsonfilename="build/defined_symbols.json"
 	    echo "Generate list of defined symbols in json file named \"${defined_symbols_jsonfilename}\""
 	    generate_defined_symbols_jsonfile ${rootdir} > ${defined_symbols_jsonfilename}
     esac

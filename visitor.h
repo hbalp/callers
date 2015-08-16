@@ -129,7 +129,8 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
 
   ~Visitor()
     {
-      jsonFile.sort_local_and_external_function_calls();
+      CallersData::Symbols symbols("defined_symbols.json");
+      jsonFile.sort_local_and_external_function_calls(symbols);
       jsonFile.output_json_desc();
     }
 

@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include "B.hpp"
+#include "test.hpp"
 
 int c()
 {
   printf("c()\n");
+  // test des cycles
+  //main();
   return 0;
 }
 

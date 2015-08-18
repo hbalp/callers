@@ -1,5 +1,6 @@
 #include "A.hpp"
 #include "B.hpp"
+#include "test.hpp"
 
 int main()
 {

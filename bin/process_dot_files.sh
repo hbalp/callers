@@ -130,49 +130,12 @@ echo "HBDBG: dot_root_dir=${dot_root_parentdir}/${dot_root_dir}"
 echo "HBDBG cd ${dot_root_parentdir}"
 cd ${dot_root_parentdir}
 
-# sort the body of dot files to remove duplicated lines
-echo "sort the body of dot files to remove duplicated lines..."
-#mkdir -p ${callers_analysis_report}/dot/sorted
-unsorted_dot_files=`find ${dot_root_dir} -type f -name "*.unsorted.out.dot"`
-for f in $unsorted_dot_files
-do
-b=`basename $f`
-d=`dirname $f`
-head -1 $f > .tmp.gen.header
-tail -6 $f > .tmp.gen.footer
-cat $f | egrep -v "{|}" | sort -u > .tmp.gen.body
-sorted_filename=`echo $b | sed -e s/unsorted/sorted/g`
-cat .tmp.gen.header .tmp.gen.body .tmp.gen.footer > $d/${sorted_filename}
-done
-rm -f .tmp.gen.header .tmp.gen.body .tmp.gen.footer
+# concatenate all the dot files into one unique dot file named all.dot
+echo "concatenate all the dot files into one unique dot file named all.unsorted.dot"
+sorted_dot_files=`find ${dot_root_dir} -type f -name "*.gen.dot"`
 
-# concatenate all the sorted dot files into one unique dot file named all.dot
-echo "concatenate all the sorted dot files into one unique dot file named all.unsorted.dot"
-mkdir -p ${callers_analysis_report}/dot
-all_unsorted_dot_file=${callers_analysis_report}/dot/all.unsorted.dot
-sorted_dot_files=`find ${dot_root_dir} -type f -name "*.sorted.out.dot"`
-for f in $sorted_dot_files
-do
-    b=`basename $f`
-    cat $f | egrep -v "{|}">> $all_unsorted_dot_file
-done
-
-# sort the body of the all.unsorted.dot file to remove duplicated lines
-echo "sort the body of the all.unsorted.dot file to remove duplicated lines"
-all_sorted_dot_file=${callers_analysis_report}/dot/all.sorted.dot
-all_dot_file=`basename $all_sorted_dot_file`
-echo "digraph all {" > $all_sorted_dot_file
-cat $all_unsorted_dot_file | sort -u >> $all_sorted_dot_file
-echo "}" >> $all_sorted_dot_file
-echo "generated ${all_dot_file} file: ${all_sorted_dot_file}"
-
-# convert when possible the resulting all.sorted.dot file into an image
-echo "convert when possible the resulting ${all_dot_file} file into an image"
-#mkdir -p ${callers_analysis_report}/png
+# convert the generated dot files into images
 mkdir -p ${callers_analysis_report}/svg
-convert_dot_file ${all_sorted_dot_file}
-
-# convert the generated sorted dot files into images
 echo "try to convert the generated dot files into images only if the line number is lower than ${dot_file_max_nb_lines}..."
 for f in $sorted_dot_files
 do

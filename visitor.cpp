@@ -71,9 +71,9 @@ CallersAction::CreateASTConsumer(clang::CompilerInstance& compilerInstance,
   std::string dirname = p.parent_path().string();
 
 #ifdef CLANG_VERSION_GREATER_OR_EQUAL_3_7
-  return llvm::make_unique<Visitor>(inputFile.str(), basename, dirname, fOut, dOut, dOutFname, jOut, jOutFname, compilerInstance); 
+  return llvm::make_unique<Visitor>(inputFile.str(), basename, dirname, fOut, compilerInstance); 
 #else
-  return new Visitor(inputFile.str(), fOut, dOut, dOutFname, jOut, jOutFname, compilerInstance); 
+  return new Visitor(inputFile.str(), fOut, compilerInstance); 
 #endif
 }
 
@@ -93,20 +93,8 @@ CallersAction::Visitor::HandleTranslationUnit(clang::ASTContext &context) {
       std::cerr << std::endl;
       exit(2);
    };
-   {
-     // presentation headers (temporaire avant sortie json intermediaire)
-     dotOut << "digraph " << getDotIdentifier(inputFile) << " {\n" << std::endl;
-     //jsonOut << "TBC JSON content..." << getJsonIdentifier(inputFile) << std::endl;
-   }
    psSources = &context.getSourceManager();
    TraverseDecl(context.getTranslationUnitDecl());
-   {
-     // presentation ends (temporaire avant sortie json intermediaire)
-     dotOut << "}\n\n" << std::endl;     
-     // dotOut << "// Local Variables:" << std::endl;
-     // dotOut << "// compile-command: \"dot -Tpng " << dotOutFname << " > " << dotOutFname << ".png\"" << std::endl;
-     // dotOut << "// End:"  << std::endl;
-   }
 }
 
 std::string
@@ -696,26 +684,6 @@ CallersAction::Visitor::printQualifiedName(const clang::NamedDecl& namedDecl, bo
 }
 
 std::string
-CallersAction::Visitor::getDotIdentifier(const std::string& name) const {
-#ifndef NOT_USE_BOOST_REGEX
-  //std::string s = "que se passe t'il ici ?";
-  std::string s = name;
-  boost::regex expr{"\\s|:|\\(|\\)|\\*|\\.|<|>|,|&|\\/|\\[|\\]|=|-|\\+|!|~"};
-  std::string fmt{"_"};
-  s = boost::regex_replace(s, expr, fmt);
-  // std::regex replace ("[^\\w]+");
-  // std::string by ("_");
-  // s = std::regex_replace (s, replace, by);
-  std::cerr << "getDotIdentifier(" << name << ") == " << s << std::endl;
-  //std::string s = "toto";
-  //std::cout << std::regex_replace (name, r, "_");
-#else
-  std::string s = std::string("\"") + name + "\"";
-#endif
-  return s;
-}
-
-std::string
 CallersAction::Visitor::getJsonIdentifier(const std::string& name) const {
   std::string s = std::string("\"") + name + "\"";
   return s;
@@ -766,18 +734,9 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
    result += printTemplateKind(function);
    result += printArgumentSignature(function);
    osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
-   dotOut << getDotIdentifier(printParentFunction()) << " [ label1=\"" << symbols.get_filename(printParentFunction()) << "\\n" << printParentFunction() << "\" ] \n";
-   //dotOut << getDotIdentifier(result) << " [ label=\"" << getBasename(inputFile) << "\\n" << result << "\" ] \n";
-   dotOut << getDotIdentifier(writeFunction(function)) << " [ label2=\"" << symbols.get_filename(writeFunction(function)) << "\\n" << writeFunction(function) << "\" ] \n";
 
    CallersData::FctCall fc("TBC1_1", printParentFunction(), "TBC1_2", writeFunction(function));
    jsonFile.add_function_call(&fc, symbols);
-
-   // jsonFile.add_defined_function("TBC1_1", printParentFunction());
-   // jsonFile.add_defined_function("TBC1_2", writeFunction(function));
-
-   //dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(result) << '\n';
-   dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(writeFunction(function)) << '\n';
    return true;
 }
 
@@ -791,10 +750,6 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
       result += printQualifiedName(function);
       result += printArgumentSignature(function);
       osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
-
-      dotOut << getDotIdentifier(printParentFunction()) << " [ label3=\"" << getBasename(inputFile) << "\\n" << printParentFunction() << "\" ] \n";
-      dotOut << getDotIdentifier(result) << " [ label4=\"" << getBasename(inputFile) << "\\n" << result << "\" ] \n";
-      dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(result) << '\n';
 
       CallersData::FctCall fc("TBC2_1", printParentFunction(), "TBC2_2", result);
       jsonFile.add_function_call(&fc, symbols);
@@ -811,10 +766,6 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
          std::string result = printQualifiedName(*destructor);
          result += "()";
          osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
-
-	 dotOut << getDotIdentifier(printParentFunction()) << " [ label5=\"" << getBasename(inputFile) << "\\n" << printParentFunction() << "\" ] \n";
-	 dotOut << getDotIdentifier(result) << " [ label6=\"" << getBasename(inputFile) << "\\n" << result << "\" ] \n";
-         dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(result) << '\n';
 
 	 CallersData::FctCall fc("TBC4_1", printParentFunction(), "TBC4_2", result);
 	 jsonFile.add_function_call(&fc, symbols);
@@ -846,39 +797,9 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
          return true;
       std::string result = writeFunction(*fd);
       osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
-      dotOut << getDotIdentifier(printParentFunction()) << " [ label7=\"" << symbols.get_filename(printParentFunction()) << "\\n" << printParentFunction() << "\" ] \n";
-      dotOut << getDotIdentifier(result) << " [ label8=\"" << symbols.get_filename(result) << "\\n" << result << "\" ] \n";
-      dotOut << getDotIdentifier(printParentFunction()) << " -> " << getDotIdentifier(result) << '\n';
 
       CallersData::FctCall fc("TBC3_1", printParentFunction(), "TBC3_2", result);
       jsonFile.add_function_call(&fc, symbols);
-
-      /*
-      jsonFile.add_defined_function("TBC2_1", printParentFunction());
-      jsonFile.add_defined_function("TBC2_2", result);
-
-      std::set<CallersData::Fct>::const_iterator func;
-
-      // add local caller \"ParentFunction\" to \"result\"
-      {
-	CallersData::Fct fct("TBC2", result);
-	func = jsonFile.defined.find(fct);
-	if(func != jsonFile.defined.end())
-	  {
-	    func->add_local_caller(printParentFunction());
-	  }
-      }
-
-      // add local callee \"result\" to \"ParentFunction\"
-      {
-	CallersData::Fct fct("TBC1", printParentFunction());
-	func = jsonFile.defined.find(fct);
-	if(func != jsonFile.defined.end())
-	  {
-	    func->add_local_callee(result);
-	  }
-      }
-      */
       return true;
    }
    if (callExpr->getCallee()->getStmtClass() == clang::Stmt::CXXPseudoDestructorExprClass)

@@ -179,8 +179,6 @@ main(int argc, char** argv) {
    compiler.setInvocation(invocation);
 
    CallersAction callersAction(processArgument.getOutputFile(), 
-			       processArgument.getDotOutputFile(), 
-			       processArgument.getJsonOutputFile(), 
 			       compiler);
    if (processArgument.doesGenerateImplicitMethods())
       callersAction.setGenerateImplicitMethods();

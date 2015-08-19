@@ -18,7 +18,9 @@ add_extcallers.sh .
 indent_jsonfiles.sh .
 # generate callee's tree from main entry point
 function_callers_to_dot.native callees "main" "int main()" `pwd`/test.cpp
-dot -Tsvg main.fct.callees.gen.dot > main.fct.callees.gen.dot.svg
+
+process_dot_files . .
+
 inkscape main.fct.callees.gen.dot.svg
 
 

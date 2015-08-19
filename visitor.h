@@ -34,21 +34,13 @@
 class CallersAction : public clang::ASTFrontendAction {
   private:
    std::ofstream fOut;
-   std::ofstream dOut;
-   std::string dOutFname;
-   std::ofstream jOut;
-   std::string jOutFname;
    clang::CompilerInstance& ciCompilerInstance;
    bool _doesGenerateImplicitMethods;
 
   public:
    CallersAction(const std::string& out, 
-		 const std::string& dout, 
-		 const std::string& jout, 
 		 clang::CompilerInstance& compilerInstance)
      : fOut(out),
-     dOut(dout), dOutFname(dout), 
-     jOut(jout), jOutFname(jout), 
      ciCompilerInstance(compilerInstance), _doesGenerateImplicitMethods(false) {}
 #ifdef CLANG_VERSION_GREATER_OR_EQUAL_3_7
    virtual std::unique_ptr<clang::ASTConsumer> 
@@ -69,10 +61,6 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   typedef clang::RecursiveASTVisitor<Visitor> Parent;
   std::string inputFile;
   std::ostream& osOut;
-  std::ostream& dotOut;
-  std::string dotOutFname;
-  std::ostream& jsonOut;
-  std::string jsonOutFname;
   CallersData::File jsonFile;
   clang::CompilerInstance& ciCompilerInstance;
   const clang::FunctionDecl* pfdParent;
@@ -91,8 +79,7 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
 
   // get the basename of a file from its unix-like full path
   std::string getBasename(const clang::StringRef& filename) const;
-  // convert function signature to a dot identifier
-  std::string getDotIdentifier(const std::string& name) const;
+  // convert function signature to a json compatible identifier
   std::string getJsonIdentifier(const std::string& name) const;
   std::string printLocation(const clang::SourceRange& rangeLocation) const;
   std::string printTemplateExtension(const clang::TemplateArgumentList& arguments) const;
@@ -116,12 +103,8 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
 	 const std::string& file,
 	 const std::string& path,
 	 std::ostream& sout, 
-	 std::ostream& dout, std::string doutfname, 
-	 std::ostream& jout, std::string joutfname,
 	 clang::CompilerInstance& compilerInstance)
    : inputFile(in), osOut(sout), 
-    dotOut(dout), dotOutFname(doutfname), 
-    jsonOut(jout), jsonOutFname(joutfname), 
     jsonFile(file, path),
     ciCompilerInstance(compilerInstance), 
     pfdParent(nullptr), psSources(nullptr),
@@ -130,7 +113,6 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
 
   ~Visitor()
     {
-      //jsonFile.sort_local_and_external_function_calls(symbols);
       jsonFile.output_json_desc();
     }
 

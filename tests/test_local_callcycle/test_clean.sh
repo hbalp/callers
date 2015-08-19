@@ -1,7 +1,8 @@
 #!/bin/bash
+#set -x
 
-rm -rf build
-rm -f *.json
 rm -f *.gen.dot
-rm -f *.svg
+rm -f *.gen.json
+rm -rf build
+rm -rf svg
 

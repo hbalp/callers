@@ -1,7 +1,7 @@
 #!/bin/bash
 #set -x
 
-clean_test.sh
+source test_clean.sh
 mkdir build
 cd build
 cmake ..

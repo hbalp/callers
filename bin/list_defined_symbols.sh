@@ -84,9 +84,12 @@ elif test $# = 1; then
 	*)
 	    # We assume here that the provided argument is the <roodir>
 	    rootdir=$1
-	    defined_symbols_jsonfilename="build/defined_symbols.json"
+	    defined_symbols_jsonfilename="defined_symbols.json"
+	    defined_symbols_tmpfilename="${defined_symbols_jsonfilename}.tmp"
 	    echo "Generate list of defined symbols in json file named \"${defined_symbols_jsonfilename}\""
-	    generate_defined_symbols_jsonfile ${rootdir} > ${defined_symbols_jsonfilename}
+	    generate_defined_symbols_jsonfile ${rootdir} > ${defined_symbols_tmpfilename}
+	    ydump ${defined_symbols_tmpfilename} > ${defined_symbols_jsonfilename}
+	    rm ${defined_symbols_tmpfilename}
     esac
 
 elif test $# = 2; then
@@ -95,9 +98,11 @@ elif test $# = 2; then
     # TODO: add some input validation
     rootdir=$1
     defined_symbols_jsonfilename=$2
+    defined_symbols_tmpfilename="$2.tmp"
     #json_filename=`basename ${defined_symbols_jsonfilename}`
-    generate_defined_symbols_jsonfile ${rootdir} ${defined_symbols_jsonfilename}
-    
+    generate_defined_symbols_jsonfile ${rootdir} ${defined_symbols_tmpfilename}
+    ydump ${defined_symbols_tmpfilename} > ${defined_symbols_jsonfilename}
+    rm ${defined_symbols_tmpfilename}
 else
     func_usage
 fi

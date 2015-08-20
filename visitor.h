@@ -108,7 +108,7 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
     jsonFile(file, path),
     ciCompilerInstance(compilerInstance), 
     pfdParent(nullptr), psSources(nullptr),
-    symbols("defined_symbols.json")
+    symbols("../defined_symbols.json")
   {}
 
   ~Visitor()

@@ -150,12 +150,9 @@ chmod +x ${callers_launch_script}
 
 echo "generated launcher script: ${callers_launch_script}"
 
-mkdir -p ${callers_analysis_report}/dot
+mkdir -p ${callers_analysis_report}
 
 echo "launch the analysis..."
 
 ./${callers_launch_script} 2>&1 | tee ${callers_analysis_report}/callers.analysis.gen.log
 
-path=`pwd`
-
-process_dot_files.sh "${path}/CMakeFiles" ${callers_analysis_report}

@@ -205,7 +205,7 @@ callers_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/\\
 callers=`which callers`
 
 # add some options when required
-callers_options=""
+callers_options="-s /tmp/defined_symbols.json"
 
 # build the callers analysis command    
 analysis="${callers} ${callers_options} ${system_includes} ${callers_analysis_options}"

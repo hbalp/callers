@@ -98,7 +98,7 @@ ProcessArguments::process(char** argument, int& currentArgument) {
          }
          case 's':
          {
-	   if(argument[0][2] == ' ')
+	   if(argument[0][2] == '\000')
 	     {
 	       std::string definedSymbolsJSONfilename;
 	       if (currentArgument == 0 || _defined_symbols_jsonfilename != "") {

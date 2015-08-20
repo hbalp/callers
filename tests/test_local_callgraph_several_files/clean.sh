@@ -6,4 +6,5 @@ rm -f *.gen.json
 #rm -rf svg
 rm -rf analysis
 rm -rf build
+rm -f defined_symbols.json
 

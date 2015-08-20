@@ -71,9 +71,9 @@ CallersAction::CreateASTConsumer(clang::CompilerInstance& compilerInstance,
   std::string dirname = p.parent_path().string();
 
 #ifdef CLANG_VERSION_GREATER_OR_EQUAL_3_7
-  return llvm::make_unique<Visitor>(inputFile.str(), basename, dirname, fOut, compilerInstance); 
+  return llvm::make_unique<Visitor>(symbols, inputFile.str(), basename, dirname, fOut, compilerInstance); 
 #else
-  return new Visitor(inputFile.str(), fOut, compilerInstance); 
+  return new Visitor(symbols, inputFile.str(), basename, dirname, fOut, compilerInstance);
 #endif
 }
 

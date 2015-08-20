@@ -476,7 +476,10 @@ CallersData::Symbols::Symbols(std::string defined_symbols_jsonfilename)
   FILE* pFile = fopen(defined_symbols_jsonfilename.c_str(), "rb");
   // Always check to see if file opening succeeded
   if (pFile == NULL)
-    std::cout << "WARNING: Could not open file \"" << defined_symbols_jsonfilename << "\" !\n";
+    {
+      std::cout << "ERROR: Could not open file \"" << defined_symbols_jsonfilename << "\" !\n";
+      exit(-1);
+    }
   else
     // Parse symbol locations
     {

@@ -12,7 +12,7 @@ make
 cd ..
 
 # generation of file defined_symbols.json
-list_defined_symbols.sh `pwd`
+#list_defined_symbols.sh `pwd`
 rm -rf build
 
 # launch callers analysis

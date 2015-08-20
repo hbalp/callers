@@ -54,18 +54,35 @@ function generate_defined_symbols_jsonfile ()
     do
 	# get the cpp source file related to the .o file
 	bname=`basename $o .o`
-	cpp_fullpath=`find ${rootdir} -name "${bname}" -o -name "${bname}.c*" | grep -v callers.gen.json`
-	cpp_file=`basename ${cpp_fullpath}`
-	cpp_dirpath=`dirname ${cpp_fullpath}`
-	echo "{ \"file\": \"$cpp_file\", \"path\":\"$cpp_dirpath\", \"defined\":["
-	# {\"sign\":\"\"}, {}, {} ] }"
-	nm -C $o | grep " T " | awk 'NR > 1 { printf(", ") } { print "{ \"sign\":\"" $3 "\"}" }'
-        pos=($pos+1)
-	if [[ $pos == $nb_obj_files ]];then
-	    echo "]}"
+	cpp_fullpath=`find ${rootdir}  -name "${bname}" -o -name "${bname}.c*" | grep -v callers.gen.json`
+	if [ -z ${cpp_fullpath} ]; then
+	    echo "IGNORE: Unable to find the source file related to the object file ${o}, so ignore it !" >&2
+	    continue
+	    #exit -1
 	else
-	    echo "]},"
+	    #echo "* Object file: ${o} is generated from source file: ${cpp_fullpath}" >&2
+	    echo "* Source file(s): ${cpp_fullpath}" >&2
 	fi
+	# WARNING: several source files resiging in different directories may share the same filename !
+	# so we have to loop over all the source files sharing the same name
+	for fullpath in ${cpp_fullpath}
+	do
+	    cpp_file=`basename ${fullpath}`
+	    cpp_dirpath=`dirname ${fullpath}`
+	    if [ -z ${cpp_dirpath} ]; then
+		echo "ERROR: empty path for source file ${fullpath} !!!"
+		exit -2
+	    fi
+	    echo "{ \"file\": \"$cpp_file\", \"path\":\"$cpp_dirpath\", \"defined\":["
+   	    # {\"sign\":\"\"}, {}, {} ] }"
+	    nm -C $o | grep " T " | awk 'NR > 1 { printf(", ") } { print "{ \"sign\":\"" $3 "\"}" }'
+            pos=($pos+1)
+	    if [[ $pos == $nb_obj_files ]];then
+		echo "]}"
+	    else
+		echo "]},"
+	    fi
+	done
     done
     echo "]}"
 }

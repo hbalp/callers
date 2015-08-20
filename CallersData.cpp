@@ -500,8 +500,9 @@ CallersData::Symbols::Symbols(std::string defined_symbols_jsonfilename)
 	  std::string dirpath(file["path"].GetString());
 	  std::string filepath(dirpath + "/" + filename);
 
-          std::cout << "file: " << filename << std::endl;
-          std::cout << "path: " << dirpath << std::endl;
+          // std::cout << "file: " << dirpath << "/" << filename << std::endl;
+          // std::cout << "file: " << filename << std::endl;
+          // std::cout << "path: " << dirpath << std::endl;
 
           const rapidjson::Value& defined = file["defined"];
           assert(defined.IsArray());
@@ -513,7 +514,7 @@ CallersData::Symbols::Symbols(std::string defined_symbols_jsonfilename)
               const rapidjson::Value& sign = symb["sign"];
               std::string symbol = sign.GetString();
               symbol_location.insert(SymbLoc::value_type(symbol, filepath));
-              std::cout << "s[" << s << "]:\"" << symbol << "\"" << std::endl;
+              // std::cout << "s[" << s << "]:\"" << symbol << "\"" << std::endl;
             }  
 	}
     }

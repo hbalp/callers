@@ -2,25 +2,21 @@
 #set -x
 
 # clean test
-source test_clean.sh
+source clean_test.sh
 
 # build the application and get all defined symbols
-mkdir build
-cd build
+mkdir analysis
+cd analysis
 cmake ..
 make
 cd ..
 
 # generation of file defined_symbols.json
 list_defined_symbols.sh `pwd`
-rm -rf build
 
 # launch callers analysis
-mkdir analysis
 cd analysis
-#scan-callers -o callers cmake ..
-#scan-callers -o callers make
-cmake_callers_analysis.sh compile_commands.json all callers-reports 2>&1 | tee analysis.log
+cmake_callers_analysis.sh compile_commands.json all callers 2>&1 | tee analysis.log
 cd ..
 
 # add extcallers to json files

@@ -2,7 +2,7 @@
 #set -x
 
 # clean test
-source test_clean.sh
+source clean_test.sh
 
 # build the application and get all defined symbols
 mkdir build

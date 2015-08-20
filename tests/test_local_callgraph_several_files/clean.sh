@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -x
+set -x
 
 rm -f *.gen.dot
 rm -f *.gen.json

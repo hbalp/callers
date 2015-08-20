@@ -98,15 +98,18 @@ ProcessArguments::process(char** argument, int& currentArgument) {
          }
          case 's':
          {
-           std::string definedSymbolsJSONfilename;
-           if (currentArgument == 0 || _defined_symbols_jsonfilename != "") {
-              printUsage(std::cout);
-              return false;
-           };
-           currentArgument -= 2;
-           _defined_symbols_jsonfilename = argument[1];
-           _isValid = true;
-           return true;
+	   if(argument[0][2] == ' ')
+	     {
+	       std::string definedSymbolsJSONfilename;
+	       if (currentArgument == 0 || _defined_symbols_jsonfilename != "") {
+		 printUsage(std::cout);
+		 return false;
+	       };
+	       currentArgument -= 2;
+	       _defined_symbols_jsonfilename = argument[1];
+	       _isValid = true;
+	       return true;
+	     }
          }
          case '-':
            if (strcmp(argument[0], "--version") == 0) {

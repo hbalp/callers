@@ -526,31 +526,20 @@ std::string CallersData::Symbols::get_filepath(std::string searched_symbol) cons
 
   std::cout << "Check in which file is defined the symbol \"" << searched_symbol << "\"..." << std::endl;
 
-  // Remove the returned type from the searched_symbol
-  std::string basic_sign = searched_symbol;
-  basic_sign=basic_sign.substr(basic_sign.find_first_of(" \t")+1);
-  
   // Get target symbol location
-  std::map<std::string, std::string>::const_iterator symb = symbol_location.find(basic_sign);
-  if (symb != symbol_location.end())
+  std::map<std::string, std::string>::const_iterator symb;
+  for(symb=symbol_location.begin(); symb!=symbol_location.end(); ++symb)
     {
-      std::cout << "Location of symbol \"" << symb->first << "\" is \"" << symb->second << "\"" << std::endl;
-      filepath = symb->second;
-    }
-  else
-    {
-      std::cout << "Not found symbol \"" << basic_sign << "\"" << std::endl;
-
-      // Retry after remove of "()" in basic_sign
-      basic_sign.erase(basic_sign.end()-2, basic_sign.end());
-      std::map<std::string, std::string>::const_iterator symb = symbol_location.find(basic_sign);
-      if (symb != symbol_location.end())
+      if(searched_symbol.find(symb->first) != std::string::npos)
 	{
-	  std::cout << "Location of symbol \"" << symb->first << "\" is \"" << symb->second << "\"" << std::endl;
+	  std::cout << "Object symbol \"" << symb->first << "\" is a substring of searched symbol \"" << searched_symbol << "\" and is located in file: \"" << symb->second << "\"" << std::endl;
 	  filepath = symb->second;
 	}
-      else
-	std::cout << "Not found symbol \"" << basic_sign << "\"" << std::endl;
+    }
+
+  if(filepath == "unknown_location")
+    {
+      std::cout << "Not found symbol \"" << searched_symbol << "\"" << std::endl;
     }
 
   return filepath;

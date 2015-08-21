@@ -13,6 +13,7 @@ cd ..
 
 # generation of file defined_symbols.json
 list_defined_symbols.sh `pwd`
+rm /tmp/defined_symbols.json
 ln -s `pwd`/defined_symbols.json /tmp/defined_symbols.json
 rm -rf build
 

@@ -39,8 +39,8 @@ namespace CallersData
       void add_file(std::string file);
       void output_json_desc();
     private:
-      std::string dir;
-      std::string path;
+      std::string dir = "unknownDirName";
+      std::string path = "unknownDirPath";
       std::list<std::string> files;
       std::list<std::string> childrens;
       JsonFileWriter js;
@@ -64,8 +64,8 @@ namespace CallersData
       std::set<Fct> defined;
   private:
       std::set<FctCall> calls;
-      std::string file;
-      std::string path;
+      std::string file = "unknownFileName";
+      std::string path = "unknownFilePath";
       //std::list<std::string> defined;
       JsonFileWriter js;
   };
@@ -78,15 +78,19 @@ namespace CallersData
     //friend void File::sort_local_and_external_function_calls(const CallersData::Symbols& defined_symbols);
 
     public:
-    FctCall(std::string caller_sign, int caller_line, 
-	    std::string callee_sign, int callee_line);
+      FctCall(std::string caller_sign, std::string caller_file, int caller_line, 
+	    std::string callee_sign, std::string callee_decl_file, int callee_decl_line);
       //FctCall(const FctCall& copy_from_me);
       ~FctCall() {}
     protected:
-      std::string caller_sign;
-      int caller_line;
-      std::string callee_sign;
-      int callee_line;
+      std::string caller_sign = "unknownCallerSign";
+      std::string caller_file = "unknownCallerFile";
+      int caller_line = -1;
+      std::string callee_sign = "unknownCalleeSign";
+      std::string callee_decl_file = "unknownCalleeDeclFile";
+      int callee_decl_line = -1;
+      std::string callee_def_file = "unknownCalleeDefFile";
+      int callee_def_line = -1;
     private:
       std::string id;
   };
@@ -97,13 +101,15 @@ namespace CallersData
     friend bool operator< (const CallersData::ExtFct& fct1, const CallersData::ExtFct& fct2);
 
     public:
-      ExtFct(std::string sign, std::string file);
+      ExtFct(std::string sign, std::string decl);
+      //ExtFct(std::string sign, std::string decl, std::string def);
       ExtFct(const ExtFct& copy_from_me);
       ~ExtFct() {}
       //void set_file(std::string file);
     private:
-      std::string sign;
-      std::string file;
+      std::string sign = "unknownExtFctSign";
+      std::string decl = "unknownExtFctDeclLoc"; 
+      std::string def  = "unknownExtFctDefLoc";
   };
 
   std::ostream &operator<<(std::ostream &output, const ExtFct &fct);
@@ -116,12 +122,10 @@ namespace CallersData
       Fct(const Fct& copy_from_me);
       ~Fct();
 
-      //std::list<Fct>& operator=( const std::list<Fct>& other );
-      //std::ostream& operator<<(const Fct& __f) {}; // return _M_insert(__f); }
       void add_local_caller(std::string caller) const;
       void add_local_callee(std::string callee) const;
-      void add_external_caller(std::string caller_sign, std::string caller_file) const;
-      void add_external_callee(std::string callee_sign, std::string callee_file) const;
+      void add_external_caller(std::string caller_sign, std::string caller_decl) const;
+      void add_external_callee(std::string callee_sign, std::string callee_decl) const;
 
       void output_local_callers(std::ofstream &js) const;
       void output_local_callees(std::ofstream &js) const;
@@ -130,8 +134,8 @@ namespace CallersData
 
       void output_json_desc(std::ofstream &js) const;
 
-      std::string sign;
-      int line;
+      std::string sign = "unknownFctSign";
+      int line = -1;
       std::set<std::string> *locallers;
       std::set<std::string> *locallees;
       std::set<ExtFct> *extcallers;
@@ -153,7 +157,7 @@ namespace CallersData
     std::string get_filepath(std::string symbol) const;
     ~Symbols();
   private:
-    std::string defined_symbols_jsonfilename;
+    std::string defined_symbols_jsonfilename = "unknownDefSymbJsonFile";
     //rapidjson::Document document;    
     SymbLoc symbol_location;
   };  

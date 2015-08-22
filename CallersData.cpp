@@ -11,7 +11,9 @@
 //   for generating the callers's json files.
 //
 
+//#include <fstream>
 #include <iostream>
+#include <sstream>
 #include <boost/filesystem.hpp>
 #include <rapidjson/filereadstream.h>
 
@@ -147,9 +149,9 @@ CallersData::File::add_function_call(CallersData::FctCall* fc,
 	// the callee function belongs to the current file
 	{
 	  // adds the callee function to the defined functions of the current file
-	  add_defined_function(fc->callee_sign, fc->callee_line);
+	  add_defined_function(fc->callee_sign, fc->callee_decl_line);
 	  // get a reference to the related defined function
-	  CallersData::Fct callee_fct(fc->callee_sign, fc->callee_line);
+	  CallersData::Fct callee_fct(fc->callee_sign, fc->callee_decl_line);
 	  callee = defined.find(callee_fct);
 
 	  // add local caller to local callee
@@ -162,8 +164,13 @@ CallersData::File::add_function_call(CallersData::FctCall* fc,
 	// the callee function is defined externally
 	{
 	  // add the external callee to the local caller
-	  std::string external_file = defined_symbols.get_filepath(fc->callee_sign);
-	  caller->add_external_callee(fc->callee_sign, external_file);
+	  //std::string external_file = defined_symbols.get_filepath(fc->callee_sign);
+	  std::string callee_decl_location = fc->callee_decl_file;
+	  std::ostringstream out;
+	  out << fc->callee_decl_line;
+	  callee_decl_location += ":";
+	  callee_decl_location += out.str();
+	  caller->add_external_callee(fc->callee_sign, callee_decl_location);
 	}
     }
 
@@ -176,14 +183,14 @@ CallersData::File::add_function_call(CallersData::FctCall* fc,
 	// the callee function belongs to the current file
 	{
 	  // adds the callee function to the defined functions of the current file
-	  add_defined_function(fc->callee_sign, fc->callee_line);
+	  add_defined_function(fc->callee_sign, fc->callee_decl_line);
 	  // get a reference to the related defined function
-	  CallersData::Fct callee_fct(fc->callee_sign, fc->callee_line);
+	  CallersData::Fct callee_fct(fc->callee_sign, fc->callee_decl_line);
 	  callee = defined.find(callee_fct);
 
 	  // add the external caller to the local callee
-	  std::string external_file = defined_symbols.get_filepath(fc->caller_sign);
-	  callee->add_external_caller(fc->caller_sign, external_file);
+	  //std::string external_file = defined_symbols.get_filepath(fc->caller_sign);
+	  callee->add_external_caller(fc->caller_sign, fc->caller_file);
 	}
       else
 	// the callee function is defined externally as the caller !!!
@@ -294,17 +301,20 @@ void CallersData::Fct::add_local_callee(std::string callee) const
   locallees->insert(callee);
 }
 
-void CallersData::Fct::add_external_caller(std::string caller_sign, std::string caller_file) const
+void CallersData::Fct::add_external_caller(std::string caller_sign, std::string caller_decl) const
 {
   std::cout << "Add external caller \"" << caller_sign << "\" to function \"" << sign << "\"" << std::endl;
-  ExtFct *extfct = new ExtFct(caller_sign, caller_file);
+  ExtFct *extfct = new ExtFct(caller_sign, caller_decl);
   extcallers->insert(*extfct);
 }
 
-void CallersData::Fct::add_external_callee(std::string callee_sign, std::string callee_file) const
+void CallersData::Fct::add_external_callee(std::string callee_sign, std::string callee_decl) const
 {
-  std::cout << "Add external callee \"" << callee_sign << "\" to function \"" << sign << "\"" << std::endl;
-  ExtFct *extfct = new ExtFct(callee_sign, callee_file);
+  std::cout << "Add external callee \"" << callee_sign
+	    << "\" to function \"" << sign << "\". " 
+	    << "Callee is declared in file: " << callee_decl
+	    << std::endl;
+  ExtFct *extfct = new ExtFct(callee_sign, callee_decl);
   extcallees->insert(*extfct);
 }
 
@@ -408,8 +418,10 @@ void CallersData::Fct::output_external_callees(std::ofstream &js) const
 
 void CallersData::Fct::output_json_desc(std::ofstream &js) const
 {
+  std::ostringstream out;
+  out << line;
   js << "{\"sign\": \"" << sign
-     << "\", \"line\": " << line << "";
+     << "\", \"line\": " << out.str() << "";
 
   this->output_local_callers(js);
 
@@ -429,12 +441,14 @@ bool CallersData::operator< (const CallersData::Fct& fct1, const CallersData::Fc
 
 /**************************************** class FctCall ***************************************/
 
-CallersData::FctCall::FctCall(std::string caller_sign, int caller_line,
-			      std::string callee_sign, int callee_line)
+CallersData::FctCall::FctCall(std::string caller_sign, std::string caller_file, int caller_line,
+			      std::string callee_sign, std::string callee_decl_file, int callee_decl_line)
   : caller_sign(caller_sign),
+    caller_file(caller_file),
     caller_line(caller_line),
     callee_sign(callee_sign),
-    callee_line(callee_line),
+    callee_decl_file(callee_decl_file),
+    callee_decl_line(callee_decl_line),
     id(caller_sign + " -> " + callee_sign)
 {}
 
@@ -445,22 +459,39 @@ bool CallersData::operator< (const CallersData::FctCall& fc1, const CallersData:
 
 /**************************************** class ExtFct ***************************************/
 
-CallersData::ExtFct::ExtFct(std::string sign, std::string file)
-  : sign(sign), file(file)
+CallersData::ExtFct::ExtFct(std::string sign, std::string decl)
+  : sign(sign), decl(decl), def("unknownExtFctDef")
 {
-  std::cout << "ExtFct constructor" << std::endl;
+  std::cout << "Create external function: "
+	    << "{\"sign\":\"" << sign
+	    << "\",\"decl\":\"" << decl
+	    << "\",\"def\":\"" << def << "\"}"
+	    << std::endl;
 }
+
+// CallersData::ExtFct::ExtFct(std::string sign, std::string decl, std::string def)
+//   : sign(sign), decl(decl), def(def)
+// {
+//   std::cout << "Create external function: \n" << this << std::endl;
+// }
 
 CallersData::ExtFct::ExtFct(const CallersData::ExtFct& copy_from_me)
 {
-  std::cout << "ExtFct copy constructor" << std::endl;
   sign = copy_from_me.sign;
-  file = copy_from_me.file;
+  decl = copy_from_me.decl;
+  def = copy_from_me.def;
+  std::cout << "Copy external function: "
+	    << "{\"sign\":\"" << sign
+	    << "\",\"decl\":\"" << decl
+	    << "\",\"def\":\"" << def << "\"}"
+	    << std::endl;
 }
 
 std::ostream &CallersData::operator<<(std::ostream &output, const ExtFct &fct)
 {
-  output << "{\"sign\":\"" << fct.sign << "\",\"file\":\"" << fct.file << "\"}";
+  output << "{\"sign\":\"" << fct.sign
+	 << "\",\"decl\":\"" << fct.decl
+	 << "\",\"def\":\"" << fct.def << "\"}";
   return output;
 }
 

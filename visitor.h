@@ -72,18 +72,13 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
 
   std::string writeFunction(const clang::FunctionDecl& function, bool isUnqualified=false) const;
   
-  const std::string& printParentFunction() const
-  {  
-    if (pfdParent && sParent.length() == 0)
-      sParent = writeFunction(*pfdParent);
-    return sParent;
-  };
   // get the basename of a file from its unix-like full path
   std::string getBasename(const clang::StringRef& filename) const;
   // convert function signature to a json compatible identifier
   std::string getJsonIdentifier(const std::string& name) const;
   std::string printLocation(const clang::SourceRange& rangeLocation) const;
   int printLine(const clang::SourceRange& rangeLocation) const;
+  std::string printFile(const clang::SourceRange& rangeLocation) const;
   std::string printTemplateExtension(const clang::TemplateArgumentList& arguments) const;
   std::string printTemplateKind(const clang::FunctionDecl& function) const;
   std::string printTemplateKind(const clang::RecordDecl& decl) const;
@@ -96,12 +91,25 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   std::string printResultSignature(const clang::FunctionDecl& function) const;
   std::string printQualification(const clang::DeclContext* context) const;
   std::string printQualifiedName(const clang::NamedDecl& namedDecl, bool* isEmpty=nullptr) const;
+
+  const std::string& printParentFunction() const
+  {  
+    if (pfdParent && sParent.length() == 0)
+      sParent = writeFunction(*pfdParent);
+    return sParent;
+  };
+
+  std::string printParentFunctionFile() const
+  {  
+    return printFile(pfdParent->getSourceRange());
+  };
+
   int printParentFunctionLine() const
   {  
     if (pfdParent)
       return printLine(pfdParent->getSourceRange());
     else
-      return -1;
+      return 0;
   };
 
   void VisitInheritanceList(clang::CXXRecordDecl* cxxDecl);

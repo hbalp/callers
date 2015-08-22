@@ -161,7 +161,7 @@ elif test $# = 4; then
 	    # make sure the output directories are well created before calling the analysis
 	    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e "s/.*-o //g" | awk '{ print $1 }' | sort -u | xargs dirname | awk '{ print "&& mkdir -p " $N " \\" }' >> $callers_launch_script
 	    # build the analysis command from the build one listed in file compile_commands.json
-	    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ -s\ \$\{defined_symbols\}\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.callers.unsorted.out\ /g | awk '{ print "&& " $N " \\" }' >> $callers_launch_script
+	    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ -s\ \$\{defined_symbols\}\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.callers.stdout\ /g | awk '{ print "&& " $N " \\" }' >> $callers_launch_script
 	    # prepare command arguments for gdbinit script
 	    dump_gdbinit $defined_symbols_json $compile_commands_json
 	    ;;
@@ -170,7 +170,7 @@ elif test $# = 4; then
 	    # make sure the output directories are well created before calling the analysis
 	    cat $compile_commands_json | grep \"command\" | grep $files | cut -d '"' -f4 | sed -e "s/.*-o //g" | awk '{ print $1 }' | sort -u | xargs dirname | awk '{ print "&& mkdir -p " $N " \\" }' >> $callers_launch_script
 	    # build the analysis command from the build one listed in file compile_commands.json
-	    cat $compile_commands_json | grep \"command\" | grep $files | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ -s\ \$\{defined_symbols\}\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.callers.unsorted.out\ /g | awk '{ print "&& " $N " \\" }' >> $callers_launch_script
+	    cat $compile_commands_json | grep \"command\" | grep $files | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ -s\ \$\{defined_symbols\}\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.callers.stdout\ /g | awk '{ print "&& " $N " \\" }' >> $callers_launch_script
 	    # prepare command arguments for gdbinit script
 	    dump_gdbinit $defined_symbols_json $compile_commands_json
 	    ;;

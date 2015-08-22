@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -x
+set -x
 #     Copyright (C) 2015 Thales Communication & Security, Commissariat à l'Energie Atomique
 #       - All Rights Reserved
 #     coded by Hugues Balp and Franck Vedrine
@@ -37,7 +37,6 @@ function func_version ()
     exit 0
 }
 
-gdb_launch_script=gdbinit
 callers_launch_script=launch.gen.sh
 
 # defined_symbols
@@ -81,7 +80,8 @@ function system_includes ()
 
 function dump_gdbinit ()
 {
-    compile_commands_json=$1
+    defined_symbols_json=$1
+    compile_commands_json=$2
 
     # get the absolute path to the first file to be analyzed
     file=`grep \"file\" ${compile_commands_json} | tail -1 | cut -d '"' -f4`
@@ -89,8 +89,18 @@ function dump_gdbinit ()
     
     system_includes=`strace -f -e verbose=all -s 256 -v ${clang} -std=c++11 $file |& grep execve |& grep "bin/clang" |& grep cc1 |& sed -e s/'"-internal-isystem", "'/'-I"'/g|& sed -e s/'"-internal-externc-isystem", "'/'-I"'/g |& sed -e s/", "/"\n"/g |& grep "\-I\"" | sed -e s/\"//g | awk '{print}' ORS=' ' `
 
-    printf "set args ${system_includes} " >> $gdb_launch_script
-    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4  | sed -e s/^[^\ ]*//g >> $gdb_launch_script
+    # printf "set args -s ${defined_symbols_json} ${system_includes} " >> $gdb_launch_script
+    # cat $compile_commands_json | grep \"command\" | cut -d '"' -f4  | sed -e s/^[^\ ]*//g >> $gdb_launch_script
+
+    gdb_launch_script=gdbinit
+    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4  | sed -e s/^[^\ ]*//g > .build_cmds
+    while read -r line
+    do
+	file=`echo $line | awk '{print $NF}' | xargs basename`
+	printf "# $file\n" >> $gdb_launch_script
+	printf "# set args -s ${defined_symbols_json} ${system_includes} $line\n" >> $gdb_launch_script
+	printf "\n" >> $gdb_launch_script
+    done < .build_cmds
 }
 
 function launch_script_header ()
@@ -101,6 +111,7 @@ function launch_script_header ()
     echo "#set -x" >> $callers_launch_script
     defined_symbols $defined_symbols_json;
     system_includes $compile_commands_json;
+    echo "# files to analyze: ${files}" >> $callers_launch_script
     echo "echo \"Begin function call graph analysis...\" \\" >> $callers_launch_script
 }
 
@@ -152,17 +163,16 @@ elif test $# = 4; then
 	    # build the analysis command from the build one listed in file compile_commands.json
 	    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ -s\ \$\{defined_symbols\}\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.callers.unsorted.out\ /g | awk '{ print "&& " $N " \\" }' >> $callers_launch_script
 	    # prepare command arguments for gdbinit script
-	    dump_gdbinit $compile_commands_json
+	    dump_gdbinit $defined_symbols_json $compile_commands_json
 	    ;;
 	*)
-	    echo "analyze file $2..."; 
-	    # make sure the output directory is well created before calling the analysis
-	    cat $compile_commands_json | grep \"command\" | grep $2 | cut -d '"' -f4 | sed -e "s/.*-o //g" | awk '{ print $1 }' | xargs dirname | awk '{ print "&& mkdir -p " $N " \\" }' >> $callers_launch_script
-#	    cat $compile_commands_json | grep \"command\" | grep $2 | cut -d '"' -f4 | sed -e "s/.*-o //g" | awk '{ print $1 }' | xargs dirname | xargs echo "mkdir -p " >> $callers_launch_script
+	    echo "analyze file $files..."; 
+	    # make sure the output directories are well created before calling the analysis
+	    cat $compile_commands_json | grep \"command\" | grep $files | cut -d '"' -f4 | sed -e "s/.*-o //g" | awk '{ print $1 }' | sort -u | xargs dirname | awk '{ print "&& mkdir -p " $N " \\" }' >> $callers_launch_script
 	    # build the analysis command from the build one listed in file compile_commands.json
-	    cat $compile_commands_json | grep \"command\" | grep $2 | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ -s\ \$\{defined_symbols\}\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.callers.unsorted.out\ /g | awk '{ print "&& " $N " \\" }' >> $gdb_launch_script
+	    cat $compile_commands_json | grep \"command\" | grep $files | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ -s\ \$\{defined_symbols\}\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.callers.unsorted.out\ /g | awk '{ print "&& " $N " \\" }' >> $callers_launch_script
 	    # prepare command arguments for gdbinit script
-	    dump_gdbinit $compile_commands_json
+	    dump_gdbinit $defined_symbols_json $compile_commands_json
 	    ;;
     esac
 

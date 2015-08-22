@@ -57,7 +57,7 @@ namespace CallersData
       ~File();
       std::string fullPath ();
       void add_defined_function(Fct* fct);
-      void add_defined_function(std::string func, std::string sign);
+      void add_defined_function(std::string func, int sign);
       void add_function_call(FctCall* fc, const CallersData::Symbols& defined_symbols);
       //void sort_local_and_external_function_calls(const CallersData::Symbols& defined_symbols);
       void output_json_desc();
@@ -78,15 +78,15 @@ namespace CallersData
     //friend void File::sort_local_and_external_function_calls(const CallersData::Symbols& defined_symbols);
 
     public:
-      FctCall(std::string caller_id, std::string caller_sign, 
-	      std::string callee_id, std::string callee_sign);
+    FctCall(std::string caller_sign, int caller_line, 
+	    std::string callee_sign, int callee_line);
       //FctCall(const FctCall& copy_from_me);
       ~FctCall() {}
     protected:
-      std::string caller_id;
       std::string caller_sign;
-      std::string callee_id;
+      int caller_line;
       std::string callee_sign;
+      int callee_line;
     private:
       std::string id;
   };
@@ -111,8 +111,8 @@ namespace CallersData
   class Fct
   {
     public:
-      Fct(const char* fct, const char* sign);
-      Fct(std::string fct, std::string sign);
+      Fct(const char* sign, const int line);
+      Fct(std::string sign, int line);
       Fct(const Fct& copy_from_me);
       ~Fct();
 
@@ -130,8 +130,8 @@ namespace CallersData
 
       void output_json_desc(std::ofstream &js) const;
 
-      std::string fct;
       std::string sign;
+      int line;
       std::set<std::string> *locallers;
       std::set<std::string> *locallees;
       std::set<ExtFct> *extcallers;

@@ -96,16 +96,17 @@ std::string CallersData::File::fullPath()
 
 void CallersData::File::add_defined_function(CallersData::Fct* fct)
 {
-  std::cout << "Register function \"" << fct->fct << "\" with signature \"" << fct->sign
-	    << "\" in file \"" << this->fullPath() << "\"" << std::endl;
+  std::cout << "Register function \"" << fct->sign
+	    << "\" defined in file \"" << this->fullPath() << ":" 
+	    << fct->line << "\"" << std::endl;
   defined.insert(*fct);
 }
 
-void CallersData::File::add_defined_function(std::string func, std::string sign)
+void CallersData::File::add_defined_function(std::string sign, int line)
 {
-  std::cout << "Create function \"" << func << "\" with signature \"" << sign
-	    << "\" in file \"" << this->fullPath() << "\"" << std::endl;
-  Fct *fct = new Fct(func, sign);
+  std::cout << "Create function \"" << sign
+	    << "\" located in file \"" << this->fullPath() << ":" << line << "\"" << std::endl;
+  Fct *fct = new Fct(sign, line);
   defined.insert(*fct);
 }
 
@@ -135,9 +136,9 @@ CallersData::File::add_function_call(CallersData::FctCall* fc,
     // the caller function belongs to the current file
     {
       // adds the caller function to the defined functions of the current file
-      add_defined_function(fc->caller_id, fc->caller_sign);
+      add_defined_function(fc->caller_sign, fc->caller_line);
       // get a reference to the related defined function
-      CallersData::Fct caller_fct(fc->caller_id, fc->caller_sign);
+      CallersData::Fct caller_fct(fc->caller_sign, fc->caller_line);
       caller = defined.find(caller_fct);
 
       // Check whether the callee function belongs to the current file.
@@ -146,9 +147,9 @@ CallersData::File::add_function_call(CallersData::FctCall* fc,
 	// the callee function belongs to the current file
 	{
 	  // adds the callee function to the defined functions of the current file
-	  add_defined_function(fc->callee_id, fc->callee_sign);
+	  add_defined_function(fc->callee_sign, fc->callee_line);
 	  // get a reference to the related defined function
-	  CallersData::Fct callee_fct(fc->callee_id, fc->callee_sign);
+	  CallersData::Fct callee_fct(fc->callee_sign, fc->callee_line);
 	  callee = defined.find(callee_fct);
 
 	  // add local caller to local callee
@@ -175,9 +176,9 @@ CallersData::File::add_function_call(CallersData::FctCall* fc,
 	// the callee function belongs to the current file
 	{
 	  // adds the callee function to the defined functions of the current file
-	  add_defined_function(fc->callee_id, fc->callee_sign);
+	  add_defined_function(fc->callee_sign, fc->callee_line);
 	  // get a reference to the related defined function
-	  CallersData::Fct callee_fct(fc->callee_id, fc->callee_sign);
+	  CallersData::Fct callee_fct(fc->callee_sign, fc->callee_line);
 	  callee = defined.find(callee_fct);
 
 	  // add the external caller to the local callee
@@ -233,16 +234,16 @@ CallersData::Fct::~Fct()
   delete extcallees;
 }
 
-CallersData::Fct::Fct(const char* fct, const char* sign)
-  : fct(fct),
-    sign(sign)
+CallersData::Fct::Fct(const char* sign, const int line)
+  : sign(sign),
+    line(line)
 {
   allocate();
 }
 
-CallersData::Fct::Fct(std::string fct, std::string sign)
-  : fct(fct),
-    sign(sign)
+CallersData::Fct::Fct(std::string sign, int line)
+  : sign(sign),
+    line(line)
 {
   allocate();
 }
@@ -252,7 +253,7 @@ CallersData::Fct::Fct(const CallersData::Fct& copy_from_me)
   allocate();
   std::cout << "Fct copy constructor" << std::endl;
   sign = copy_from_me.sign;
-  fct = copy_from_me.fct;
+  line = copy_from_me.line;
 
   // copy local callers
   std::set<std::string>::const_iterator i;
@@ -407,8 +408,8 @@ void CallersData::Fct::output_external_callees(std::ofstream &js) const
 
 void CallersData::Fct::output_json_desc(std::ofstream &js) const
 {
-  js << "{\"fct\": \"" << fct
-     << "\", \"sign\": \"" << sign << "\"";
+  js << "{\"sign\": \"" << sign
+     << "\", \"line\": " << line << "";
 
   this->output_local_callers(js);
 
@@ -428,12 +429,12 @@ bool CallersData::operator< (const CallersData::Fct& fct1, const CallersData::Fc
 
 /**************************************** class FctCall ***************************************/
 
-CallersData::FctCall::FctCall(std::string caller_id, std::string caller_sign,
-			      std::string callee_id, std::string callee_sign)
-  : caller_id(caller_id),
-    caller_sign(caller_sign),
-    callee_id(callee_id),
+CallersData::FctCall::FctCall(std::string caller_sign, int caller_line,
+			      std::string callee_sign, int callee_line)
+  : caller_sign(caller_sign),
+    caller_line(caller_line),
     callee_sign(callee_sign),
+    callee_line(callee_line),
     id(caller_sign + " -> " + callee_sign)
 {}
 

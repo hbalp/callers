@@ -115,6 +115,13 @@ CallersAction::Visitor::printLocation(const clang::SourceRange& rangeLocation) c
    return result;
 }
 
+int
+CallersAction::Visitor::printLine(const clang::SourceRange& rangeLocation) const {
+   assert(psSources);
+   auto start = psSources->getPresumedLoc(rangeLocation.getBegin());
+   return start.getLine();
+}
+
 std::string
 CallersAction::Visitor::printTemplateExtension(const clang::TemplateArgumentList& arguments) const {
    std::string result = "<";
@@ -735,8 +742,9 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
    result += printArgumentSignature(function);
    osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
 
-   CallersData::FctCall fc("TBC1_1", printParentFunction(), "TBC1_2", writeFunction(function));
+   CallersData::FctCall fc(printParentFunction(), printParentFunctionLine(), writeFunction(function), printLine(function.getSourceRange()));
    jsonFile.add_function_call(&fc, symbols);
+
    return true;
 }
 
@@ -751,7 +759,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
       result += printArgumentSignature(function);
       osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
 
-      CallersData::FctCall fc("TBC2_1", printParentFunction(), "TBC2_2", result);
+      CallersData::FctCall fc(printParentFunction(), printParentFunctionLine(), result, printLine(function.getSourceRange()));
       jsonFile.add_function_call(&fc, symbols);
 
       return true;
@@ -767,7 +775,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
          result += "()";
          osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
 
-	 CallersData::FctCall fc("TBC4_1", printParentFunction(), "TBC4_2", result);
+	 CallersData::FctCall fc(printParentFunction(), printParentFunctionLine(), result, printLine(destructor->getSourceRange()));
 	 jsonFile.add_function_call(&fc, symbols);
       };
    };
@@ -798,7 +806,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
       std::string result = writeFunction(*fd);
       osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
 
-      CallersData::FctCall fc("TBC3_1", printParentFunction(), "TBC3_2", result);
+      CallersData::FctCall fc(printParentFunction(), printParentFunctionLine(), result, printLine(fd->getSourceRange()));
       jsonFile.add_function_call(&fc, symbols);
       return true;
    }
@@ -955,6 +963,8 @@ CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
       sParent = writeFunction(*Decl);
       osOut << "visiting function " << sParent
             << " at " << printLocation(Decl->getSourceRange()) << '\n';
+      CallersData::Fct fct(writeFunction(*Decl), printLine(Decl->getSourceRange()));
+      jsonFile.add_defined_function(&fct);
    };
    return true;
 }

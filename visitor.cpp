@@ -71,9 +71,9 @@ CallersAction::CreateASTConsumer(clang::CompilerInstance& compilerInstance,
   std::string dirname = p.parent_path().string();
 
 #ifdef CLANG_VERSION_GREATER_OR_EQUAL_3_7
-  return llvm::make_unique<Visitor>(symbols, inputFile.str(), basename, dirname, fOut, compilerInstance); 
+  return llvm::make_unique<Visitor>(inputFile.str(), basename, dirname, fOut, compilerInstance); 
 #else
-  return new Visitor(symbols, inputFile.str(), basename, dirname, fOut, compilerInstance);
+  return new Visitor(inputFile.str(), basename, dirname, fOut, compilerInstance);
 #endif
 }
 
@@ -755,7 +755,7 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
 
    CallersData::FctCall fc(printParentFunction(), printParentFunctionFile(), printParentFunctionLine(), 
 			   writeFunction(function), printFile(function.getSourceRange()), printLine(function.getSourceRange()));
-   jsonFile.add_function_call(&fc, symbols);
+   jsonFile.add_function_call(&fc);
 
    return true;
 }
@@ -773,7 +773,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
 
       CallersData::FctCall fc(printParentFunction(), printParentFunctionFile(), printParentFunctionLine(), 
 			      result, printFile(function.getSourceRange()), printLine(function.getSourceRange()));
-      jsonFile.add_function_call(&fc, symbols);
+      jsonFile.add_function_call(&fc);
 
       return true;
    };
@@ -790,7 +790,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
 
 	 CallersData::FctCall fc(printParentFunction(), printParentFunctionFile(), printParentFunctionLine(), 
 				 result, printFile(destructor->getSourceRange()), printLine(destructor->getSourceRange()));
-	 jsonFile.add_function_call(&fc, symbols);
+	 jsonFile.add_function_call(&fc);
       };
    };
    return true;
@@ -822,7 +822,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 
       CallersData::FctCall fc(printParentFunction(), printParentFunctionFile(), printParentFunctionLine(), 
 			      result, printFile(fd->getSourceRange()), printLine(fd->getSourceRange()));
-      jsonFile.add_function_call(&fc, symbols);
+      jsonFile.add_function_call(&fc);
       return true;
    }
    if (callExpr->getCallee()->getStmtClass() == clang::Stmt::CXXPseudoDestructorExprClass)

@@ -48,7 +48,6 @@ namespace CallersData
 
   class Fct;
   class FctCall;
-  class Symbols;
 
   class File
   {
@@ -58,8 +57,7 @@ namespace CallersData
       std::string fullPath ();
       void add_defined_function(Fct* fct);
       void add_defined_function(std::string func, int sign);
-      void add_function_call(FctCall* fc, const CallersData::Symbols& defined_symbols);
-      //void sort_local_and_external_function_calls(const CallersData::Symbols& defined_symbols);
+      void add_function_call(FctCall* fc);
       void output_json_desc();
       std::set<Fct> defined;
   private:
@@ -74,8 +72,7 @@ namespace CallersData
   class FctCall
   {
     friend bool operator< (const CallersData::FctCall& fc1, const CallersData::FctCall& fc2);
-    friend void File::add_function_call(FctCall* fc, const CallersData::Symbols& defined_symbols);
-    //friend void File::sort_local_and_external_function_calls(const CallersData::Symbols& defined_symbols);
+    friend void File::add_function_call(FctCall* fc);
 
     public:
       FctCall(std::string caller_sign, std::string caller_file, int caller_line, 
@@ -146,19 +143,4 @@ namespace CallersData
   };
 
   bool operator< (const Fct& fct1, const Fct& fct2);
-
-  typedef std::map<std::string, std::string> SymbLoc;
-
-  class Symbols
-  {
-  public:
-    Symbols(std::string defined_symbols_jsonfilename);
-    std::string get_filename(std::string symbol) const;
-    std::string get_filepath(std::string symbol) const;
-    ~Symbols();
-  private:
-    std::string defined_symbols_jsonfilename = "unknownDefSymbJsonFile";
-    //rapidjson::Document document;    
-    SymbLoc symbol_location;
-  };  
 }

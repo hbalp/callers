@@ -37,7 +37,6 @@ class ProcessArguments {
   private:
    bool _isValid;
    // clang::CompilerInvocation* _invocation;
-   std::string _defined_symbols_jsonfilename;
    std::string _output;
    std::string _jsonfilename;
    std::vector<std::string> _includes;
@@ -59,7 +58,7 @@ class ProcessArguments {
    bool process(char** argument, int& currentArgument);
    void printUsage(std::ostream& osOut) const
       { std::cout << "Usage of callers :\n"
-            << "callers++ [option]+ input-files -o callers-outfile -s defined_symbols.json\n"
+            << "callers++ [option]+ input-files -o callers-outfile \n"
             << "   where option can be one of the following options:\n";
          std::cout << "      --version or\n";
          std::cout << "      -Idirectory\tfor specifying an include directory\n";
@@ -69,7 +68,6 @@ class ProcessArguments {
    bool isValid() const { return _isValid; }
    bool isVersion() const { return _isVersion; }
    bool doesGenerateImplicitMethods() const { return _doesGenerateImplicitMethods; }
-   const std::string& getDefinedSymbolsJSONFile() const { return _defined_symbols_jsonfilename; }
    const std::string& getOutputFile() const { return _output; }
    const std::string& getJsonOutputFile() const { return _jsonfilename; }
 };
@@ -94,22 +92,6 @@ ProcessArguments::process(char** argument, int& currentArgument) {
 
            _isValid = true;
            return true;
-         }
-         case 's':
-         {
-	   if(argument[0][2] == '\000')
-	     {
-	       std::string definedSymbolsJSONfilename;
-	       if (currentArgument == 0 || _defined_symbols_jsonfilename != "") {
-		 printUsage(std::cout);
-		 return false;
-	       };
-	       currentArgument -= 2;
-	       _defined_symbols_jsonfilename = argument[1];
-	       std::cout << "defined_symbols_jsonfilename: " << _defined_symbols_jsonfilename << std::endl;
-	       _isValid = true;
-	       return true;
-	     }
          }
          case '-':
            if (strcmp(argument[0], "--version") == 0) {
@@ -156,13 +138,6 @@ main(int argc, char** argv) {
    if (processArgument.isVersion())
       return 0;
 
-   if (processArgument.getDefinedSymbolsJSONFile() == "")
-     {
-       std::cerr << "ERROR: missing option -s <defined_symbols.json>" << std::endl;
-       processArgument.printUsage(std::cout);
-       return -1;
-     }
-
    int clang_argc = argc;
    llvm::MutableArrayRef<const char*> Argv((const char**)argv, clang_argc+1);
    for (int i = 0; i<argc; i++)
@@ -196,8 +171,7 @@ main(int argc, char** argv) {
    invocation->getFrontendOpts().ProgramAction = clang::frontend::ParseSyntaxOnly;
    compiler.setInvocation(invocation);
 
-   CallersAction callersAction(processArgument.getDefinedSymbolsJSONFile(), 
-			       processArgument.getOutputFile(), 
+   CallersAction callersAction(processArgument.getOutputFile(), 
 			       compiler);
    if (processArgument.doesGenerateImplicitMethods())
       callersAction.setGenerateImplicitMethods();

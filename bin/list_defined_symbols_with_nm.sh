@@ -63,7 +63,7 @@ function generate_defined_symbols_jsonfile ()
 	    #echo "* Object file: ${o} is generated from source file: ${cpp_fullpath}" >&2
 	    echo "* Source file(s): ${cpp_fullpath}" >&2
 	fi
-	# WARNING: several source files resiging in different directories may share the same filename !
+	# WARNING: several source files residing in different directories may share the same filename !
 	# so we have to loop over all the source files sharing the same name
 	for fullpath in ${cpp_fullpath}
 	do

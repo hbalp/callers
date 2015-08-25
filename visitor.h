@@ -33,16 +33,14 @@
 
 class CallersAction : public clang::ASTFrontendAction {
   private:
-   std::string symbols;
    std::ofstream fOut;
    clang::CompilerInstance& ciCompilerInstance;
    bool _doesGenerateImplicitMethods;
 
   public:
-   CallersAction(const std::string& symbols, 
-		 const std::string& out, 
+   CallersAction(const std::string& out, 
 		 clang::CompilerInstance& compilerInstance)
-     : symbols(symbols), fOut(out),
+     : fOut(out),
      ciCompilerInstance(compilerInstance), _doesGenerateImplicitMethods(false) {}
 #ifdef CLANG_VERSION_GREATER_OR_EQUAL_3_7
    virtual std::unique_ptr<clang::ASTConsumer> 
@@ -68,7 +66,6 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   const clang::FunctionDecl* pfdParent;
   mutable std::string sParent;
   clang::SourceManager* psSources;
-  CallersData::Symbols symbols;
 
   std::string writeFunction(const clang::FunctionDecl& function, bool isUnqualified=false) const;
   
@@ -116,8 +113,7 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   bool isTemplate(clang::CXXRecordDecl* RD) const;
 
  public:
- Visitor(const std::string& defined_symbols_json,
-         const std::string& in,
+ Visitor(const std::string& in,
 	 const std::string& file,
 	 const std::string& path,
 	 std::ostream& sout, 
@@ -125,8 +121,7 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
    : inputFile(in), osOut(sout), 
     jsonFile(file, path),
     ciCompilerInstance(compilerInstance), 
-    pfdParent(nullptr), psSources(nullptr),
-    symbols(defined_symbols_json)
+    pfdParent(nullptr), psSources(nullptr)
   {}
 
   ~Visitor()

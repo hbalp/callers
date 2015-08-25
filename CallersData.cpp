@@ -15,7 +15,6 @@
 #include <iostream>
 #include <sstream>
 #include <boost/filesystem.hpp>
-#include <rapidjson/filereadstream.h>
 
 #include "CallersData.hpp"
 
@@ -112,20 +111,11 @@ void CallersData::File::add_defined_function(std::string sign, int line)
   defined.insert(*fct);
 }
 
-/* We use the defined_symbols to decide whether the caller and/or 
-   callee function belongs to the current file. */
 void
-CallersData::File::add_function_call(CallersData::FctCall* fc, 
-				     const CallersData::Symbols& defined_symbols)
+CallersData::File::add_function_call(CallersData::FctCall* fc)
 { 
-  // Retrieve the filename of the caller function
-  std::string caller_filename = defined_symbols.get_filename(fc->caller_sign);
-
-  // Retrieve the filename of the callee function
-  std::string callee_filename = defined_symbols.get_filename(fc->callee_sign);
-
-  std::cout << "Register function call from caller \"" << caller_filename << ":" << fc->caller_sign
-            << "\" to callee \"" << callee_filename << ":" << fc->callee_sign
+  std::cout << "Register function call from caller \"" << fc->caller_file << ":" << fc->caller_sign
+            << "\" to callee \"" << fc->callee_decl_file << ":" << fc->callee_sign
 	    << "\" in file \"" << this->fullPath() << "\"" << std::endl;
 
   calls.insert(*fc);
@@ -133,7 +123,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc,
   std::set<CallersData::Fct>::const_iterator caller, callee;
 
   // Check whether the caller function belongs to the current file.
-  if( caller_filename == file )
+  if( fc->caller_file == this->fullPath() )
 
     // the caller function belongs to the current file
     {
@@ -144,7 +134,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc,
       caller = defined.find(caller_fct);
 
       // Check whether the callee function belongs to the current file.
-      if( callee_filename == file )
+      if( fc->callee_decl_file == this->fullPath() )
 
 	// the callee function belongs to the current file
 	{
@@ -164,7 +154,6 @@ CallersData::File::add_function_call(CallersData::FctCall* fc,
 	// the callee function is defined externally
 	{
 	  // add the external callee to the local caller
-	  //std::string external_file = defined_symbols.get_filepath(fc->callee_sign);
 	  std::string callee_decl_location = fc->callee_decl_file;
 	  std::ostringstream out;
 	  out << fc->callee_decl_line;
@@ -178,7 +167,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc,
     // the caller function does not belong to the current file
     {
       // check whether the callee function does really belong to the current file as expected
-      if( callee_filename == file )
+      if( fc->callee_decl_file == this->fullPath() )
 
 	// the callee function belongs to the current file
 	{
@@ -189,13 +178,17 @@ CallersData::File::add_function_call(CallersData::FctCall* fc,
 	  callee = defined.find(callee_fct);
 
 	  // add the external caller to the local callee
-	  //std::string external_file = defined_symbols.get_filepath(fc->caller_sign);
 	  callee->add_external_caller(fc->caller_sign, fc->caller_file);
 	}
       else
 	// the callee function is defined externally as the caller !!!
 	{
+	  std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
 	  std::cerr << "The callee function is defined externally as the caller !!!" << std::endl;
+	  std::cerr << "current file: " << this->fullPath() << std::endl;
+	  std::cerr << "caller file: " << fc->caller_file << std::endl;
+	  std::cerr << "callee decl file: " << fc->callee_decl_file << std::endl;
+	  std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
 	  abort();
 	}
     }
@@ -469,12 +462,6 @@ CallersData::ExtFct::ExtFct(std::string sign, std::string decl)
 	    << std::endl;
 }
 
-// CallersData::ExtFct::ExtFct(std::string sign, std::string decl, std::string def)
-//   : sign(sign), decl(decl), def(def)
-// {
-//   std::cout << "Create external function: \n" << this << std::endl;
-// }
-
 CallersData::ExtFct::ExtFct(const CallersData::ExtFct& copy_from_me)
 {
   sign = copy_from_me.sign;
@@ -499,90 +486,3 @@ bool CallersData::operator< (const CallersData::ExtFct& fct1, const CallersData:
 {
   return fct1.sign < fct2.sign;
 }
-
-/**************************************** class Symbols ***************************************/
-
-CallersData::Symbols::Symbols(std::string defined_symbols_jsonfilename)
-  : defined_symbols_jsonfilename(defined_symbols_jsonfilename)
-{
-  FILE* pFile = fopen(defined_symbols_jsonfilename.c_str(), "rb");
-  // Always check to see if file opening succeeded
-  if (pFile == NULL)
-    {
-      std::cout << "ERROR: Could not open file \"" << defined_symbols_jsonfilename << "\" !\n";
-      exit(-1);
-    }
-  else
-    // Parse symbol locations
-    {
-      char buffer[65536];
-      rapidjson::FileReadStream is(pFile, buffer, sizeof(buffer));
-      rapidjson::Document document;    
-      document.ParseStream<0, rapidjson::UTF8<>, rapidjson::FileReadStream>(is);
-      assert(document.IsObject());    // Document is a JSON value that represents the root of DOM. Root can be either an object or array.
-      assert(document.HasMember("defined_symbols"));
-      const rapidjson::Value& files = document["defined_symbols"]; // Using a reference for consecutive access is handy and faster.
-      assert(files.IsArray());
-      
-      for (rapidjson::SizeType f = 0; f < files.Size(); f++) // rapidjson uses SizeType instead of size_t.
-	{
-	  const rapidjson::Value& file = files[f];
-
-	  std::string filename(file["file"].GetString());
-	  std::string dirpath(file["path"].GetString());
-	  std::string filepath(dirpath + "/" + filename);
-
-          // std::cout << "file: " << dirpath << "/" << filename << std::endl;
-          // std::cout << "file: " << filename << std::endl;
-          // std::cout << "path: " << dirpath << std::endl;
-
-          const rapidjson::Value& defined = file["defined"];
-          assert(defined.IsArray());
-
-          // rapidjson uses SizeType instead of size_t.
-          for (rapidjson::SizeType s = 0; s < defined.Size(); s++)
-            {
-              const rapidjson::Value& symb = defined[s];
-              const rapidjson::Value& sign = symb["sign"];
-              std::string symbol = sign.GetString();
-              symbol_location.insert(SymbLoc::value_type(symbol, filepath));
-              // std::cout << "s[" << s << "]:\"" << symbol << "\"" << std::endl;
-            }  
-	}
-    }
-}
-
-std::string CallersData::Symbols::get_filepath(std::string searched_symbol) const
-{
-  std::string filepath("unknown_location");
-
-  std::cout << "Check in which file is defined the symbol \"" << searched_symbol << "\"..." << std::endl;
-
-  // Get target symbol location
-  std::map<std::string, std::string>::const_iterator symb;
-  for(symb=symbol_location.begin(); symb!=symbol_location.end(); ++symb)
-    {
-      if(searched_symbol.find(symb->first) != std::string::npos)
-	{
-	  std::cout << "Object symbol \"" << symb->first << "\" is a substring of searched symbol \"" << searched_symbol << "\" and is located in file: \"" << symb->second << "\"" << std::endl;
-	  filepath = symb->second;
-	}
-    }
-
-  if(filepath == "unknown_location")
-    {
-      std::cout << "Not found symbol \"" << searched_symbol << "\"" << std::endl;
-    }
-
-  return filepath;
-}
-
-std::string CallersData::Symbols::get_filename(std::string searched_symbol) const
-{
-  std::string filepath = get_filepath(searched_symbol);
-  boost::filesystem::path p(filepath);
-  std::string filename = p.filename().string();
-  return filename;
-}
-
-CallersData::Symbols::~Symbols() {}

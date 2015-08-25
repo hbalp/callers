@@ -1,8 +1,8 @@
 #!/bin/bash
 set -x
-#     Copyright (C) 2015 Thales Communication & Security, Commissariat à l'Energie Atomique
+#     Copyright (C) 2015 Thales Communication & Security
 #       - All Rights Reserved
-#     coded by Hugues Balp and Franck Vedrine
+#     coded by Hugues Balp
 
 progname=$0
 version=0.0.1
@@ -17,7 +17,7 @@ function func_usage ()
     echo "# version $version"
     echo "################################################################################"
     echo "# Usage:"
-    echo "# cmake_callers_analysis.sh <defined_symbols.json> <cmake_compile_commands.json> (all|<specific_file>) <callers_analysis_report_dir>"
+    echo "# cmake_callers_analysis.sh <cmake_compile_commands.json> (all|<specific_file>) <callers_analysis_report_dir>"
     echo "# Provided command was: ${provided_cmds}"
     exit -1
 }
@@ -39,28 +39,6 @@ function func_version ()
 
 callers_launch_script=launch.gen.sh
 
-# defined_symbols
-function defined_symbols ()
-{
-    defined_symbols_jsonfilename=$1
-
-    # check whether the input file path does really points to an existing file or not
-    ls $defined_symbols_jsonfilename
-    if [ $? -ne 0 ]; then
-	echo "################################################################################"
-	echo "# Not found defined_symbols.json file"
-	echo "# The input file path does not really points to an existing file"
-	echo "# Provided file path: ${defined_symbols_jsonfilename}"
-	echo "# Current path: ${PWD}"
-	echo "################################################################################"
-	exit -1
-    else
-	echo "defined_symbols_jsonfilename: $defined_symbols_jsonfilename"
-
-	echo "defined_symbols=\"${defined_symbols_jsonfilename}\"" >> $callers_launch_script
-    fi
-}
-
 # system_includes
 # retrieve the system include files required by clang
 function system_includes ()
@@ -80,8 +58,7 @@ function system_includes ()
 
 function dump_gdbinit ()
 {
-    defined_symbols_json=$1
-    compile_commands_json=$2
+    compile_commands_json=$1
 
     # get the absolute path to the first file to be analyzed
     file=`grep \"file\" ${compile_commands_json} | tail -1 | cut -d '"' -f4`
@@ -89,27 +66,22 @@ function dump_gdbinit ()
     
     system_includes=`strace -f -e verbose=all -s 256 -v ${clang} -std=c++11 $file |& grep execve |& grep "bin/clang" |& grep cc1 |& sed -e s/'"-internal-isystem", "'/'-I"'/g|& sed -e s/'"-internal-externc-isystem", "'/'-I"'/g |& sed -e s/", "/"\n"/g |& grep "\-I\"" | sed -e s/\"//g | awk '{print}' ORS=' ' `
 
-    # printf "set args -s ${defined_symbols_json} ${system_includes} " >> $gdb_launch_script
-    # cat $compile_commands_json | grep \"command\" | cut -d '"' -f4  | sed -e s/^[^\ ]*//g >> $gdb_launch_script
-
     gdb_launch_script=gdbinit
     cat $compile_commands_json | grep \"command\" | cut -d '"' -f4  | sed -e s/^[^\ ]*//g > .build_cmds
     while read -r line
     do
 	file=`echo $line | awk '{print $NF}' | xargs basename`
 	printf "# $file\n" >> $gdb_launch_script
-	printf "# set args -s ${defined_symbols_json} ${system_includes} $line\n" >> $gdb_launch_script
+	printf "# set args -s ${system_includes} $line\n" >> $gdb_launch_script
 	printf "\n" >> $gdb_launch_script
     done < .build_cmds
 }
 
 function launch_script_header ()
 {
-    defined_symbols_json=$1
-    compile_commands_json=$2
+    compile_commands_json=$1
     echo "#!/bin/bash" > $callers_launch_script
     echo "#set -x" >> $callers_launch_script
-    defined_symbols $defined_symbols_json;
     system_includes $compile_commands_json;
     echo "# files to analyze: ${files}" >> $callers_launch_script
     echo "echo \"Begin function call graph analysis...\" \\" >> $callers_launch_script
@@ -138,19 +110,18 @@ elif test $# = 1; then
 	    func_usage $provided_cmds;;
     esac
 
-elif test $# = 4; then
+elif test $# = 3; then
 
-    defined_symbols_json=$1
-    compile_commands_json=$2
-    files=$3
-    callers_analysis_report=$4
+    compile_commands_json=$1
+    files=$2
+    callers_analysis_report=$3
 
     json_filename=`basename ${compile_commands_json}`
     
     case $json_filename in
 	"compile_commands.json" )
 	    echo "json_file: ${json_filename}";
-	    launch_script_header $defined_symbols_json $compile_commands_json;;
+	    launch_script_header $compile_commands_json;;
 	*)
 	    func_usage $provided_cmds;;
     esac
@@ -161,18 +132,18 @@ elif test $# = 4; then
 	    # make sure the output directories are well created before calling the analysis
 	    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e "s/.*-o //g" | awk '{ print $1 }' | sort -u | xargs dirname | awk '{ print "&& mkdir -p " $N " \\" }' >> $callers_launch_script
 	    # build the analysis command from the build one listed in file compile_commands.json
-	    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ -s\ \$\{defined_symbols\}\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.callers.stdout\ /g | awk '{ print "&& " $N " \\" }' >> $callers_launch_script
+	    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ $\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.callers.stdout\ /g | awk '{ print "&& " $N " \\" }' >> $callers_launch_script
 	    # prepare command arguments for gdbinit script
-	    dump_gdbinit $defined_symbols_json $compile_commands_json
+	    dump_gdbinit $compile_commands_json
 	    ;;
 	*)
 	    echo "analyze file $files..."; 
 	    # make sure the output directories are well created before calling the analysis
 	    cat $compile_commands_json | grep \"command\" | grep $files | cut -d '"' -f4 | sed -e "s/.*-o //g" | awk '{ print $1 }' | sort -u | xargs dirname | awk '{ print "&& mkdir -p " $N " \\" }' >> $callers_launch_script
 	    # build the analysis command from the build one listed in file compile_commands.json
-	    cat $compile_commands_json | grep \"command\" | grep $files | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ -s\ \$\{defined_symbols\}\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.callers.stdout\ /g | awk '{ print "&& " $N " \\" }' >> $callers_launch_script
+	    cat $compile_commands_json | grep \"command\" | grep $files | cut -d '"' -f4 | sed -e s/^[^\ ]*/callers\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.callers.stdout\ /g | awk '{ print "&& " $N " \\" }' >> $callers_launch_script
 	    # prepare command arguments for gdbinit script
-	    dump_gdbinit $defined_symbols_json $compile_commands_json
+	    dump_gdbinit $compile_commands_json
 	    ;;
     esac
 

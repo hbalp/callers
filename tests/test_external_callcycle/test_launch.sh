@@ -7,13 +7,10 @@ cd build
 cmake ..
 make
 cd ..
-# generation of file build/defined_symbols.json
-list_defined_symbols.sh `pwd`
-defined_symbols_json=`pwd`/defined_symbols.json
 
 # launch callers analysis
 cd build
-cmake_callers_analysis.sh $defined_symbols_json compile_commands.json all callers-reports 2>&1 | tee analysis.log
+cmake_callers_analysis.sh compile_commands.json all callers-reports
 if [ $? -ne 0 ]; then
     echo "################################################################################"
     echo "# Callers analysis error. Stop here !"
@@ -21,8 +18,19 @@ if [ $? -ne 0 ]; then
     exit -1
 fi
 cd ..
+
+# List generated json files
+list_json_files_in_dirs.native `pwd` .json dir.callers.gen.json
+
+# List all defined symbols in file defined_symbols.json
+list_defined_symbols.native defined_symbols.json test_external_callcycle dir.callers.gen.json
+read_defined_symbols.native defined_symbols.json file.callers.gen.json
+
+# add extcallees to json files
+source add_extcallees.sh `pwd` defined_symbols.json
+
 # add extcallers to json files
-add_extcallers.sh .
+source add_extcallers.sh .
 indent_jsonfiles.sh .
 
 ## generate callee's tree from main entry point

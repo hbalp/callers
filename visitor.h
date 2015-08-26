@@ -75,7 +75,9 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   std::string getJsonIdentifier(const std::string& name) const;
   std::string printLocation(const clang::SourceRange& rangeLocation) const;
   int printLine(const clang::SourceRange& rangeLocation) const;
-  std::string printFile(const clang::SourceRange& rangeLocation) const;
+  std::string printFileName(const clang::SourceRange& rangeLocation) const;
+  std::string printFilePath(const clang::SourceRange& rangeLocation) const;
+  std::string printCurrentPath(const clang::SourceRange& rangeLocation) const;
   std::string printTemplateExtension(const clang::TemplateArgumentList& arguments) const;
   std::string printTemplateKind(const clang::FunctionDecl& function) const;
   std::string printTemplateKind(const clang::RecordDecl& decl) const;
@@ -96,10 +98,17 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
     return sParent;
   };
 
-  std::string printParentFunctionFile() const
+  std::string printParentFunctionFileName() const
   {  
-    return printFile(pfdParent->getSourceRange());
+    return printFileName(pfdParent->getSourceRange());
   };
+
+  std::string printParentFunctionFilePath() const
+  {  
+    return printFilePath(pfdParent->getSourceRange());
+  };
+
+  std::string printCurrentPath() const;
 
   int printParentFunctionLine() const
   {  

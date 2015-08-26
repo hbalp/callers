@@ -12,6 +12,8 @@
 //#define NOT_USE_BOOST_FILESYSTEM
 #define NOT_USE_BOOST_REGEX
 
+//#include <stdlib.h> // abort()
+
 #include <climits>
 #ifndef NOT_USE_BOOST_FILESYSTEM
 #include <boost/filesystem.hpp>
@@ -36,6 +38,7 @@
 #include "clang/Frontend/FrontendActions.h"
 #include "clang/Frontend/Utils.h"
 #include "clang/Basic/Version.h"
+#include "clang/Tooling/Tooling.h"
 
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Host.h"
@@ -69,6 +72,24 @@ CallersAction::CreateASTConsumer(clang::CompilerInstance& compilerInstance,
   boost::filesystem::path p(inputFile);
   std::string basename = p.filename().string();
   std::string dirname = p.parent_path().string();
+
+  if(dirname == "")
+    {
+      boost::filesystem::path current_path = boost::filesystem::current_path();
+      std::string working_directory = boost::filesystem::canonical(current_path).string();
+      std::cout << "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" << std::endl;
+      std::cout << "Input JSON file path is empty. So we will use the current working directory: " << current_path << std::endl;
+      std::cout << "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" << std::endl;
+      dirname = working_directory;
+    }
+
+     /*{
+      std::cerr << "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" << std::endl;
+      std::cerr << "Input JSON file path is empty. This is probably a Usage Error..." << std::endl;
+      std::cerr << "file: " << file << std::endl;
+      std::cerr << "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" << std::endl;
+      abort();
+      }*/
 
 #ifdef CLANG_VERSION_GREATER_OR_EQUAL_3_7
   return llvm::make_unique<Visitor>(inputFile.str(), basename, dirname, fOut, compilerInstance); 
@@ -116,7 +137,7 @@ CallersAction::Visitor::printLocation(const clang::SourceRange& rangeLocation) c
 }
 
 std::string
-CallersAction::Visitor::printFile(const clang::SourceRange& rangeLocation) const {
+CallersAction::Visitor::printFileName(const clang::SourceRange& rangeLocation) const {
    assert(psSources);
    auto start = psSources->getPresumedLoc(rangeLocation.getBegin());
    const char* startFile = start.getFilename();
@@ -124,6 +145,26 @@ CallersAction::Visitor::printFile(const clang::SourceRange& rangeLocation) const
      startFile = "<unknown>";
    std::string result = startFile;
    return result;
+}
+
+std::string
+CallersAction::Visitor::printFilePath(const clang::SourceRange& rangeLocation) const {
+   assert(psSources);
+   auto start = psSources->getPresumedLoc(rangeLocation.getBegin());
+   const char* startFile = start.getFilename();
+   if (!startFile)
+     startFile = "<unknown>";
+   std::string absolutePath = clang::tooling::getAbsolutePath(startFile);
+   boost::filesystem::path p(absolutePath);
+   std::string path = boost::filesystem::canonical(p).string();
+   return path;
+}
+
+std::string CallersAction::Visitor::printCurrentPath() const
+{  
+  boost::filesystem::path current_path = boost::filesystem::current_path();
+  std::string path = boost::filesystem::canonical(current_path).string();
+  return path;
 }
 
 int
@@ -753,8 +794,8 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
    result += printArgumentSignature(function);
    osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
 
-   CallersData::FctCall fc(printParentFunction(), printParentFunctionFile(), printParentFunctionLine(), 
-			   writeFunction(function), printFile(function.getSourceRange()), printLine(function.getSourceRange()));
+   CallersData::FctCall fc(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
+			   writeFunction(function), printFilePath(function.getSourceRange()), printLine(function.getSourceRange()));
    jsonFile.add_function_call(&fc);
 
    return true;
@@ -771,8 +812,8 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
       result += printArgumentSignature(function);
       osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
 
-      CallersData::FctCall fc(printParentFunction(), printParentFunctionFile(), printParentFunctionLine(), 
-			      result, printFile(function.getSourceRange()), printLine(function.getSourceRange()));
+      CallersData::FctCall fc(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
+			      result, printFilePath(function.getSourceRange()), printLine(function.getSourceRange()));
       jsonFile.add_function_call(&fc);
 
       return true;
@@ -788,8 +829,8 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
          result += "()";
          osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
 
-	 CallersData::FctCall fc(printParentFunction(), printParentFunctionFile(), printParentFunctionLine(), 
-				 result, printFile(destructor->getSourceRange()), printLine(destructor->getSourceRange()));
+	 CallersData::FctCall fc(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
+				 result, printFilePath(destructor->getSourceRange()), printLine(destructor->getSourceRange()));
 	 jsonFile.add_function_call(&fc);
       };
    };
@@ -820,8 +861,8 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
       std::string result = writeFunction(*fd);
       osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
 
-      CallersData::FctCall fc(printParentFunction(), printParentFunctionFile(), printParentFunctionLine(), 
-			      result, printFile(fd->getSourceRange()), printLine(fd->getSourceRange()));
+      CallersData::FctCall fc(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
+			      result, printFilePath(fd->getSourceRange()), printLine(fd->getSourceRange()));
       jsonFile.add_function_call(&fc);
       return true;
    }

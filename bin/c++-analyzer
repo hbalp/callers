@@ -174,13 +174,14 @@ callers_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/\\
 callers=`which callers++`
 
 # add some options when required
-callers_options="-std=c++11 -s /tmp/defined_symbols.json"
+callers_options="-std=c++11"
 
 # build the callers analysis command    
 analysis="${callers} ${callers_options} ${system_includes} ${callers_analysis_options}"
 
 cd $path
-echo "launch callers analysis..."
+echo "launch callers analysis of file ${file}..."
+echo "working directory is $PWD"
 echo "${analysis}" | tee .tmp.last.callers.analysis.sh
 source .tmp.last.callers.analysis.sh
 if [ $? -ne 0 ]; then

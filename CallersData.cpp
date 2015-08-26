@@ -14,7 +14,6 @@
 //#include <fstream>
 #include <iostream>
 #include <sstream>
-#include <boost/filesystem.hpp>
 
 #include "CallersData.hpp"
 
@@ -183,12 +182,12 @@ CallersData::File::add_function_call(CallersData::FctCall* fc)
       else
 	// the callee function is defined externally as the caller !!!
 	{
-	  std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+	  std::cerr << "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" << std::endl;
 	  std::cerr << "The callee function is defined externally as the caller !!!" << std::endl;
 	  std::cerr << "current file: " << this->fullPath() << std::endl;
 	  std::cerr << "caller file: " << fc->caller_file << std::endl;
 	  std::cerr << "callee decl file: " << fc->callee_decl_file << std::endl;
-	  std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+	  std::cerr << "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" << std::endl;
 	  abort();
 	}
     }

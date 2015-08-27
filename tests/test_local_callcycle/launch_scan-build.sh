@@ -1,19 +1,17 @@
 #!/bin/bash
 #set -x
 
+# clean test
 source test_clean.sh
-mkdir build
-cd build
-cmake ..
-make
-cd ..
 
 # launch callers analysis
-cd build
-cmake_callers_analysis.sh compile_commands.json all callers-reports
+mkdir analysis
+cd analysis
+scan-build -o callers cmake ..
+scan-build -o callers make
 if [ $? -ne 0 ]; then
     echo "################################################################################"
-    echo "# Callers analysis error. Stop here !"
+    echo "# Scan-build analysis launch error. Stop here !"
     echo "################################################################################"
     exit -1
 fi
@@ -31,18 +29,17 @@ source add_extcallees.sh `pwd` defined_symbols.json
 
 # add extcallers to json files
 source add_extcallers.sh .
-indent_jsonfiles.sh .
+source indent_jsonfiles.sh .
 
-## generate callee's tree from main entry point
-function_callers_to_dot.native callees "main" "int main()" `pwd`/test_local_callcycle.c
+# generate callee's tree from main entry point
+#function_callers_to_dot.native callees "main" "int main()" `pwd`/test_local_callcycle.c
+function_callers_to_dot.native callees "main" "int main()" `pwd`/test_local_callcycle.c files
 
-## generate caller's tree from main entry point
+# generate caller's tree from main entry point
 #function_callers_to_dot.native callers "main" "int main()" `pwd`/test_local_callcycle.c
 function_callers_to_dot.native callers "a" "void a()" `pwd`/test_local_callcycle.c
 
-process_dot_files.sh . .
-
-inkscape svg/main.fct.callees.gen.dot.svg
-#inkscape svg/main.fct.callers.gen.dot.svg
-
-
+source process_dot_files.sh . analysis/callers
+inkscape analysis/callers/svg/main.fct.callees.gen.dot.svg
+#inkscape analysis/callers/svg/main.fct.callers.gen.dot.svg
+#inkscape analysis/callers/svg/a.fct.callers.gen.dot.svg

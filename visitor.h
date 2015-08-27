@@ -50,8 +50,7 @@ class CallersAction : public clang::ASTFrontendAction {
      CreateASTConsumer(clang::CompilerInstance& compilerInstance,
 		       clang::StringRef inputFile);
    void setGenerateImplicitMethods() { _doesGenerateImplicitMethods = true; }
-
-  private:
+ private:
    class Visitor;
 };
 

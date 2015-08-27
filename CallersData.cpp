@@ -182,13 +182,13 @@ CallersData::File::add_function_call(CallersData::FctCall* fc)
       else
 	// the callee function is defined externally as the caller !!!
 	{
-	  std::cerr << "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" << std::endl;
-	  std::cerr << "The callee function is defined externally as the caller !!!" << std::endl;
+	  std::cerr << "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww" << std::endl;
+	  std::cerr << "The callee function is defined externally as the caller, so we ignore both of them !!!" << std::endl;
 	  std::cerr << "current file: " << this->fullPath() << std::endl;
 	  std::cerr << "caller file: " << fc->caller_file << std::endl;
 	  std::cerr << "callee decl file: " << fc->callee_decl_file << std::endl;
-	  std::cerr << "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" << std::endl;
-	  abort();
+	  std::cerr << "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww" << std::endl;
+	  //abort();
 	}
     }
 }

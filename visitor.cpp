@@ -31,13 +31,14 @@
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/ASTConsumer.h"
+#include "clang/Basic/Version.h"
 #include "clang/Basic/FileManager.h"
+#include "clang/Basic/Builtins.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/CompilerInvocation.h"
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/Frontend/FrontendActions.h"
 #include "clang/Frontend/Utils.h"
-#include "clang/Basic/Version.h"
 #include "clang/Tooling/Tooling.h"
 
 #include "llvm/Support/Path.h"
@@ -60,6 +61,16 @@ void boost::throw_exception(std::exception const&)
 #endif
 #endif
 
+static
+std::string
+getCanonicalAbsolutePath(const std::string& path)
+{
+   std::string absolutePath = clang::tooling::getAbsolutePath(path);
+   boost::filesystem::path p(absolutePath);
+   std::string canonicalPath = boost::filesystem::canonical(p).string();
+   return canonicalPath;
+}
+
 #ifdef CLANG_VERSION_GREATER_OR_EQUAL_3_7
 std::unique_ptr<clang::ASTConsumer> 
 #else
@@ -71,7 +82,7 @@ CallersAction::CreateASTConsumer(clang::CompilerInstance& compilerInstance,
   std::cout << "file: " << inputFile.str() << std::endl;
   boost::filesystem::path p(inputFile);
   std::string basename = p.filename().string();
-  std::string dirname = p.parent_path().string();
+  std::string dirname = ::getCanonicalAbsolutePath(p.parent_path().string());
 
   if(dirname == "")
     {
@@ -82,6 +93,10 @@ CallersAction::CreateASTConsumer(clang::CompilerInstance& compilerInstance,
       std::cout << "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" << std::endl;
       dirname = working_directory;
     }
+
+  std::cout << "IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII" << std::endl;
+  std::cout << "current working directory: " << dirname << std::endl;
+  std::cout << "IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII" << std::endl;
 
      /*{
       std::cerr << "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" << std::endl;
@@ -154,9 +169,7 @@ CallersAction::Visitor::printFilePath(const clang::SourceRange& rangeLocation) c
    const char* startFile = start.getFilename();
    if (!startFile)
      startFile = "<unknown>";
-   std::string absolutePath = clang::tooling::getAbsolutePath(startFile);
-   boost::filesystem::path p(absolutePath);
-   std::string path = boost::filesystem::canonical(p).string();
+   std::string path = ::getCanonicalAbsolutePath(startFile);
    return path;
 }
 
@@ -855,17 +868,51 @@ bool
 CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
    const clang::FunctionDecl* fd = callExpr->getDirectCallee();
    if (fd) {
+
       unsigned builtinID = fd->getBuiltinID();
+      #if 0
       if (builtinID > 0)
-         return true;
-      std::string result = writeFunction(*fd);
-      osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
+	{
+	  #if 1
+	  std::string builtinName, headerName = "noLibBuiltin";
+#define BUILTIN(ID, TYPE, ATTRS) case clang::Builtin::BI##ID: builtinName = #ID; break;
+#define LIBBUILTIN(ID, TYPE, ATTRS, HEADER, BUILTIN_LANG) case clang::Builtin::BI##ID: builtinName = #ID; headerName = ::getCanonicalAbsolutePath(HEADER); break;
+	  switch( builtinID) {
+#include "clang/Basic/Builtins.def"
+	  };
+	  osOut << inputFile << ":builtin: " << printParentFunction() << " -> " << builtinName << '\n';
+	  
+	  if(headerName == "noLibBuiltin" )
+	    {
+	      CallersData::FctCall fc = CallersData::FctCall(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
+							     builtinName, printFilePath(fd->getSourceRange()), printLine(fd->getSourceRange()));
+	      jsonFile.add_function_call(&fc);
+	    }
+	  else
+	    {
+	      CallersData::FctCall fc = CallersData::FctCall(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
+							     builtinName, headerName, printLine(fd->getSourceRange()));
+	      jsonFile.add_function_call(&fc);
+	    }
+	  #endif
+	  return true;
+	}
+      #else
+      if (builtinID > 0)
+	{
+	  return true;
+	}
+      #endif
+
+      std::string calleeName = writeFunction(*fd);
+      osOut << inputFile << ": " << printParentFunction() << " -> " << calleeName << '\n';
 
       CallersData::FctCall fc(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
-			      result, printFilePath(fd->getSourceRange()), printLine(fd->getSourceRange()));
+			      calleeName, printFilePath(fd->getSourceRange()), printLine(fd->getSourceRange()));
       jsonFile.add_function_call(&fc);
       return true;
    }
+
    if (callExpr->getCallee()->getStmtClass() == clang::Stmt::CXXPseudoDestructorExprClass)
       return true;
    osOut << "  " << printParentFunction() << " -> dynamic call\n";
@@ -884,14 +931,14 @@ CallersAction::Visitor::VisitMemberCallExpr(const clang::CXXMemberCallExpr* call
    if (isVirtualCall) {
       clang::CXXRecordDecl* baseClass = callExpr->getMethodDecl()->getParent();
       // _callersAction->registerDerivedCalls(sParent, baseClass, callExpr->getMethodDecl());
-      std::string result = writeFunction(*directCall);
+      std::string calleeName = writeFunction(*directCall);
       osOut << printParentFunction() << " -> derived of class "
          << printQualifiedName(*baseClass) << printTemplateKind(*baseClass)
-         << " method " << result << '\n';
+         << " method " << calleeName << '\n';
    }
    else {
-      std::string result = writeFunction(*directCall);
-      osOut << "  " << printParentFunction() << " -> " << result << '\n';
+      std::string calleeName = writeFunction(*directCall);
+      osOut << "  " << printParentFunction() << " -> " << calleeName << '\n';
    };
    return true;
 }

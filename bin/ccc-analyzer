@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -x
+set -x
 
 #$include "shared-utilities"
 #$include /tools/llvm/trunk/tools/clang/tools/extra/callers/bin/shared-utilities
@@ -196,8 +196,12 @@ system_includes=`strace -f -e verbose=all -s 256 -v ${clang} $file |& grep execv
 # get path
 path=`pwd`
 
+#################################################################################
+#       Launch Callers analysis
+#################################################################################
+
 # define callers analysis options
-callers_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/\\\\.o/\.callers.unsorted.out/g`
+callers_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/\\\\.o/\.gen.callers.stdout/g`
 #callers_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/\\\\.o/\.out\ /g | sed -e s#${file}#${path}/${file}#g `
 #| sed -e s#-o\ CMakeFiles[^\ ]*/#-o\ callers-analysis-report/dot/unsorted/#g >> $callers_launch_script
 
@@ -217,5 +221,57 @@ echo "${analysis}" | tee .tmp.last.callers.analysis.sh
 source .tmp.last.callers.analysis.sh
 #exec "${analysis}"
 #exec "cd ${path} && ${analysis}"
+
+#################################################################################
+#       Launch framaCIRGen analysis
+#################################################################################
+
+# define framaCIRGen analysis options
+framaCIRGen_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/\\\\.o\ /\.gen.fir\ /g `
+
+# localize framaCIRGen
+framaCIRGen=`which framaCIRGen`
+
+# add some options when required
+framaCIRGen_options=""
+
+# build the framaCIRGen analysis command    
+analysis="${framaCIRGen} ${framaCIRGen_options} ${system_includes} ${framaCIRGen_analysis_options}"
+
+cd $path
+echo "launch framaCIRGen analysis of file ${file}..."
+echo "working directory is $PWD"
+echo "${analysis}" | tee .tmp.last.framaCIRGen.analysis.sh
+source .tmp.last.framaCIRGen.analysis.sh
+#exec "${analysis}"
+#exec "cd ${path} && ${analysis}"
+
+#################################################################################
+#       Launch frama-clang analysis
+#################################################################################
+
+# define frama-clang analysis options
+frama_clang_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/-o\ /\>\ /g | sed -e s/\\.o\ /\.gen.cabs.c\ /g | awk '{ print $3 " " $1 " " $2 }'`
+#frama_clang_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/-o\ /\>\ /g | sed -e s/\\.o\ /\.gen.cabs.c\ /g | awk '{ print $1 " :a: " $2 " :b: " $3 " :c: " $4 " :d: " $5 " :e: " $6 " :f: " $9 " :g: " $7 " :h: " $8 }'`
+
+# localize frama_clang
+frama_clang=`which frama-c`
+
+# add some options when required
+frama_clang_options="-cxx-nostdinc -cxx-keep-mangling -fclang-msg-key clang,cabs -fclang-verbose 2 -cxx-clang-command"
+
+# build the frama_clang analysis command
+analysis="${frama_clang} ${frama_clang_options} \"framaCIRGen \${system_includes}\" -machdep x86_32 -print ${frama_clang_analysis_options}"
+#analysis="${frama_clang} ${frama_clang_options} \"framaCIRGen \${system_includes}\" -machdep x86_32 -print 1: ${frama_clang_analysis_options} 2: ${frama_clang_analysis_options2} 3: ${frama_clang_analysis_options3}"
+
+cd $path
+echo "launch frama_clang analysis of file ${file}..."
+echo "working directory is $PWD"
+echo "${analysis}" | tee .tmp.last.frama_clang.analysis.sh
+source .tmp.last.frama_clang.analysis.sh
+#exec "${analysis}"
+#exec "cd ${path} && ${analysis}"
+
+#################################################################################
 
 echo "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"

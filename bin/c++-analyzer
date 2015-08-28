@@ -143,6 +143,16 @@ function build_conftest()
 
 echo "CPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCP"
 
+case "$1" in
+    --help | --hel | --he | --h )
+	func_usage $provided_cmds 
+	;;
+    --version | --versio | --versi | --vers | --ver | --ve | --v )
+	func_version
+	;;
+    *)
+esac
+
 # get the analysis_type = callers | frama-clang | framaCIRGen | all
 analysis_type=${CALLERS_ANALYSIS_TYPE}
 echo "c++-analysis type is: ${analysis_type}"
@@ -175,7 +185,7 @@ case $analysis_type in
 	;;
 
     *)
-	func_usage $provided_cmds
+	echo "builds the input file without any analysis..."
 	;;
 esac
 

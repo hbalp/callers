@@ -286,16 +286,17 @@ if [ $run_frama_clang == "true" ]; then
     frama_clang=`which frama-c`
 
     # add some options when required
-    frama_clang_options="-cxx-nostdinc -cxx-keep-mangling -fclang-msg-key clang,cabs -fclang-verbose 2 -cxx-clang-command"
+    frama_clang_options="-cxx-nostdinc -cxx-keep-mangling -fclang-msg-key clang,cabs -fclang-verbose 2 -machdep x86_32 -print -cxx-clang-command"
 
     # build the frama_clang analysis command
-    analysis="${frama_clang} ${frama_clang_options} \"framaCIRGen \${system_includes}\" -machdep x86_32 -print ${frama_clang_analysis_options}"
+    analysis="${frama_clang} ${frama_clang_options} \"framaCIRGen \${system_includes} ${frama_clang_analysis_options}"
 
     cd $path
     echo "launch frama_clang analysis of file ${file}..."
     echo "working directory is $PWD"
     #echo "build options: ${build_options}"
-    echo "${analysis}" | tee .tmp.last.frama_clang.analysis.sh
+    echo "system_includes=\"${system_includes}\"" > .tmp.last.frama_clang.analysis.sh
+    echo "${analysis}" >> .tmp.last.frama_clang.analysis.sh
     source .tmp.last.frama_clang.analysis.sh
     #exec "${analysis}"
     #exec "cd ${path} && ${analysis}"

@@ -870,7 +870,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
    if (fd) {
 
       unsigned builtinID = fd->getBuiltinID();
-      #if 1
+      #if 0
       if (builtinID > 0)
 	{
 	  #if 1

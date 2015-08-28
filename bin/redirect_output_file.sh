@@ -30,7 +30,15 @@ function redirect_output_file()
 	    output=${a}
 	elif [ ${a} != -o ]
 	then
-	    new_args="${new_args} $a "
+	    # insert a '"' before *.c
+	    last_arg=${!#}
+	    #echo "HBDBG: if [ ${a} == ${last_arg} ]"
+	    if [ ${a} == ${last_arg} ]
+	    then
+		new_args="${new_args} \" $a "
+	    else
+		new_args="${new_args} $a "		
+	    fi
 	fi
 	option=$a
     done
@@ -40,7 +48,7 @@ function redirect_output_file()
 	echo "ERROR_NO_OUTPUT_FILE_IN_ARGS: ${output}"
 	return 1
     else
-	printf "${new_args} > ${output}"
+	echo "${new_args} > ${output}"
 	return 0
     fi
 }

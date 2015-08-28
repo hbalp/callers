@@ -2,9 +2,9 @@
 #set -x
 
 #analysis_type=$1
-analysis_type=all
+#analysis_type=all
 #analysis_type=callers
-#analysis_type=frama-clang
+analysis_type=frama-clang
 #analysis_type=framaCIRGen
 
 # clean test

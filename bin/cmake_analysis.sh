@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+#set -x
 #     Copyright (C) 2015 Thales Communication & Security
 #       - All Rights Reserved
 #     coded by Hugues Balp
@@ -13,7 +13,7 @@ function func_usage ()
 {
     provided_cmds=$@
     echo "################################################################################"
-    echo "# shell script to launch the clang \"frama-clang\" analysis plugin"
+    echo "# shell script to launch some clang analysis plugins"
     echo "# version $version"
     echo "################################################################################"
     echo "# Usage:"
@@ -89,18 +89,7 @@ function launch_frama_clang ()
     cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e "s/.*-o //g" | awk '{ print $1 }' | sort -u | xargs dirname | awk '{ print "&& mkdir -p " $N " \\" }'
 
     # build the analysis command from the build one listed in file compile_commands.json
-    #cat $compile_commands_json | grep \"command\" | cut -d '"' -f4  | awk '{ print "&& " $1 " " $4 " " $2 " " $3 " \\" }'
-
-    ### cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/\$\{frama_clang\}\ \"framaCIRGen\ \$\{system_includes\}\"\ -machdep\ x86_32\ -print/g | sed -e s/-c\ //g | sed -e s/-o\ /\>\ /g | sed -e s/\\.o\ /\.gen.cabs.c\ /g | awk '{ print "&& " $1 " " $2 " " $3 " " $4 " " $5 " " $6 " " $9 " " $7 " " $8 " \\" }'
-
     cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/\$\{frama_clang\}\ \"framaCIRGen\ \$\{system_includes\}\"\ -machdep\ x86_32\ -print/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.cabs.c\ /g | { args=$(< /dev/stdin); redirect_output_file.sh $args; } | awk '{ print "&& " $N " \\" }'
-
-    #cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/\$\{frama_clang\}\ framaCIRGen \$\{system_includes\}\ -machdep\ x86_32\ -print/g | sed -e s/-c\ //g | sed -e s/-o\ /\>\ /g | sed -e s/\\.o\ /\.gen.cabs.c\ /g | awk '{ print "&& " $1 " " $4 " " $2 " " $3 " \\" }'
-
-#    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/\$\{frama_clang\}\ \"framaCIRGen \$\{system_includes\}\"\ -machdep x86_32 -print/g | sed -e s/-c\ //g | sed -e s/-o\ /\>\ /g | sed -e s/\\.o\ /\.gen.cabs.c\ /g | awk '{ print "&& " $1 $2 $3 $4  $5 " \\" }'
-
-#    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/\$\{frama_clang\}\ \"framaCIRGen \$\{system_includes\}\"\ -machdep x86_32 -print/g | sed -e s/-c\ //g | sed -e s/-o\ /\>\ /g | sed -e s/\\.o\ /\.gen.cabs.c\ /g | awk '{ print "&& " " :1: " $1 " :2: " $2 " :3: " $3 " :4: " $4 " :5: " $5 " :6: " $6 " :7: " $7 " :8: " $8 " :9: " $9 " :10: " $10 " \\" }'
-    #echo "frama_clang=\"frama-c -cxx-nostdinc -cxx-keep-mangling -fclang-msg-key clang,cabs -fclang-verbose 2 -cxx-clang-command \"framaCIRGen ${system_includes}\" -machdep x86_32 -print \""
 }
 
 function dump_gdbinit ()

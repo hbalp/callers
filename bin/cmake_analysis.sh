@@ -17,7 +17,7 @@ function func_usage ()
     echo "# version $version"
     echo "################################################################################"
     echo "# Usage:"
-    echo "# cmake_analysis.sh <cmake_compile_commands.json> (all|<specific_file>) <analysis_report_dir>"
+    echo "# cmake_analysis.sh <cmake_compile_commands.json> <analysis_type=callers|frama-clang|framaCIRGen|all> <files=all|specific_file>"
     echo "# Provided command was: ${provided_cmds}"
     exit -1
 }
@@ -78,7 +78,7 @@ function launch_framaCIRGen ()
     cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e "s/.*-o //g" | awk '{ print $1 }' | sort -u | xargs dirname | awk '{ print "&& mkdir -p " $N " \\" }'
 
     # build the analysis command from the build one listed in file compile_commands.json
-    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/framaCIRGen\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.fir\ /g | awk '{ print "&& " $N " \\" }'    
+    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/framaCIRGen\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.fir\ /g | awk '{ print "&& " $N " \\" }'
 }
 
 function launch_frama_clang ()
@@ -91,7 +91,9 @@ function launch_frama_clang ()
     # build the analysis command from the build one listed in file compile_commands.json
     #cat $compile_commands_json | grep \"command\" | cut -d '"' -f4  | awk '{ print "&& " $1 " " $4 " " $2 " " $3 " \\" }'
 
-    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/\$\{frama_clang\}\ \"framaCIRGen\ \$\{system_includes\}\"\ -machdep\ x86_32\ -print/g | sed -e s/-c\ //g | sed -e s/-o\ /\>\ /g | sed -e s/\\.o\ /\.gen.cabs.c\ /g | awk '{ print "&& " $1 " " $2 " " $3 " " $4 " " $5 " " $6 " " $9 " " $7 " " $8 " \\" }'
+    ### cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/\$\{frama_clang\}\ \"framaCIRGen\ \$\{system_includes\}\"\ -machdep\ x86_32\ -print/g | sed -e s/-c\ //g | sed -e s/-o\ /\>\ /g | sed -e s/\\.o\ /\.gen.cabs.c\ /g | awk '{ print "&& " $1 " " $2 " " $3 " " $4 " " $5 " " $6 " " $9 " " $7 " " $8 " \\" }'
+
+    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/\$\{frama_clang\}\ \"framaCIRGen\ \$\{system_includes\}\"\ -machdep\ x86_32\ -print/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.cabs.c\ /g | { args=$(< /dev/stdin); redirect_output_file.sh $args; } | awk '{ print "&& " $N " \\" }'
 
     #cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/\$\{frama_clang\}\ framaCIRGen \$\{system_includes\}\ -machdep\ x86_32\ -print/g | sed -e s/-c\ //g | sed -e s/-o\ /\>\ /g | sed -e s/\\.o\ /\.gen.cabs.c\ /g | awk '{ print "&& " $1 " " $4 " " $2 " " $3 " \\" }'
 
@@ -166,20 +168,63 @@ elif test $# = 1; then
 elif test $# = 3; then
 
     compile_commands_json=$1
-    files=$2
-    frama_clang_analysis_report=$3
+    # analysis_type = callers | frama-clang | framaCIRGen | all
+    analysis_type=$2
+    files=$3
+    #frama_clang_analysis_report=$3
 
     json_filename=`basename ${compile_commands_json}`
     
     case $json_filename in
+
 	"compile_commands.json" )
-	    echo "json_file: ${json_filename}";
-	    launch_script_header callers     $compile_commands_json > $callers_launch_script
-	    launch_script_header frama-clang $compile_commands_json > $frama_clang_launch_script
-	    launch_script_header framaCIRGen $compile_commands_json > $framaCIRGen_launch_script;;
+	    echo "json_file: ${json_filename}"
+	    ;;
 	*)
-	    func_usage $provided_cmds;;
+	    func_usage $provided_cmds
+	    ;;
     esac
+
+    run_callers="false"
+    run_frama_clang="false"
+    run_framaCIRGen="false"
+
+    case $analysis_type in
+
+	"callers" )
+	    echo "activates callers analysis";
+	    run_callers="true"
+	    launch_script_header callers     $compile_commands_json > $callers_launch_script
+	    ;;
+
+	"frama-clang" )
+	    echo "activates frama-clang analysis";
+	    run_frama_clang="true"
+	    launch_script_header frama-clang $compile_commands_json > $frama_clang_launch_script
+	    ;;
+
+	"framaCIRGen" )
+	    echo "activates framaCIRGen analysis";
+	    run_framaCIRGen="true"
+	    launch_script_header framaCIRGen $compile_commands_json > $framaCIRGen_launch_script
+	    ;;
+
+	"all" )
+	    echo "activates all kind of analysis: callers, frama_clang and framaCIRGen";
+	    run_callers="true"
+	    launch_script_header callers     $compile_commands_json > $callers_launch_script	    
+	    run_frama_clang="true"
+	    launch_script_header frama-clang $compile_commands_json > $frama_clang_launch_script
+	    run_framaCIRGen="true"
+	    launch_script_header framaCIRGen $compile_commands_json > $framaCIRGen_launch_script
+	    ;;
+
+	*)
+	    func_usage $provided_cmds
+	    ;;
+    esac
+
+    frama_clang_analysis_report=$analysis_type
 
     case $files in
 
@@ -187,13 +232,19 @@ elif test $# = 3; then
 	    echo "analyze all files...";
 
 	    # prepare command arguments for Callers analysis
-	    launch_callers $compile_commands_json >> $callers_launch_script
-
-	    # prepare command arguments for framaCIRGen analysis
-	    launch_framaCIRGen $compile_commands_json >> $framaCIRGen_launch_script
+	    if [ $run_callers == "true" ]; then
+		launch_callers $compile_commands_json >> $callers_launch_script
+	    fi
 
 	    # prepare command arguments for frama-clang analysis
-	    launch_frama_clang $compile_commands_json >> $frama_clang_launch_script
+	    if [ $run_frama_clang == "true" ]; then
+		launch_frama_clang $compile_commands_json >> $frama_clang_launch_script
+	    fi
+
+	    # prepare command arguments for framaCIRGen analysis
+	    if [ $run_framaCIRGen == "true" ]; then
+		launch_framaCIRGen $compile_commands_json >> $framaCIRGen_launch_script
+	    fi
 
 	    # prepare command arguments for gdbinit script
 	    gdb_launch_script=gdbinit
@@ -201,29 +252,44 @@ elif test $# = 3; then
 	    ;;
 	*)
 	    echo "analyze file $files..."; 
-	    # make sure the output directories are well created before calling the analysis
-	    cat $compile_commands_json | grep \"command\" | grep $files | cut -d '"' -f4 | sed -e "s/.*-o //g" | awk '{ print $1 }' | sort -u | xargs dirname | awk '{ print "&& mkdir -p " $N " \\" }' >> $frama_clang_launch_script
-	    # build the analysis command from the build one listed in file compile_commands.json
-	    cat $compile_commands_json | grep \"command\" | grep $files | cut -d '"' -f4 | sed -e s/^[^\ ]*/framaCIRGen\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.fir\ /g | awk '{ print "&& " $N " \\" }' >> $frama_clang_launch_script
-	    # prepare command arguments for gdbinit scrip
-	    gdb_launch_script=gdbinit
-	    dump_gdbinit $compile_commands_json > $gdb_launch_script
+	    echo "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+	    echo "cmake_analysis.sh::ERROR:: Broken functionality to be maintained..."; 
+	    echo "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+	    return -6
+	    # # make sure the output directories are well created before calling the analysis
+	    # cat $compile_commands_json | grep \"command\" | grep $files | cut -d '"' -f4 | sed -e "s/.*-o //g" | awk '{ print $1 }' | sort -u | xargs dirname | awk '{ print "&& mkdir -p " $N " \\" }' >> $frama_clang_launch_script
+	    # # build the analysis command from the build one listed in file compile_commands.json
+	    # cat $compile_commands_json | grep \"command\" | grep $files | cut -d '"' -f4 | sed -e s/^[^\ ]*/framaCIRGen\ \$\{system_includes\}/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.fir\ /g | awk '{ print "&& " $N " \\" }' >> $frama_clang_launch_script
+	    # # prepare command arguments for gdbinit scrip
+	    # gdb_launch_script=gdbinit
+	    # dump_gdbinit $compile_commands_json > $gdb_launch_script
 	    ;;
     esac
-    launch_script_footer callers     >> $callers_launch_script;
-    launch_script_footer framaCIRGen >> $framaCIRGen_launch_script;
-    launch_script_footer frama-clang >> $frama_clang_launch_script;
+    if [ $run_callers == "true" ]; then
+	launch_script_footer callers     >> $callers_launch_script;
+    fi
+    if [ $run_frama_clang == "true" ]; then
+	launch_script_footer framaCIRGen >> $framaCIRGen_launch_script;
+    fi
+    if [ $run_framaCIRGen == "true" ]; then
+	launch_script_footer frama-clang >> $frama_clang_launch_script;
+    fi
 else
     func_usage $provided_cmds
 fi
 
-echo "generated launcher script: ${callers_launch_script}"
-echo "generated launcher script: ${framaCIRGen_launch_script}"
-echo "generated launcher script: ${frama_clang_launch_script}"
-
 mkdir -p ${frama_clang_analysis_report}
 
 echo "launch the analysis..."
-source ${callers_launch_script}     2>&1 | tee ${analysis_report}/callers.analysis.gen.log
-source ${framaCIRGen_launch_script} 2>&1 | tee ${analysis_report}/framaCIRGen.analysis.gen.log
-source ${frama_clang_launch_script} 2>&1 | tee ${analysis_report}/frama-clang.analysis.gen.log
+if [ $run_callers == "true" ]; then
+    echo "generated launcher script: ${callers_launch_script}"
+    source ${callers_launch_script}     2>&1 | tee ${analysis_report}/callers.analysis.gen.log
+fi
+if [ $run_frama_clang == "true" ]; then
+    echo "generated launcher script: ${frama_clang_launch_script}"
+    source ${frama_clang_launch_script} 2>&1 | tee ${analysis_report}/frama-clang.analysis.gen.log
+fi
+if [ $run_framaCIRGen == "true" ]; then
+    echo "generated launcher script: ${framaCIRGen_launch_script}"
+    source ${framaCIRGen_launch_script} 2>&1 | tee ${analysis_report}/framaCIRGen.analysis.gen.log
+fi

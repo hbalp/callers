@@ -18,7 +18,7 @@ cd analysis
 # cmake_callers_analysis.sh compile_commands.json all callers
 export CALLERS_ANALYSIS_TYPE="$analysis_type"
 scan-build -o callers cmake ..
-scan-build -o callers make
+scan-build -o callers make VERBOSE=yes
 if [ $? -ne 0 ]; then
     echo "################################################################################"
     echo "# Callers analysis error. Stop here !. Analysis type is ${CALLERS_ANALYSIS_TYPE}"

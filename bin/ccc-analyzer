@@ -129,43 +129,43 @@ function build_conftest()
     exit 0
 }
 
-function check_ld()
-{
-    lastArg=${!#}
-    args=$@
-    echo "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
-    echo "ccc-analyzer: last provided argument is ${lastArg}, so we provide a dummy ld"
-    echo "ld: $@"
-    export LD=/usr/bin/ld
-    echo "LDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLD"
-    exit 0
-}
+# function check_ld()
+# {
+#     lastArg=${!#}
+#     args=$@
+#     echo "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+#     echo "ccc-analyzer: last provided argument is ${lastArg}, so we provide a dummy ld"
+#     echo "ld: $@"
+#     export LD=/usr/bin/ld
+#     echo "LDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLD"
+#     exit 0
+# }
 
-function check_args()
-{
-    has_arg "conftest.c" $@
-    has_conftest=$?
-    echo "HBDBG has conftest ($@) ? : $has_conftest"
+# function check_args()
+# {
+#     has_arg "conftest.c" $@
+#     has_conftest=$?
+#     echo "HBDBG has conftest ($@) ? : $has_conftest"
 
-    lastArg=${!#}
+#     lastArg=${!#}
 
-    if
-	[ $has_conftest -eq 0 ]
-    then
-	echo "HBDBG: it seems that conftest.c is part of $@"
-	build_conftest $@
-    elif
-	[ $lastArg == "-print-prog-name=ld" ]
-    then
-	check_ld $@
-    elif
-	[ $lastArg == "-V" ]||
-	[ $lastArg == "-v" ]||
-	[ $lastArg == "-qversion" ]
-    then
-	exit_script $@
-    fi
-}
+#     if
+# 	[ $has_conftest -eq 0 ]
+#     then
+# 	echo "HBDBG: it seems that conftest.c is part of $@"
+# 	build_conftest $@
+#     elif
+# 	[ $lastArg == "-print-prog-name=ld" ]
+#     then
+# 	check_ld $@
+#     elif
+# 	[ $lastArg == "-V" ]||
+# 	[ $lastArg == "-v" ]||
+# 	[ $lastArg == "-qversion" ]
+#     then
+# 	exit_script $@
+#     fi
+# }
 
 # check expected arguments
 #check_args $@
@@ -183,63 +183,62 @@ case "$1" in
     *)
 esac
 
-# get the analysis_type = callers | frama-clang | framaCIRGen | all
-analysis_type=${CALLERS_ANALYSIS_TYPE}
-echo "c++-analysis type is: ${analysis_type}"
 run_callers="false"
 run_frama_c="false"
 run_framaCIRGen="false"
 
-case $analysis_type in
-
-    "callers" )
-	echo "activates callers analysis";
-	run_callers="true"
-	;;
-
-    "frama-c" )
-	echo "activates frama-clang analysis";
-	run_frama_c="true"
-	;;
-
-    "framaCIRGen" )
-	echo "activates framaCIRGen analysis";
-	run_framaCIRGen="true"
-	;;
-
-    "all" )
-	echo "activates all kind of analysis: callers, frama_clang and framaCIRGen";
-	run_callers="true"
-	run_frama_c="true"
-	run_framaCIRGen="true"
-	;;
-
-    *)
-	echo "builds the input file without any analysis..."
-	;;
-esac
-
 build_args=$@
-#analysis_args=echo "${build_args}" | sed -e s/\\.o/\.gen\.callers\.unsorted\.out/g
 analysis_args=$@
 echo "ccc-analyzer arguments are: $@"
 
 file=`get_file .c ${analysis_args}`
-
 if [ -z "${file}" ]
 then
     echo "No .c source file has been found in arguments, so we bypass the callers analysis"
-    exit_script ${analysis_args}
+    #exit_script ${analysis_args}
+else
+    bfile=`basename $file`
+
+    if [ ${bfile} == "conftest.c" ]
+    then
+	build_conftest ${analysis_args}
+    fi
+
+    echo "c_file: ${file}"
+
+    # get the analysis_type = callers | frama-clang | framaCIRGen | all
+    analysis_type=${CALLERS_ANALYSIS_TYPE}
+    echo "c++-analysis type is: ${analysis_type}"
+
+    case $analysis_type in
+
+	"callers" )
+	    echo "activates callers analysis";
+	    run_callers="true"
+	    ;;
+
+	"frama-c" )
+	    echo "activates frama-clang analysis";
+	    run_frama_c="true"
+	    ;;
+
+	"framaCIRGen" )
+	    echo "activates framaCIRGen analysis";
+	    run_framaCIRGen="true"
+	    ;;
+
+	"all" )
+	    echo "activates all kind of analysis: callers, frama_clang and framaCIRGen";
+	    run_callers="true"
+	    run_frama_c="true"
+	    run_framaCIRGen="true"
+	    ;;
+
+	*)
+	    echo "builds the input file without any analysis..."
+	    ;;
+    esac
 fi
-
-bfile=`basename $file`
-
-if [ ${bfile} == "conftest.c" ]
-then
-    build_conftest ${analysis_args}
-fi
-
-echo "c_file: ${file}"
 
 # localize clang
 clang=`which clang`

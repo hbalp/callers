@@ -153,65 +153,65 @@ case "$1" in
     *)
 esac
 
-# get the analysis_type = callers | frama-clang | framaCIRGen | all
-analysis_type=${CALLERS_ANALYSIS_TYPE}
-echo "c++-analysis type is: ${analysis_type}"
 run_callers="false"
 run_frama_clang="false"
 run_framaCIRGen="false"
 
-case $analysis_type in
-
-    "callers" )
-	echo "activates callers analysis";
-	run_callers="true"
-	;;
-
-    "frama-clang" )
-	echo "activates frama-clang analysis";
-	run_frama_clang="true"
-	;;
-
-    "framaCIRGen" )
-	echo "activates framaCIRGen analysis";
-	run_framaCIRGen="true"
-	;;
-
-    "all" )
-	echo "activates all kind of analysis: callers, frama_clang and framaCIRGen";
-	run_callers="true"
-	run_frama_clang="true"
-	run_framaCIRGen="true"
-	;;
-
-    *)
-	echo "builds the input file without any analysis..."
-	;;
-esac
-
 build_args=$@
-#analysis_args=echo "${build_args}" | sed -e s/\\.o/\.gen\.callers\.unsorted\.out/g
 analysis_args=$@
-file=`get_file .cpp ${analysis_args}`
 echo "c++-analyzer arguments are: $@"
 
+file=`get_file .cpp ${analysis_args}`
 if [ -z "${file}" ]
 then
-    echo "No .cpp source file has been found in arguments, so we bypass the callers analysis"
-    exit_script ${analysis_args}
+    echo "No .cpp source file has been found in arguments, so we bypass the source code analysis and perform link edition when needed"
+    #exit_script ${analysis_args}
+else
+    bfile=`basename $file`
+
+    if [ ${bfile} == "conftest.cpp" ]
+    then
+	build_conftest ${analysis_args}
+    fi
+
+    echo "cpp_file: ${file}"
+
+# get the analysis_type = callers | frama-clang | framaCIRGen | all
+    analysis_type=${CALLERS_ANALYSIS_TYPE}
+    echo "c++-analysis type is: ${analysis_type}"
+
+    case $analysis_type in
+
+	"callers" )
+	    echo "activates callers analysis";
+	    run_callers="true"
+	    ;;
+
+	"frama-clang" )
+	    echo "activates frama-clang analysis";
+	    run_frama_clang="true"
+	    ;;
+
+	"framaCIRGen" )
+	    echo "activates framaCIRGen analysis";
+	    run_framaCIRGen="true"
+	    ;;
+
+	"all" )
+	    echo "activates all kind of analysis: callers, frama_clang and framaCIRGen";
+	    run_callers="true"
+	    run_frama_clang="true"
+	    run_framaCIRGen="true"
+	    ;;
+
+	*)
+	    echo "builds the input file without any analysis..."
+	    ;;
+    esac
 fi
 
-bfile=`basename $file`
-
-if [ ${bfile} == "conftest.cpp" ]
-then
-    build_conftest ${analysis_args}
-fi
-
-echo "cpp_file: ${file}"
-
-# localize clang
-clang=`which clang`
+# localize clang++
+clang=`which clang++`
 
 # get build options
 build_options=${build_args}

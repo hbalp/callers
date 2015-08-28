@@ -4,7 +4,7 @@
 #analysis_type=$1
 #analysis_type=all
 #analysis_type=callers
-analysis_type=frama-clang
+analysis_type=frama-c
 #analysis_type=framaCIRGen
 
 # clean test
@@ -15,7 +15,7 @@ mkdir analysis
 cd analysis
 export CALLERS_ANALYSIS_TYPE="$analysis_type"
 scan-build -o callers cmake ..
-scan-build -o callers make
+scan-build -o callers make VERBOSE=yes
 if [ $? -ne 0 ]; then
     echo "################################################################################"
     echo "# Scan-build analysis launch error. Stop here !"

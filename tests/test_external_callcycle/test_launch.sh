@@ -1,51 +1,68 @@
 #!/bin/bash
 #set -x
 
-source test_clean.sh
-mkdir build
-cd build
-cmake ..
-make
-cd ..
+#build_tool=cmake
+build_tool=scan_build
 
-# launch callers analysis
-cd build
-cmake_callers_analysis.sh compile_commands.json all callers-reports
+analysis_type=all
+#analysis_type=callers
+#analysis_type=frama-clang
+#analysis_type=framaCIRGen
+
+source test_clean.sh
+
+# launch analysis
+mkdir analysis
+cd analysis
+export CALLERS_ANALYSIS_TYPE="$analysis_type"
+if [ $build_tool == "cmake" ]
+then
+    cmake ..
+    make VERBOSE=yes
+    cmake_analysis.sh compile_commands.json ${analysis_type} all
+elif [ $build_tool == "scan_build" ]
+then
+    scan-build -o ${analysis_type} cmake ..
+    scan-build -o ${analysis_type} make VERBOSE=yes
+fi
 if [ $? -ne 0 ]; then
     echo "################################################################################"
-    echo "# Callers analysis error. Stop here !"
+    echo "# ${analysis_type} analysis error. Stop here !"
     echo "################################################################################"
     exit -1
 fi
 cd ..
 
-# List generated json files
-list_json_files_in_dirs.native `pwd` .json dir.callers.gen.json
+if [ $analysis_type == "callers" ] || [ $analysis_type == "all" ]
+then
 
-# List all defined symbols in file defined_symbols.json
-list_defined_symbols.native defined_symbols.json test_external_callcycle dir.callers.gen.json
-read_defined_symbols.native defined_symbols.json file.callers.gen.json
+    # List generated json files
+    list_json_files_in_dirs.native `pwd` .json dir.callers.gen.json
 
-# add extcallees to json files
-source add_extcallees.sh `pwd` defined_symbols.json
+    # List all defined symbols in file defined_symbols.json
+    list_defined_symbols.native defined_symbols.json test_external_callcycle dir.callers.gen.json
+    #read_defined_symbols.native defined_symbols.json file.callers.gen.json
 
-# add extcallers to json files
-source add_extcallers.sh .
-indent_jsonfiles.sh .
+    # add extcallees to json files
+    source add_extcallees.sh `pwd` defined_symbols.json
 
-## generate callee's tree from main entry point
-#function_callers_to_dot.native callees "main" "int main()" `pwd`/test.cpp
-function_callers_to_dot.native callees "main" "int main()" `pwd`/test.cpp files
+    # add extcallers to json files
+    source add_extcallers.sh .
+    source indent_jsonfiles.sh .
 
-## generate caller's tree from main entry point
-#function_callers_to_dot.native callers "main" "int main()" `pwd`/test.cpp
-function_callers_to_dot.native callers "main" "int main()" `pwd`/test.cpp files
+    ## generate callee's tree from main entry point
+    #function_callers_to_dot.native callees "main" "int main()" `pwd`/test.cpp
+    function_callers_to_dot.native callees "main" "int main()" `pwd`/test.cpp files
 
-## generate a call graph from "int A::a()" to "int c()"
-function_callers_to_dot.native c2c "A_a" "int A::a()" `pwd`/A.cpp "c" "int c()" `pwd`/B.cpp
+    ## generate caller's tree from main entry point
+    #function_callers_to_dot.native callers "main" "int main()" `pwd`/test.cpp
+    function_callers_to_dot.native callers "main" "int main()" `pwd`/test.cpp files
 
-process_dot_files.sh . .
+    ## generate a call graph from "int A::a()" to "int c()"
+    function_callers_to_dot.native c2c "A_a" "int A::a()" `pwd`/A.cpp "c" "int c()" `pwd`/B.cpp
 
-#inkscape main.fct.callers.gen.dot.svg
-#inkscape main.fct.callers.gen.dot.svg
-inkscape svg/main.fct.callees.gen.dot.svg
+    source process_dot_files.sh . analysis/${analysis_type}
+
+    #inkscape analysis/${analysis_type}/main.fct.callers.gen.dot.svg
+    inkscape analysis/${analysis_type}/main.fct.callees.gen.dot.svg
+fi

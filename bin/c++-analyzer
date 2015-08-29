@@ -1,12 +1,8 @@
 #!/bin/bash
 #set -x
 
-version=0.0.1
-
 source "common.sh"
-
-#$include "shared-utilities"
-#$include /tools/llvm/trunk/tools/clang/tools/extra/callers/bin/shared-utilities
+source "prepare_frama_clang_analysis.sh"
 
 function func_usage ()
 {
@@ -22,128 +18,7 @@ function func_usage ()
     exit -1
 }
 
-function exit_script()
-{
-    lastArg=${!#}
-    args=$@
-    echo "CPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCP"
-    echo "c++-analyzer: last provided argument is ${lastArg} while expecting a filename, so we exit without executing any callers analysis"
-    echo "ignored arguments are: $@"
-    echo "WARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWAR"
-    #exit 255
-    exit 0
-}
-
-# function is_option()
-# {
-#     id=$1
-#     if [ ${id:0:1} == "-" ]
-#     then
-# 	#echo "id: ${id} is an option"
-# 	return 0
-#     else
-# 	#echo "id: ${id} is not an option"
-# 	return 1
-#     fi
-# }
-
-# function has_extension()
-# {
-#     file=$1
-#     ext=$2
-#     bname=`basename $file`
-#     fname=`basename $file $ext`
-#     if [ $fname == $bname ]
-#     then
-# 	#echo "ext of file ${file} is not ${ext}"
-# 	return 1
-#     else
-# 	#echo "ext of file ${file} is ${ext}"
-# 	return 0
-#     fi
-# }
-
-# function get_file()
-# {
-#     file_ext=$1
-#     shift 1
-#     args=$@
-#     #echo "file_ext: ${file_ext}"
-#     #echo "args: ${args}"
-#     for a in $args
-#     do
-# 	#echo "check whether ${a} is an option:"
-# 	is_option ${a}
-# 	is_opt=$?
-# 	if [ $is_opt -eq 1 ]
-# 	then
-# 	    #echo "check whether ${a} is a file with ext=${file_ext}:"
-# 	    has_extension ${a} ${file_ext}
-# 	    has_ext=$?
-# 	    if [ $has_ext -eq 0 ]
-# 	    then
-# 	        #echo "file of ext ${file_ext} is ${a}"
-# 		echo "${a}"
-# 		return 0
-# 	    fi
-# 	fi
-#     done
-#     #echo "No file of ext ${file_ext} has been found in $@"
-#     return 1
-# }
-
-function build_conftest()
-{
-    file=${!#}
-    args=$@
-    echo "CPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCP"
-    echo "c++-analyzer: last provided argument is ${file}, so we compile it without analysis"
-    #echo "CXX=${CXX} $@"
-    echo "g++ $@"
-    g++ "$@"
-    #clang "$@"
-    #$CXX "$@"
-    echo "CONFTESTCONFTESTCONFTESTCONFTESTCONFTESTCONFTESTCONFTESTCONFTESTCONFTESTCONFTEST"
-    exit 0
-}
-
-# function check_ld()
-# {
-#     lastArg=${!#}
-#     args=$@
-#     echo "CPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCP"
-#     echo "c++-analyzer: last provided argument is ${lastArg}, so we provide a dummy ld"
-#     echo "ld: $@"
-#     export LD=/usr/bin/ld
-#     echo "LDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLDLD"
-#     exit 0
-# }
-
-# function check_args()
-# {
-#     lastArg=${!#}
-#     if
-# 	[ $lastArg == "conftest.cpp" ]
-#     then
-# 	build_conftest $@
-#     elif
-# 	[ $lastArg == "-print-prog-name=ld" ]
-#     then
-# 	check_ld $@
-#     elif
-# 	[ $lastArg == "-V" ]||
-# 	[ $lastArg == "-v" ]||
-# 	[ $lastArg == "-qversion" ]
-#     then
-# 	exit_script $@
-#     fi
-# }
-
-# check expected arguments
-#check_args $@
-#lastArg=${!#}
-
-echo "CPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCP"
+#echo "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
 
 case "$1" in
     --help | --hel | --he | --h )
@@ -155,166 +30,37 @@ case "$1" in
     *)
 esac
 
-run_callers="false"
-run_frama_clang="false"
-run_framaCIRGen="false"
-
 build_args=$@
-analysis_args=$@
-echo "c++-analyzer arguments are: $@"
+#echo "c++-analyzer arguments are: $@"
 
-file=`get_file .cpp ${analysis_args}`
-if [ -z "${file}" ]
-then
-    echo "No .cpp source file has been found in arguments, so we bypass the source code analysis and perform link edition when needed"
-    #exit_script ${analysis_args}
-else
-    bfile=`basename $file`
-
-    if [ ${bfile} == "conftest.cpp" ]
-    then
-	build_conftest ${analysis_args}
-    fi
-
-    echo "cpp_file: ${file}"
-
-# get the analysis_type = callers | frama-clang | framaCIRGen | all
-    analysis_type=${CALLERS_ANALYSIS_TYPE}
-    echo "c++-analysis type is: ${analysis_type}"
-
-    case $analysis_type in
-
-	"callers" )
-	    echo "activates callers analysis";
-	    run_callers="true"
-	    ;;
-
-	"frama-clang" )
-	    echo "activates frama-clang analysis";
-	    run_frama_clang="true"
-	    ;;
-
-	"framaCIRGen" )
-	    echo "activates framaCIRGen analysis";
-	    run_framaCIRGen="true"
-	    ;;
-
-	"all" )
-	    echo "activates all kind of analysis: callers, frama_clang and framaCIRGen";
-	    run_callers="true"
-	    run_frama_clang="true"
-	    run_framaCIRGen="true"
-	    ;;
-
-	*)
-	    echo "builds the input file without any analysis..."
-	    ;;
-    esac
-fi
-
-# localize clang++
+#################################################################################
+# build the source file to enable link edition and to be sure output directories are well created 
+#################################################################################
+# get clang path
 clang=`which clang++`
 
-# get build options
-build_options=${build_args}
-
-# build the source file to enable link edition and to be sure output directories are well created 
-${clang} ${build_options}
-
-# retrieve the system include files required by clang
-system_includes=`strace -f -e verbose=all -s 256 -v ${clang} -std=c++11 $file |& grep execve |& grep "bin/clang" |& grep cc1 |& sed -e s/'"-internal-isystem", "'/'-I"'/g|& sed -e s/'"-internal-externc-isystem", "'/'-I"'/g |& sed -e s/", "/"\n"/g |& grep "\-I\"" | sed -e s/\"//g | awk '{print}' ORS=' ' `
-# get path
-path=`pwd`
+${clang} ${build_args}
 
 #################################################################################
-#       Launch Callers analysis
+#       Prepare and launch analysis
 #################################################################################
-if [ $run_callers == "true" ]; then
+file=`get_file .cpp ${build_args}`
+if [ -z "${file}" ]
+then
+    echo "No .cpp source file has been found in arguments, so we bypass the callers analysis"
+else
 
-     # define callers analysis options
-     callers_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/\\\\.o/\.callers.gen.stdout/g`
-     #callers_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/\\\\.o/\.out\ /g | sed -e s#${file}#${path}/${file}#g `
-     #| sed -e s#-o\ CMakeFiles[^\ ]*/#-o\ callers-analysis-report/dot/unsorted/#g >> $callers_launch_script
+    # get the analysis_type = callers | frama-clang | framaCIRGen | all
+    analysis_type=${CALLERS_ANALYSIS_TYPE}
 
-     # localize callers
-     callers=`which callers++`
+    # prepare launch analysis script
+    launch_script=.tmp.gen.analysis.launch.c++-analyzer.sh
+    prepare_analysis_from_scan_build_command ${file} ${build_args} > ${launch_script}
+    echo "generated launch script: ${launch_script}"
 
-     # add some options when required
-     callers_options="-std=c++11"
-
-     # build the callers analysis command    
-     analysis="${callers} ${callers_options} ${system_includes} ${callers_analysis_options}"
-
-     cd $path
-     echo "launch callers analysis of file ${file}..."
-     echo "working directory is $PWD"
-     echo "${analysis}" | tee .tmp.last.callers.analysis.sh
-     source .tmp.last.callers.analysis.sh
-     if [ $? -ne 0 ]; then
-	 echo "################################################################################"
-	 echo "# Scan-Callers analysis error. Stop here !"
-	 echo "################################################################################"
-	 exit -1
-     fi
-     #exec "${analysis}"
-     #exec "cd ${path} && ${analysis}"
+    # launch the analysis
+    echo "launch the ${analysis_type} analysis..."
+    analysis_report=$analysis_type
+    mkdir -p ${analysis_report}
+    source ${launch_script} > ${analysis_report}/${launch_script}.stdout 2> ${analysis_report}/${launch_script}.stderr    
 fi
-
-#################################################################################
-#       Launch framaCIRGen analysis
-#################################################################################
-if [ $run_framaCIRGen == "true" ]; then
-
-     # define framaCIRGen analysis options
-     framaCIRGen_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/\\\\.o\ /\.gen.fir\ /g `
-
-     # localize framaCIRGen
-     framaCIRGen=`which framaCIRGen`
-
-     # add some options when required
-     framaCIRGen_options=""
-
-     # build the framaCIRGen analysis command    
-     analysis="${framaCIRGen} ${framaCIRGen_options} ${system_includes} ${framaCIRGen_analysis_options}"
-
-     cd $path
-     echo "launch framaCIRGen analysis of file ${file}..."
-     echo "working directory is $PWD"
-     echo "${analysis}" | tee .tmp.last.framaCIRGen.analysis.sh
-     source .tmp.last.framaCIRGen.analysis.sh
-     #exec "${analysis}"
-     #exec "cd ${path} && ${analysis}"
-fi
-
-#################################################################################
-#       Launch frama-clang analysis
-#################################################################################
-if [ $run_frama_clang == "true" ]; then
-
-    define frama-clang analysis options
-    frama_clang_analysis_options=`echo ${build_options} | { args=$(< /dev/stdin); redirect_output_file.sh $args; }`
-
-    # localize frama_clang
-    frama_clang=`which frama-c`
-
-    # add some options when required
-    frama_clang_options="-cxx-nostdinc -cxx-keep-mangling -fclang-msg-key clang,cabs -fclang-verbose 2 -machdep x86_32 -print -cxx-clang-command"
-
-    # build the frama_clang analysis command
-    analysis="${frama_clang} ${frama_clang_options} \"framaCIRGen \${system_includes} ${frama_clang_analysis_options}"
-
-    cd $path
-    echo "launch frama_clang analysis of file ${file}..."
-    echo "working directory is $PWD"
-    echo "#!/bin/bash"> .tmp.last.frama_c.analysis.sh
-    echo "#build_options=\"${build_options}\"" >> .tmp.last.frama_c.analysis.sh
-    echo "system_includes=\"${system_includes}\"" >> .tmp.last.frama_c.analysis.sh
-    echo "${analysis}" >> .tmp.last.frama_c.analysis.sh
-    #echo "gzip *.cabs.c" >> .tmp.last.frama_c.analysis.sh
-    cat .tmp.last.frama_c.analysis.sh
-    source .tmp.last.frama_c.analysis.sh
-    #exec "${analysis}"
-    #exec "cd ${path} && ${analysis}"
-fi
-
-echo "CPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCPPCP"

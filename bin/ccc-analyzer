@@ -8,17 +8,17 @@ function func_usage ()
 {
     provided_cmds=$@
     echo "################################################################################"
-    echo "# c++-analyzer is a scan-build called shell script to launch some clang analysis plugins"
+    echo "# ccc-analyzer is a scan-build called shell script to launch some clang analysis plugins"
     echo "# version $version"
     echo "################################################################################"
     echo "# Usage:"
-    echo "# export CALLERS_ANALYSIS_TYPE=<analysis_type=callers|frama-clang|framaCIRGen|all>"
-    echo "# c++-analyzer <file_build_command_and_options>"
+    echo "# export CALLERS_ANALYSIS_TYPE=<analysis_type=callers|frama-c|framaCIRGen|all>"
+    echo "# ccc-analyzer <file_build_command_and_options>"
     echo "# Provided command was: ${provided_cmds}"
     exit -1
 }
 
-echo "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+#echo "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
 
 case "$1" in
     --help | --hel | --he | --h )
@@ -31,9 +31,7 @@ case "$1" in
 esac
 
 build_args=$@
-echo "ccc-analyzer arguments are: $@"
-
-file=`get_file .c ${build_args}`
+#echo "ccc-analyzer arguments are: $@"
 
 #################################################################################
 # build the source file to enable link edition and to be sure output directories are well created 
@@ -46,7 +44,7 @@ ${clang} ${build_args}
 #################################################################################
 #       Prepare and launch analysis
 #################################################################################
-
+file=`get_file .c ${build_args}`
 if [ -z "${file}" ]
 then
     echo "No .c source file has been found in arguments, so we bypass the callers analysis"

@@ -3,16 +3,131 @@
 
 source "common.sh" # get_file
 
-# check whether the argument is present in input arguments of the script
+function launch_frama_clang ()
+{
+    cpp_file=$1
+    cabs_file=$2
+    file_analysis_options=$3
+
+    # localize frama-c
+    frama_c=`which frama-c`
+
+    # define frama-clang configuration options
+    frama_clang_options="-cxx-nostdinc -cxx-keep-mangling -fclang-msg-key clang,cabs -fclang-verbose 2 -machdep x86_32 -print -cxx-clang-command"
+
+    # add target source file specific analysis options
+    frama_clang_analysis_options="${file_analysis_options}"
+
+    # build the frama_clang analysis command
+    cpp_analysis="${frama_c} ${frama_clang_options} \"framaCIRGen \${system_includes} ${frama_clang_analysis_options}\" ${cpp_file} > ${cabs_file}"
+    echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
+    echo "echo \"launch frama-clang analysis of file: ${cpp_file}\""
+    echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
+    echo "${cpp_analysis}"
+    echo "gzip -f ${cabs_file}"    
+}
+
+function launch_frama_c ()
+{
+    c_file=$1
+    cabs_file=$2
+    file_analysis_options=$3
+
+    # localize frama-c
+    frama_c=`which frama-c`
+
+    # define frama-c configuration options
+    frama_c_options="-machdep x86_32 -print -no-cpp-gnu-like "
+
+    # add target source file specific analysis options
+    frama_c_analysis_options="-cpp-extra-args=\"${file_analysis_options}\""
+
+    # build the frama_c analysis command
+    c_analysis="${frama_c} ${frama_c_options} ${frama_c_analysis_options} ${c_file} > ${cabs_file}"
+
+    echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
+    echo "echo \"launch frama-c analysis of file: ${c_file}\""
+    echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
+    echo "${c_analysis}"
+    echo "gzip -f ${cabs_file}"
+}
+
+function launch_framaCIRGen ()
+{
+    src_file=$1
+    fir_file=$2
+    file_analysis_options=$3
+
+    # localize frama-c
+    framaCIRGen=`which framaCIRGen`
+
+    # define frama-clang configuration options
+    framaCIRGen_options=""
+
+    # add target source file specific analysis options
+    framaCIRGen_analysis_options="${file_analysis_options}"
+
+    # build the framaCIRGen analysis command
+    fir_analysis="${framaCIRGen} ${framaCIRGen_options} ${system_includes} ${framaCIRGen_analysis_options} -o ${fir_file} ${src_file}"
+    echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
+    echo "echo \"launch framaCIRGen analysis of file: ${src_file}\""
+    echo "echo \"ccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppcc\""
+    echo "${fir_analysis}"
+    echo "gzip -f ${fir_file}"    
+}
+
+function launch_callers_cpp ()
+{
+    cpp_file=$1
+    callers_stdout_file=$2
+    file_analysis_options=$3
+
+    # localize callers
+    callers=`which callers++`
+
+    # add some options when required
+    callers_options="-std=c++11"
+
+    # build the callers analysis command    
+    callers_analysis="${callers} ${callers_options} ${system_includes} ${file_analysis_options} -o ${callers_stdout_file} ${cpp_file}"
+
+    echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
+    echo "echo \"launch callers++ analysis of file: ${cpp_file}\""
+    echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
+    echo "${callers_analysis}"
+    echo "gzip -f ${callers_stdout_file}"
+}
+
+function launch_callers_c ()
+{
+    c_file=$1
+    callers_stdout_file=$2
+    file_analysis_options=$3
+
+    # localize callers
+    callers=`which callers`
+
+    # add some options when required
+    callers_options=""
+
+    # build the callers analysis command    
+    callers_analysis="${callers} ${callers_options} ${system_includes} ${file_analysis_options} -o ${callers_stdout_file} ${c_file}"
+
+    echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
+    echo "echo \"launch callers analysis of file: ${c_file}\""
+    echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
+    echo "${callers_analysis}"
+    echo "gzip -f ${callers_stdout_file}"
+}
 
 function prepare_frama_clang_analysis_from_compile_command()
 {
-    build_tool=$1
+    # ignore the path to the build tool
     shift
     args=$@
-    new_args=""
     fileext="unknownFileExt"
     src_file="noSrcFile"
+
     c_file=`get_file .c ${args}`
     cpp_file=`get_file .cpp ${args}`
     obj_file=`get_file .o ${args}`
@@ -56,8 +171,54 @@ function prepare_frama_clang_analysis_from_compile_command()
     # echo "src_file: $src_file"
     # echo "obj_file: $obj_file"
 
-    cabs_file=`echo ${obj_file} | sed -e s/\\.o$/.cabs.c/g`
+    cabs_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.cabs.c/g`
+    fir_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.fir/g`
+    callers_stdout_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.callers.stdout/g`
 
+    run_callers="false"
+    run_frama_clang="false"
+    run_framaCIRGen="false"
+
+    # get the analysis_type = callers | frama-clang | framaCIRGen | all
+    analysis_type=${CALLERS_ANALYSIS_TYPE}
+    #echo "c++-analysis type is: ${analysis_type}" 
+
+    case $analysis_type in
+
+	"callers" )
+	    #echo "activates callers analysis";
+	    run_callers="true"
+	    ;;
+
+	"frama-c" )
+	    #echo "activates frama-c analysis";
+	    run_frama_clang="true"
+	    ;;
+
+	"frama-clang" )
+	    #echo "activates frama-clang analysis";
+	    run_frama_clang="true"
+	    ;;
+
+	"framaCIRGen" )
+	    #echo "activates framaCIRGen analysis";
+	    run_framaCIRGen="true"
+	    ;;
+
+	"all" )
+	    #echo "activates all kind of analysis: callers, frama_clang and framaCIRGen";
+	    run_callers="true"
+	    run_frama_clang="true"
+	    run_framaCIRGen="true"
+	    ;;
+
+	*)
+	    #echo "builds the input file without any analysis..."
+	    ;;
+    esac
+
+    # get source file's specific build options
+    file_build_options=""
     for a in $args
     do
 	if  [ ${a} != -c ]          && 
@@ -65,52 +226,38 @@ function prepare_frama_clang_analysis_from_compile_command()
 	    [ ${a} != ${src_file} ] && 
 	    [ ${a} != ${obj_file} ]
 	then
-	    new_args="${new_args} $a "
+	    file_build_options="${file_build_options} $a "
 	fi
     done
 
-    # echo "new_args: ${new_args}"
-    # echo "redirection:"
-    #echo "${new_args} \" ${src_file} > ${cabs_file}"
-
-    # localize frama-c
-    frama_c=`which frama-c`
-
     if [ $fileext == "cpp" ]
     then
-
-        # define frama-clang configuration options
-	frama_clang_options="-cxx-nostdinc -cxx-keep-mangling -fclang-msg-key clang,cabs -fclang-verbose 2 -machdep x86_32 -print -cxx-clang-command"
-
-        # add target source file specific analysis options
-	frama_clang_analysis_options="${new_args}"
-
-	# build the frama_clang analysis command
-	cpp_analysis="${frama_c} ${frama_clang_options} \"framaCIRGen \${system_includes} ${frama_clang_analysis_options}\" ${src_file} > ${cabs_file}"
-	echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
-	echo "echo \"launch frama-clang analysis of file: ${cpp_file}\""
-	echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
-	echo "${cpp_analysis}"
-	echo "gzip -f ${cabs_file}"
-
+	if [ $run_frama_clang == "true" ] 
+	then
+	    launch_frama_clang ${src_file} ${cabs_file} ${file_build_options}
+	fi
+	if [ $run_framaCIRGen == "true" ] 
+	then
+	    launch_framaCIRGen ${src_file} ${fir_file} ${file_build_options}
+	fi
+	if [ $run_callers == "true" ] 
+	then
+	    launch_callers_cpp ${src_file} ${callers_stdout_file} ${file_build_options}
+	fi
     elif [ $fileext == "c" ]
     then
-
-        # define frama-c configuration options
-	frama_c_options="-machdep x86_32 -print -no-cpp-gnu-like "
-
-        # add target source file specific analysis options
-	frama_c_analysis_options="-cpp-extra-args=\"${new_args}\""
-
-	# build the frama_c analysis command
-	c_analysis="${frama_c} ${frama_c_options} ${frama_c_analysis_options} ${src_file} > ${cabs_file}"
-
-	echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
-	echo "echo \"launch frama-clang analysis of file: ${c_file}\""
-	echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
-	echo "${c_analysis}"
-	echo "gzip -f ${cabs_file}"
-
+	if [ $run_frama_clang == "true" ] 
+	then
+	    launch_frama_c ${src_file} ${cabs_file} ${file_build_options}
+	fi
+	if [ $run_framaCIRGen == "true" ] 
+	then
+	    launch_framaCIRGen ${src_file} ${fir_file} ${file_build_options}
+	fi
+	if [ $run_callers == "true" ] 
+	then
+	    launch_callers_c ${src_file} ${callers_stdout_file} ${file_build_options}
+	fi
     else
 	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
 	echo "prepare_frama_clang_analysis::ERROR::interbal error: unreachable state !"
@@ -118,7 +265,7 @@ function prepare_frama_clang_analysis_from_compile_command()
     fi
 }
 
-function prepare_frama_clang_analysis_from_cmake_compile_commands()
+function prepare_analysis_from_cmake_compile_commands()
 {
     compile_commands_json=$1
 
@@ -134,7 +281,10 @@ function prepare_frama_clang_analysis_from_cmake_compile_commands()
 }
 
 compile_commands_json=$1
+#launch_script=$2
+launch_script=.tmp.gen.frama-clang.launch.sh
 
-prepare_frama_clang_analysis_from_cmake_compile_commands $compile_commands_json > .tmp.gen.frama-clang.launch.sh
+prepare_analysis_from_cmake_compile_commands $compile_commands_json > ${launch_script}
+#cat ${launch_script}
 
-cat .tmp.gen.frama-clang.launch.sh
+echo "Generated launch script: ${launch_script}"

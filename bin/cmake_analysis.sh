@@ -41,22 +41,22 @@ callers_launch_script=callers.launch.gen.sh
 frama_clang_launch_script=frama-clang.launch.gen.sh
 framaCIRGen_launch_script=framaCIRGen.launch.gen.sh
 
-# system_includes
-# retrieve the system include files required by clang
-function system_includes ()
-{
-    compile_commands_json=$1
+# # system_includes
+# # retrieve the system include files required by clang
+# function system_includes ()
+# {
+#     compile_commands_json=$1
 
-    # get the absolute path to the first file to be analyzed
-    file=`grep \"file\" ${compile_commands_json} | tail -1 | cut -d '"' -f4`
-    clang=`which clang`
+#     # get the absolute path to the first file to be analyzed
+#     file=`grep \"file\" ${compile_commands_json} | tail -1 | cut -d '"' -f4`
+#     clang=`which clang`
     
-    system_includes=`strace -f -e verbose=all -s 256 -v ${clang} -std=c++11 $file |& grep execve |& grep "bin/clang" |& grep cc1 |& sed -e s/'"-internal-isystem", "'/'-I"'/g|& sed -e s/'"-internal-externc-isystem", "'/'-I"'/g |& sed -e s/", "/"\n"/g |& grep "\-I\"" | sed -e s/\"//g | awk '{print}' ORS=' ' `
+#     system_includes=`strace -f -e verbose=all -s 256 -v ${clang} -std=c++11 $file |& grep execve |& grep "bin/clang" |& grep cc1 |& sed -e s/'"-internal-isystem", "'/'-I"'/g|& sed -e s/'"-internal-externc-isystem", "'/'-I"'/g |& sed -e s/", "/"\n"/g |& grep "\-I\"" | sed -e s/\"//g | awk '{print}' ORS=' ' `
 
-    echo "system_includes: $system_includes" >&2
+#     echo "system_includes: $system_includes" >&2
 
-    echo "system_includes=\"$system_includes\""
-}
+#     echo "system_includes=\"$system_includes\""
+# }
 
 function launch_callers ()
 {

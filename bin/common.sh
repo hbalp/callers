@@ -85,10 +85,8 @@ function get_file()
 # retrieve the system include files required by clang
 function system_includes ()
 {
-    compile_commands_json=$1
-
-    # get the absolute path to the first file to be analyzed
-    file=`grep \"file\" ${compile_commands_json} | tail -1 | cut -d '"' -f4`
+    # path to the first file to be analyzed
+    file=$1
     clang=`which clang`
     
     system_includes=`strace -f -e verbose=all -s 256 -v ${clang} -std=c++11 $file |& grep execve |& grep "bin/clang" |& grep cc1 |& sed -e s/'"-internal-isystem", "'/'-I"'/g|& sed -e s/'"-internal-externc-isystem", "'/'-I"'/g |& sed -e s/", "/"\n"/g |& grep "\-I\"" | sed -e s/\"//g | awk '{print}' ORS=' ' `

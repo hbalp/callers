@@ -1,10 +1,8 @@
 #!/bin/bash
-#set -x
+set -x
 
 source "common.sh"
-
-#$include "shared-utilities"
-#$include /tools/llvm/trunk/tools/clang/tools/extra/callers/bin/shared-utilities
+source "prepare_frama_clang_analysis.sh"
 
 function func_usage ()
 {
@@ -20,116 +18,35 @@ function func_usage ()
     exit -1
 }
 
-function exit_script()
-{
-    lastArg=${!#}
-    args=$@
-    echo "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
-    echo "ccc-analyzer: last provided argument is ${lastArg} while expecting a filename, so we exit without executing any callers analysis"
-    echo "ignored arguments are: $@"
-    echo "WARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWAR"
-    #exit 255
-    exit 0
-}
-
-# # check whether the argument is present in input arguments of the script
-# function has_arg()
+# function exit_script()
 # {
-#     arg=$1
-#     shift 1
+#     lastArg=${!#}
 #     args=$@
-#     echo "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ"
-#     echo "arg: ${arg}"
-#     echo "args: ${args}"
-#     for a in $args
-#     do
-# 	echo "check whether ${arg} == ${a}:"
-# 	if [ ${arg} == ${a} ]
-# 	then
-# 	    echo "YES"
-# 	    return 0
-# 	fi
-#     done
-#     echo "NO"
-#     return 1
+#     echo "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+#     echo "ccc-analyzer: last provided argument is ${lastArg} while expecting a filename, so we exit without executing any callers analysis"
+#     echo "ignored arguments are: $@"
+#     echo "WARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWARNINGWAR"
+#     #exit 255
+#     exit 0
 # }
 
-# function is_option()
+# function build_conftest()
 # {
-#     id=$1
-#     if [ ${id:0:1} == "-" ]
-#     then
-# 	#echo "id: ${id} is an option"
-# 	return 0
-#     else
-# 	#echo "id: ${id} is not an option"
-# 	return 1
-#     fi
-# }
-
-# function has_extension()
-# {
-#     file=$1
-#     ext=$2
-#     bname=`basename $file`
-#     fname=`basename $bname $ext`
-#     if [ $fname == $bname ]
-#     then
-# 	#echo "ext of file ${file} is not ${ext}"
-# 	return 1
-#     else
-# 	#echo "ext of file ${file} is ${ext}"
-# 	return 0
-#     fi
-# }
-
-# function get_file()
-# {
-#     file_ext=$1
-#     shift 1
+#     file=${!#}
 #     args=$@
-#     #echo "file_ext: ${file_ext}"
-#     #echo "args: ${args}"
-#     for a in $args
-#     do
-# 	#echo "check whether ${a} is an option:"
-# 	is_option ${a}
-# 	is_opt=$?
-
-# 	if [ $is_opt -eq 1 ]
-# 	then
-# 	    #echo "check whether ${a} is a file with ext=${file_ext}:"
-# 	    has_extension ${a} ${file_ext}
-# 	    has_ext=$?
-# 	    if [ $has_ext -eq 0 ]
-# 	    then
-# 	        #echo "file of ext ${file_ext} is ${a}"
-# 		echo "${a}"
-# 		return 0
-# 	    fi
-# 	fi
-#     done
-#     #echo "No file of ext ${file_ext} has been found in $@"
-#     return 1
+#     #echo "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+#     #cp conftest.c /tmp/conftest.c
+#     #ccc-analyzer -E /tmp/conftest.c
+#     echo "ccc-analyzer: conftest.c is part of the provided argument, so we compile it without analysis"
+#     echo "pwd: ${PWD}"
+#     #echo "CXX=${CXX} $@"
+#     #echo "gcc $@"
+#     gcc "$@"
+#     #clang "$@"
+#     #$CXX "$@"
+#     echo "CONFTESTCONFTESTCONFTESTCONFTESTCONFTESTCONFTESTCONFTESTCONFTESTCONFTESTCONFTEST"
+#     exit 0
 # }
-
-function build_conftest()
-{
-    file=${!#}
-    args=$@
-    #echo "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
-    #cp conftest.c /tmp/conftest.c
-    #ccc-analyzer -E /tmp/conftest.c
-    echo "ccc-analyzer: conftest.c is part of the provided argument, so we compile it without analysis"
-    echo "pwd: ${PWD}"
-    #echo "CXX=${CXX} $@"
-    #echo "gcc $@"
-    gcc "$@"
-    #clang "$@"
-    #$CXX "$@"
-    echo "CONFTESTCONFTESTCONFTESTCONFTESTCONFTESTCONFTESTCONFTESTCONFTESTCONFTESTCONFTEST"
-    exit 0
-}
 
 # function check_ld()
 # {
@@ -185,160 +102,181 @@ case "$1" in
     *)
 esac
 
-run_callers="false"
-run_frama_c="false"
-run_framaCIRGen="false"
+# run_callers="false"
+# run_frama_c="false"
+# run_framaCIRGen="false"
 
 build_args=$@
-analysis_args=$@
+#analysis_args=$@
 echo "ccc-analyzer arguments are: $@"
 
-file=`get_file .c ${analysis_args}`
+file=`get_file .c ${build_args}`
+
+# if [ -z "${file}" ]
+# then
+#     echo "No .c source file has been found in arguments, so we bypass the callers analysis"
+#     #exit_script ${analysis_args}
+# else
+#     bfile=`basename $file`
+
+#     if [ ${bfile} == "conftest.c" ]
+#     then
+# 	build_conftest ${analysis_args}
+#     fi
+
+#     echo "c_file: ${file}"
+
+#     # get the analysis_type = callers | frama-clang | framaCIRGen | all
+#     analysis_type=${CALLERS_ANALYSIS_TYPE}
+#     echo "c++-analysis type is: ${analysis_type}"
+
+#     case $analysis_type in
+
+# 	"callers" )
+# 	    echo "activates callers analysis";
+# 	    run_callers="true"
+# 	    ;;
+
+# 	"frama-c" )
+# 	    echo "activates frama-clang analysis";
+# 	    run_frama_c="true"
+# 	    ;;
+
+# 	"framaCIRGen" )
+# 	    echo "activates framaCIRGen analysis";
+# 	    run_framaCIRGen="true"
+# 	    ;;
+
+# 	"all" )
+# 	    echo "activates all kind of analysis: callers, frama_clang and framaCIRGen";
+# 	    run_callers="true"
+# 	    run_frama_c="true"
+# 	    run_framaCIRGen="true"
+# 	    ;;
+
+# 	*)
+# 	    echo "builds the input file without any analysis..."
+# 	    ;;
+#     esac
+# fi
+
+#################################################################################
+# build the source file to enable link edition and to be sure output directories are well created 
+#################################################################################
+# get clang path
+clang=`which clang`
+
+${clang} ${build_args}
+
+# retrieve the system include files required by clang
+#system_includes=`strace -f -e verbose=all -s 256 -v ${clang} $file |& grep execve |& grep "bin/clang" |& grep cc1 |& sed -e s/'"-internal-isystem", "'/'-I"'/g|& sed -e s/'"-internal-externc-isystem", "'/'-I"'/g |& sed -e s/", "/"\n"/g |& grep "\-I\"" | sed -e s/\"//g | awk '{print}' ORS=' ' `
+# get path
+#path=`pwd`
+
+#################################################################################
+#       Prepare and launch analysis
+#################################################################################
+
 if [ -z "${file}" ]
 then
     echo "No .c source file has been found in arguments, so we bypass the callers analysis"
-    #exit_script ${analysis_args}
 else
-    bfile=`basename $file`
-
-    if [ ${bfile} == "conftest.c" ]
-    then
-	build_conftest ${analysis_args}
-    fi
-
-    echo "c_file: ${file}"
 
     # get the analysis_type = callers | frama-clang | framaCIRGen | all
     analysis_type=${CALLERS_ANALYSIS_TYPE}
-    echo "c++-analysis type is: ${analysis_type}"
 
-    case $analysis_type in
+    # prepare launch analysis script
+    launch_script=.tmp.gen.analysis.launch.ccc-analyzer.sh
+    prepare_analysis_from_scan_build_command ${file} ${build_args} > ${launch_script}
+    echo "generated launch script: ${launch_script}"
 
-	"callers" )
-	    echo "activates callers analysis";
-	    run_callers="true"
-	    ;;
-
-	"frama-c" )
-	    echo "activates frama-clang analysis";
-	    run_frama_c="true"
-	    ;;
-
-	"framaCIRGen" )
-	    echo "activates framaCIRGen analysis";
-	    run_framaCIRGen="true"
-	    ;;
-
-	"all" )
-	    echo "activates all kind of analysis: callers, frama_clang and framaCIRGen";
-	    run_callers="true"
-	    run_frama_c="true"
-	    run_framaCIRGen="true"
-	    ;;
-
-	*)
-	    echo "builds the input file without any analysis..."
-	    ;;
-    esac
+    # launch the analysis
+    echo "launch the ${analysis_type} analysis..."
+    analysis_report=$analysis_type
+    mkdir -p ${analysis_report}
+    source ${launch_script} > ${analysis_report}/${launch_script}.stdout 2> ${analysis_report}/${launch_script}.stderr    
 fi
 
-# localize clang
-clang=`which clang`
+# if [ $run_callers == "true" ]; then
+#      # define callers analysis options
+#      callers_analysis_options=`echo ${build_args} | sed -e s/-c\ //g | sed -e s/\\\\.o/\.gen.callers.stdout/g`
+#      #callers_analysis_options=`echo ${build_args} | sed -e s/-c\ //g | sed -e s/\\\\.o/\.out\ /g | sed -e s#${file}#${path}/${file}#g `
+#      #| sed -e s#-o\ CMakeFiles[^\ ]*/#-o\ callers-analysis-report/dot/unsorted/#g >> $callers_launch_script
 
-# get build options
-build_options=${build_args}
+#      # localize callers
+#      callers=`which callers`
 
-# build the source file to enable link edition and to be sure output directories are well created 
-${clang} ${build_options}
+#      # add some options when required
+#      callers_options=""
 
-# retrieve the system include files required by clang
-system_includes=`strace -f -e verbose=all -s 256 -v ${clang} $file |& grep execve |& grep "bin/clang" |& grep cc1 |& sed -e s/'"-internal-isystem", "'/'-I"'/g|& sed -e s/'"-internal-externc-isystem", "'/'-I"'/g |& sed -e s/", "/"\n"/g |& grep "\-I\"" | sed -e s/\"//g | awk '{print}' ORS=' ' `
-# get path
-path=`pwd`
+#      # build the callers analysis command    
+#      analysis="${callers} ${callers_options} ${system_includes} ${callers_analysis_options}"
 
-#################################################################################
-#       Launch Callers analysis
-#################################################################################
-if [ $run_callers == "true" ]; then
-     # define callers analysis options
-     callers_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/\\\\.o/\.gen.callers.stdout/g`
-     #callers_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/\\\\.o/\.out\ /g | sed -e s#${file}#${path}/${file}#g `
-     #| sed -e s#-o\ CMakeFiles[^\ ]*/#-o\ callers-analysis-report/dot/unsorted/#g >> $callers_launch_script
+#      cd $path
+#      echo "launch callers analysis of file ${file}..."
+#      echo "working directory is $PWD"
+#      echo "${analysis}" | tee .tmp.last.callers.analysis.sh
+#      source .tmp.last.callers.analysis.sh
+#      #exec "${analysis}"
+#      #exec "cd ${path} && ${analysis}"
+# fi
+# #################################################################################
+# #       Launch framaCIRGen analysis
+# #################################################################################
+# if [ $run_framaCIRGen == "true" ]; then
+#      # define framaCIRGen analysis options
+#      framaCIRGen_analysis_options=`echo ${build_args} | sed -e s/-c\ //g | sed -e s/\\\\.o\ /\.gen.fir\ /g `
 
-     # localize callers
-     callers=`which callers`
+#      # localize framaCIRGen
+#      framaCIRGen=`which framaCIRGen`
 
-     # add some options when required
-     callers_options=""
+#      # add some options when required
+#      framaCIRGen_options=""
 
-     # build the callers analysis command    
-     analysis="${callers} ${callers_options} ${system_includes} ${callers_analysis_options}"
+#      # build the framaCIRGen analysis command    
+#      analysis="${framaCIRGen} ${framaCIRGen_options} ${system_includes} ${framaCIRGen_analysis_options}"
 
-     cd $path
-     echo "launch callers analysis of file ${file}..."
-     echo "working directory is $PWD"
-     echo "${analysis}" | tee .tmp.last.callers.analysis.sh
-     source .tmp.last.callers.analysis.sh
-     #exec "${analysis}"
-     #exec "cd ${path} && ${analysis}"
-fi
-#################################################################################
-#       Launch framaCIRGen analysis
-#################################################################################
-if [ $run_framaCIRGen == "true" ]; then
-     # define framaCIRGen analysis options
-     framaCIRGen_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/\\\\.o\ /\.gen.fir\ /g `
+#      cd $path
+#      echo "launch framaCIRGen analysis of file ${file}..."
+#      echo "working directory is $PWD"
+#      echo "${analysis}" | tee .tmp.last.framaCIRGen.analysis.sh
+#      source .tmp.last.framaCIRGen.analysis.sh
+#      #exec "${analysis}"
+#      #exec "cd ${path} && ${analysis}"
+# fi
 
-     # localize framaCIRGen
-     framaCIRGen=`which framaCIRGen`
+# #################################################################################
+# #       Launch frama-c analysis
+# #################################################################################
+# if [ $run_frama_c == "true" ]; then
+#      # define frama-c analysis options
+#     frama_c_analysis_options=`echo ${build_args} | { args=$(< /dev/stdin); redirect_output_file.sh $args; }`
 
-     # add some options when required
-     framaCIRGen_options=""
+#      # localize frama_c
+#     frama_c=`which frama-c`
 
-     # build the framaCIRGen analysis command    
-     analysis="${framaCIRGen} ${framaCIRGen_options} ${system_includes} ${framaCIRGen_analysis_options}"
+#      # add some options when required
+#      #frama_c_options="-cxx-nostdinc -cxx-keep-mangling -fclang-msg-key clang,cabs -fclang-verbose 2 -machdep x86_32 -print -cxx-clang-command "
+#      frama_c_options="-machdep x86_32 -print -no-cpp-gnu-like -cpp-extra-args=\""
 
-     cd $path
-     echo "launch framaCIRGen analysis of file ${file}..."
-     echo "working directory is $PWD"
-     echo "${analysis}" | tee .tmp.last.framaCIRGen.analysis.sh
-     source .tmp.last.framaCIRGen.analysis.sh
-     #exec "${analysis}"
-     #exec "cd ${path} && ${analysis}"
-fi
+#      # build the frama_c analysis command
+#      #analysis="${frama_c} ${frama_c_options} \"framaCIRGen \${system_includes} ${frama_c_analysis_options}"
+#      #analysis="${frama_c} ${frama_c_options} ${system_includes} ${frama_c_analysis_options}"
+#      analysis="${frama_c} ${frama_c_options} ${frama_c_analysis_options}"
 
-#################################################################################
-#       Launch frama-c analysis
-#################################################################################
-if [ $run_frama_c == "true" ]; then
-     # define frama-c analysis options
-    frama_c_analysis_options=`echo ${build_options} | { args=$(< /dev/stdin); redirect_output_file.sh $args; }`
-
-     # localize frama_c
-    frama_c=`which frama-c`
-
-     # add some options when required
-     #frama_c_options="-cxx-nostdinc -cxx-keep-mangling -fclang-msg-key clang,cabs -fclang-verbose 2 -machdep x86_32 -print -cxx-clang-command "
-     frama_c_options="-machdep x86_32 -print -no-cpp-gnu-like -cpp-extra-args=\""
-
-     # build the frama_c analysis command
-     #analysis="${frama_c} ${frama_c_options} \"framaCIRGen \${system_includes} ${frama_c_analysis_options}"
-     #analysis="${frama_c} ${frama_c_options} ${system_includes} ${frama_c_analysis_options}"
-     analysis="${frama_c} ${frama_c_options} ${frama_c_analysis_options}"
-
-    cd $path
-    echo "launch frama_c analysis of file ${file}..."
-    echo "working directory is $PWD"
-    echo "#!/bin/bash"> .tmp.last.frama_c.analysis.sh
-    echo "#build_options=\"${build_options}\"" >> .tmp.last.frama_c.analysis.sh
-    echo "system_includes=\"${system_includes}\"" >> .tmp.last.frama_c.analysis.sh
-    echo "${analysis}" >> .tmp.last.frama_c.analysis.sh
-    cat .tmp.last.frama_c.analysis.sh
-    source .tmp.last.frama_c.analysis.sh
-     #exec "${analysis}"
-     #exec "cd ${path} && ${analysis}"
-fi
+#     cd $path
+#     echo "launch frama_c analysis of file ${file}..."
+#     echo "working directory is $PWD"
+#     echo "#!/bin/bash"> .tmp.last.frama_c.analysis.sh
+#     echo "#build_args=\"${build_args}\"" >> .tmp.last.frama_c.analysis.sh
+#     echo "system_includes=\"${system_includes}\"" >> .tmp.last.frama_c.analysis.sh
+#     echo "${analysis}" >> .tmp.last.frama_c.analysis.sh
+#     cat .tmp.last.frama_c.analysis.sh
+#     source .tmp.last.frama_c.analysis.sh
+#      #exec "${analysis}"
+#      #exec "cd ${path} && ${analysis}"
+# fi
 
 #################################################################################
 
-echo "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+#echo "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"

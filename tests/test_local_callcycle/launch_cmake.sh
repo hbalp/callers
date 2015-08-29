@@ -2,10 +2,10 @@
 #set -x
 
 #analysis_type=$1
-#analysis_type=all
+analysis_type=all
 #analysis_type=callers
 #analysis_type=framaCIRGen
-analysis_type=frama-clang
+#analysis_type=frama-clang
 
 # clean test
 source test_clean.sh

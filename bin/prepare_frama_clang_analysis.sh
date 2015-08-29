@@ -162,17 +162,17 @@ function prepare_frama_clang_analysis_from_compile_command()
 
     if [ -z ${src_file} ]
     then
-	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
-	echo "redirect_output_file::ERROR::Not Found .c or .cpp source file in args: ${args}" > /dev/stderr
-	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"  > /dev/stderr
+	echo "prepare_frama_clang_analysis::ERROR::Not Found .c or .cpp source file in args: ${args}" > /dev/stderr
+	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"  > /dev/stderr
 	return 1
     fi
 
     if [ -z ${obj_file} ]
     then
-	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
-	echo "redirect_output_file::ERROR::Not Found obj source file in args: ${args}" > /dev/stderr
-	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" > /dev/stderr
+	echo "prepare_frama_clang_analysis::ERROR::Not Found obj source file in args: ${args}"  > /dev/stderr
+	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" > /dev/stderr
 	return 1
     fi
 
@@ -279,8 +279,27 @@ function prepare_analysis_from_cmake_compile_commands()
 
     echo "#!/bin/bash"
     echo "#set -x"
-    system_includes $compile_commands_json
+
+    # get the absolute path to the first file to be analyzed
+    file=`grep \"file\" ${compile_commands_json} | tail -1 | cut -d '"' -f4`
+
+    # get the system includes that are required o launch frama_clang
+    system_includes $file
 
     # build the analysis command from the build one listed in file compile_commands.json
     cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | while read command_line; do prepare_frama_clang_analysis_from_compile_command ${command_line}; done
+}
+
+function prepare_analysis_from_scan_build_command()
+{
+    src_file=$1
+    shift
+    build_command=$@
+
+    echo "#!/bin/bash"
+    echo "#set -x"
+    system_includes ${src_file}
+
+    # prepare the analysis launch script from the build command
+    prepare_frama_clang_analysis_from_compile_command ${build_command}
 }

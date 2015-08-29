@@ -89,7 +89,8 @@ function launch_frama_clang ()
     cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e "s/.*-o //g" | awk '{ print $1 }' | sort -u | xargs dirname | awk '{ print "&& mkdir -p " $N " \\" }'
 
     # build the analysis command from the build one listed in file compile_commands.json
-    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/\$\{frama_clang\}\ \"framaCIRGen\ \$\{system_includes\}\"\ -machdep\ x86_32\ -print/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.cabs.c\ /g | { args=$(< /dev/stdin); redirect_output_file.sh $args; } | awk '{ print "&& " $N " \\" }'
+    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/\$\{frama_clang\}\ \"framaCIRGen\ \$\{system_includes\}\"\ -machdep\ x86_32\ -print/g | { args=$(< /dev/stdin); redirect_output_file.sh $args; } | awk '{ print "&& " $N " \\" }'
+    #cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e s/^[^\ ]*/\$\{frama_clang\}\ \"framaCIRGen\ \$\{system_includes\}\"\ -machdep\ x86_32\ -print/g | sed -e s/-c\ //g | sed -e s/\\.o\ /\.gen.cabs.c\ /g | { args=$(< /dev/stdin); redirect_output_file.sh $args; } | awk '{ print "&& " $N " \\" }'
 }
 
 function dump_gdbinit ()

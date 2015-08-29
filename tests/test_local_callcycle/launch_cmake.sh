@@ -2,9 +2,9 @@
 #set -x
 
 #analysis_type=$1
-#analysis_type=all
+analysis_type=all
 #analysis_type=callers
-analysis_type=framaCIRGen
+#analysis_type=framaCIRGen
 #analysis_type=frama-clang
 
 # clean test
@@ -14,8 +14,7 @@ source test_clean.sh
 mkdir analysis
 cd analysis
 cmake ..
-cmake_callers_analysis.sh compile_commands.json callers all
-#cmake_analysis.sh compile_commands.json $analysis_type all
+cmake_analysis.sh compile_commands.json $analysis_type all
 if [ $? -ne 0 ]; then
     echo "################################################################################"
     echo "# Callers analysis launch error. Stop here !"

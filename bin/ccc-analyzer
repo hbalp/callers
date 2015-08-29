@@ -1,6 +1,8 @@
 #!/bin/bash
 #set -x
 
+source "common.sh"
+
 #$include "shared-utilities"
 #$include /tools/llvm/trunk/tools/clang/tools/extra/callers/bin/shared-utilities
 
@@ -30,86 +32,86 @@ function exit_script()
     exit 0
 }
 
-# check whether the argument is present in input arguments of the script
-function has_arg()
-{
-    arg=$1
-    shift 1
-    args=$@
-    echo "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ"
-    echo "arg: ${arg}"
-    echo "args: ${args}"
-    for a in $args
-    do
-	echo "check whether ${arg} == ${a}:"
-	if [ ${arg} == ${a} ]
-	then
-	    echo "YES"
-	    return 0
-	fi
-    done
-    echo "NO"
-    return 1
-}
+# # check whether the argument is present in input arguments of the script
+# function has_arg()
+# {
+#     arg=$1
+#     shift 1
+#     args=$@
+#     echo "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ"
+#     echo "arg: ${arg}"
+#     echo "args: ${args}"
+#     for a in $args
+#     do
+# 	echo "check whether ${arg} == ${a}:"
+# 	if [ ${arg} == ${a} ]
+# 	then
+# 	    echo "YES"
+# 	    return 0
+# 	fi
+#     done
+#     echo "NO"
+#     return 1
+# }
 
-function is_option()
-{
-    id=$1
-    if [ ${id:0:1} == "-" ]
-    then
-	#echo "id: ${id} is an option"
-	return 0
-    else
-	#echo "id: ${id} is not an option"
-	return 1
-    fi
-}
+# function is_option()
+# {
+#     id=$1
+#     if [ ${id:0:1} == "-" ]
+#     then
+# 	#echo "id: ${id} is an option"
+# 	return 0
+#     else
+# 	#echo "id: ${id} is not an option"
+# 	return 1
+#     fi
+# }
 
-function has_extension()
-{
-    file=$1
-    ext=$2
-    bname=`basename $file`
-    fname=`basename $bname $ext`
-    if [ $fname == $bname ]
-    then
-	#echo "ext of file ${file} is not ${ext}"
-	return 1
-    else
-	#echo "ext of file ${file} is ${ext}"
-	return 0
-    fi
-}
+# function has_extension()
+# {
+#     file=$1
+#     ext=$2
+#     bname=`basename $file`
+#     fname=`basename $bname $ext`
+#     if [ $fname == $bname ]
+#     then
+# 	#echo "ext of file ${file} is not ${ext}"
+# 	return 1
+#     else
+# 	#echo "ext of file ${file} is ${ext}"
+# 	return 0
+#     fi
+# }
 
-function get_file()
-{
-    file_ext=$1
-    shift 1
-    args=$@
-    #echo "file_ext: ${file_ext}"
-    #echo "args: ${args}"
-    for a in $args
-    do
-	#echo "check whether ${a} is an option:"
-	is_option ${a}
-	is_opt=$?
+# function get_file()
+# {
+#     file_ext=$1
+#     shift 1
+#     args=$@
+#     #echo "file_ext: ${file_ext}"
+#     #echo "args: ${args}"
+#     for a in $args
+#     do
+# 	#echo "check whether ${a} is an option:"
+# 	is_option ${a}
+# 	is_opt=$?
 
-	if [ $is_opt -eq 1 ]
-	then
-	    #echo "check whether ${a} is a file with ext=${file_ext}:"
-	    has_extension ${a} ${file_ext}
-	    has_ext=$?
-	    if [ $has_ext -eq 0 ]
-	    then
-	        #echo "file of ext ${file_ext} is ${a}"
-		echo "${a}"
-		return 0
-	    fi
-	fi
-    done
-    #echo "No file of ext ${file_ext} has been found in $@"
-    return 1
-}
+# 	if [ $is_opt -eq 1 ]
+# 	then
+# 	    #echo "check whether ${a} is a file with ext=${file_ext}:"
+# 	    has_extension ${a} ${file_ext}
+# 	    has_ext=$?
+# 	    if [ $has_ext -eq 0 ]
+# 	    then
+# 	        #echo "file of ext ${file_ext} is ${a}"
+# 		echo "${a}"
+# 		return 0
+# 	    fi
+# 	fi
+#     done
+#     #echo "No file of ext ${file_ext} has been found in $@"
+#     return 1
+# }
 
 function build_conftest()
 {
@@ -310,7 +312,7 @@ fi
 #################################################################################
 if [ $run_frama_c == "true" ]; then
      # define frama-c analysis options
-    frama_c_analysis_options=`echo ${build_options} | sed -e s/-c\ //g | sed -e s/\\\\.o\ /\.gen.cabs.c\ /g | { args=$(< /dev/stdin); redirect_output_file.sh $args; }`
+    frama_c_analysis_options=`echo ${build_options} | { args=$(< /dev/stdin); redirect_output_file.sh $args; }`
 
      # localize frama_c
     frama_c=`which frama-c`
@@ -327,7 +329,9 @@ if [ $run_frama_c == "true" ]; then
     cd $path
     echo "launch frama_c analysis of file ${file}..."
     echo "working directory is $PWD"
-    echo "system_includes=\"${system_includes}\"" > .tmp.last.frama_c.analysis.sh
+    echo "#!/bin/bash"> .tmp.last.frama_c.analysis.sh
+    echo "#build_options=\"${build_options}\"" >> .tmp.last.frama_c.analysis.sh
+    echo "system_includes=\"${system_includes}\"" >> .tmp.last.frama_c.analysis.sh
     echo "${analysis}" >> .tmp.last.frama_c.analysis.sh
     cat .tmp.last.frama_c.analysis.sh
     source .tmp.last.frama_c.analysis.sh

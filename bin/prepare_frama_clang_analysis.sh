@@ -20,9 +20,13 @@ function launch_frama_clang ()
 
     # build the frama_clang analysis command
     cpp_analysis="${frama_c} ${frama_clang_options} \"framaCIRGen \${system_includes} ${frama_clang_analysis_options}\" ${cpp_file} > ${cabs_file}"
+
+    # make sure the output directories are well created before calling the analysis ?
+
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch frama-clang analysis of file: ${cpp_file}\""
     echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
+    echo "#gdb --args "
     echo "${cpp_analysis}"
     echo "gzip -f ${cabs_file}"    
 }
@@ -48,6 +52,7 @@ function launch_frama_c ()
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch frama-c analysis of file: ${c_file}\""
     echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
+    echo "#gdb --args "
     echo "${c_analysis}"
     echo "gzip -f ${cabs_file}"
 }
@@ -72,6 +77,7 @@ function launch_framaCIRGen ()
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch framaCIRGen analysis of file: ${src_file}\""
     echo "echo \"ccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppcc\""
+    echo "#gdb --args "
     echo "${fir_analysis}"
     echo "gzip -f ${fir_file}"    
 }
@@ -94,6 +100,7 @@ function launch_callers_cpp ()
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch callers++ analysis of file: ${cpp_file}\""
     echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
+    echo "#gdb --args "
     echo "${callers_analysis}"
     echo "gzip -f ${callers_stdout_file}"
 }
@@ -116,6 +123,7 @@ function launch_callers_c ()
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch callers analysis of file: ${c_file}\""
     echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
+    echo "#gdb --args "
     echo "${callers_analysis}"
     echo "gzip -f ${callers_stdout_file}"
 }
@@ -273,18 +281,6 @@ function prepare_analysis_from_cmake_compile_commands()
     echo "#set -x"
     system_includes $compile_commands_json
 
-    # make sure the output directories are well created before calling the analysis
-    #cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | sed -e "s/.*-o //g" | awk '{ print $1 }' | sort -u | xargs dirname | awk '{ print "&& mkdir -p " $N " \\" }'
-
     # build the analysis command from the build one listed in file compile_commands.json
     cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | while read command_line; do prepare_frama_clang_analysis_from_compile_command ${command_line}; done
 }
-
-compile_commands_json=$1
-#launch_script=$2
-launch_script=.tmp.gen.frama-clang.launch.sh
-
-prepare_analysis_from_cmake_compile_commands $compile_commands_json > ${launch_script}
-#cat ${launch_script}
-
-echo "Generated launch script: ${launch_script}"

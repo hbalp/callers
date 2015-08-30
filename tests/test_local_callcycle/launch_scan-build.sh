@@ -28,6 +28,7 @@ if [ $analysis_type == "callers" ] || [ $analysis_type == "all" ];
 then
 
     # List generated json files
+    find . -type f -name "*.gen.json.gz" -exec gunzip {} \;
     list_files_in_dirs `pwd` .file.callers.gen.json dir.callers.gen.json
 
     # List all defined symbols in file defined_symbols.json

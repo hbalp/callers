@@ -1,6 +1,8 @@
 #!/bin/bash
 #set -x
 
+source "../../bin/common.sh"
+
 #build_tool=cmake
 build_tool=scan_build
 
@@ -18,7 +20,7 @@ export CALLERS_ANALYSIS_TYPE="$analysis_type"
 if [ $build_tool == "cmake" ]
 then
     cmake ..
-    make VERBOSE=yes
+    # make VERBOSE=yes
     cmake_analysis.sh compile_commands.json ${analysis_type} all
 elif [ $build_tool == "scan_build" ]
 then
@@ -37,10 +39,10 @@ if [ $analysis_type == "callers" ] || [ $analysis_type == "all" ]
 then
 
     # List generated json files
-    list_json_files_in_dirs.native `pwd` .json dir.callers.gen.json
+    list_files_in_dirs `pwd` .file.callers.gen.json dir.callers.gen.json
 
     # List all defined symbols in file defined_symbols.json
-    list_defined_symbols.native defined_symbols.json test_external_callcycle dir.callers.gen.json
+    list_defined_symbols defined_symbols.json `pwd` dir.callers.gen.json
     #read_defined_symbols.native defined_symbols.json file.callers.gen.json
 
     # add extcallees to json files
@@ -50,19 +52,20 @@ then
     source add_extcallers.sh .
     source indent_jsonfiles.sh .
 
-    ## generate callee's tree from main entry point
-    #function_callers_to_dot.native callees "main" "int main()" `pwd`/test.cpp
+    # generate callee's tree from main entry point
     function_callers_to_dot.native callees "main" "int main()" `pwd`/test.cpp files
+    #source function_callers_to_dot.sh callees "main" "int main()" `pwd`/test.cpp files
 
-    ## generate caller's tree from main entry point
-    #function_callers_to_dot.native callers "main" "int main()" `pwd`/test.cpp
-    function_callers_to_dot.native callers "main" "int main()" `pwd`/test.cpp files
+    # generate caller's tree from main entry point
+    #source function_callers_to_dot.sh callers "main" "int main()" `pwd`/test.cpp
+    source function_callers_to_dot.sh callers "main" "int main()" `pwd`/test.cpp files
 
-    ## generate a call graph from "int A::a()" to "int c()"
-    function_callers_to_dot.native c2c "A_a" "int A::a()" `pwd`/A.cpp "c" "int c()" `pwd`/B.cpp
+    # generate a call graph from "int A::a()" to "int c()"
+    source function_callers_to_dot.sh c2c "A_a" "int A::a()" `pwd`/A.cpp "c" "int c()" `pwd`/B.cpp
 
     source process_dot_files.sh . analysis/${analysis_type}
 
-    #inkscape analysis/${analysis_type}/main.fct.callers.gen.dot.svg
-    inkscape analysis/${analysis_type}/main.fct.callees.gen.dot.svg
+    inkscape analysis/${analysis_type}/svg/main.fct.callees.gen.dot.svg
+    #inkscape analysis/${analysis_type}/svg/main.fct.callers.gen.dot.svg
+    #inkscape analysis/${analysis_type}/svg/A_a.c.c2c.gen.dot.svg
 fi

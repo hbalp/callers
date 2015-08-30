@@ -1,10 +1,12 @@
 #!/bin/bash
 #set -x
 
+source "../../bin/common.sh"
+
 #analysis_type=$1
 #analysis_type=all
-#analysis_type=callers
-analysis_type=frama-clang
+analysis_type=callers
+#analysis_type=frama-clang
 #analysis_type=framaCIRGen
 
 # clean test
@@ -21,7 +23,7 @@ scan-build -o callers cmake ..
 scan-build -o callers make VERBOSE=yes
 if [ $? -ne 0 ]; then
     echo "################################################################################"
-    echo "# Callers analysis error. Stop here !. Analysis type is ${CALLERS_ANALYSIS_TYPE}"
+    echo "# ${analysis_type} analysis error. Stop here !. Analysis type is ${CALLERS_ANALYSIS_TYPE}"
     echo "################################################################################"
     exit -1
 fi
@@ -30,10 +32,10 @@ cd ..
 if [ $analysis_type == "callers" ] || [ $analysis_type == "all" ];
 then
     # List generated json files
-    list_json_files_in_dirs.native `pwd` .json dir.callers.gen.json
+    list_files_in_dirs `pwd` .file.callers.gen.json dir.callers.gen.json
 
     # List all defined symbols in file defined_symbols.json
-    list_defined_symbols.native defined_symbols.json test_local_callgraph_several_files dir.callers.gen.json
+    source list_defined_symbols.sh defined_symbols.json `pwd` dir.callers.gen.json
     # read_defined_symbols.native defined_symbols.json file.callers.gen.json
 
     # add extcallees to json files
@@ -44,8 +46,8 @@ then
     source indent_jsonfiles.sh .
 
     # generate callee's tree from main entry point
-    #function_callers_to_dot.native callees "main" "int main()" `pwd`/test.cpp
-    function_callers_to_dot.native callees "main" "int main()" `pwd`/test.cpp files
+    source function_callers_to_dot.sh callees "main" "int main()" `pwd`/test.cpp
+    source function_callers_to_dot.sh callees "main" "int main()" `pwd`/test.cpp files
     source process_dot_files.sh . analysis/callers
     inkscape analysis/callers/svg/main.fct.callees.gen.dot.svg
 fi

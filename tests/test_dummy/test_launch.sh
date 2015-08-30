@@ -15,7 +15,7 @@ cmake ..
 #make VERBOSE=yes
 
 # launch callers analysis
-cmake_analysis.sh compile_commands.json all all
+cmake_analysis.sh compile_commands.json ${analysis_type} all
 if [ $? -ne 0 ]; then
     echo "################################################################################"
     echo "# ${analysis_type} analysis error. Stop here !"
@@ -28,10 +28,10 @@ if [ $analysis_type == "callers" ] || [ $analysis_type == "all" ];
 then
 
     # List generated json files
-    list_files_in_dirs `pwd` .json dir.callers.gen.json
+    list_files_in_dirs `pwd` .file.callers.gen.json dir.callers.gen.json
 
     # List all defined symbols in file defined_symbols.json
-    list_defined_symbols defined_symbols.json test_dummy dir.callers.gen.json
+    list_defined_symbols defined_symbols.json `pwd` dir.callers.gen.json
     #read_defined_symbols defined_symbols.json file.callers.gen.json
 
     # add extcallees to json files
@@ -49,6 +49,6 @@ then
 
     source process_dot_files.sh . analysis/${analysis_type}
 
-    inkscape analysis/${analysis_type}/main.fct.callees.gen.dot.svg
-    #inkscape analysis/${analysis_type}/main.fct.callers.gen.dot.svg
+    inkscape analysis/${analysis_type}/svg/main.fct.callees.gen.dot.svg
+    #inkscape analysis/${analysis_type}/svg/main.fct.callers.gen.dot.svg
 fi

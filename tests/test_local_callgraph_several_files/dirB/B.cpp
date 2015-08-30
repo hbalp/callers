@@ -12,14 +12,13 @@ int c()
 
 B::B() 
 {
-  // contournement du besoin d'ajouter les liens de type extcallers
-  //c();
+  c();
 }
 
 int B::b()
 {
   printf("b()\n");
-  c();
+  //c();
   return 0;
 }
 

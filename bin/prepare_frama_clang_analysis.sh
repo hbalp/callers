@@ -79,7 +79,7 @@ function launch_framaCIRGen ()
     framaCIRGen_analysis_options="${file_analysis_options}"
 
     # build the framaCIRGen analysis command
-    fir_analysis="${framaCIRGen} ${framaCIRGen_options} ${system_includes} ${framaCIRGen_analysis_options} -o ${fir_file} ${src_file}"
+    fir_analysis="${framaCIRGen} ${framaCIRGen_options} \${system_includes} ${framaCIRGen_analysis_options} -o ${fir_file} ${src_file}"
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch framaCIRGen analysis of file: ${src_file}\""
     echo "echo \"ccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppcc\""
@@ -100,10 +100,10 @@ function launch_callers_cpp ()
     callers=`which callers++`
 
     # add some options when required
-    callers_options="-std=c++11"
+    callers_options="-std=c++11 -I."
 
     # build the callers analysis command    
-    callers_analysis="${callers} ${callers_options} ${system_includes} ${file_analysis_options} -o ${callers_stdout_file} ${cpp_file}"
+    callers_analysis="${callers} ${callers_options} \${system_includes} ${file_analysis_options} -o ${callers_stdout_file} ${cpp_file}"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch callers++ analysis of file: ${cpp_file}\""
@@ -125,10 +125,10 @@ function launch_callers_c ()
     callers=`which callers`
 
     # add some options when required
-    callers_options=""
+    callers_options="-I."
 
     # build the callers analysis command    
-    callers_analysis="${callers} ${callers_options} ${system_includes} ${file_analysis_options} -o ${callers_stdout_file} ${c_file}"
+    callers_analysis="${callers} ${callers_options} \${system_includes} ${file_analysis_options} -o ${callers_stdout_file} ${c_file}"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch callers analysis of file: ${c_file}\""

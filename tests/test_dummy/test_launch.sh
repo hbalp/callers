@@ -24,8 +24,10 @@ then
     cmake_analysis.sh compile_commands.json ${analysis_type} all
 elif [ $build_tool == "scan_build" ]
 then
+    scan_build_checkers_options=""
+    #scan_build_checkers_options="-v -v -V -enable-checker debug.DumpCallGraph -enable-checker debug.DumpCalls -enable-checker debug.ViewCallGraph"
     scan-build -o ${analysis_type} cmake ..
-    scan-build -o ${analysis_type} make VERBOSE=yes
+    scan-build ${scan_build_checkers_options} -o ${analysis_type} make VERBOSE=yes
 fi
 if [ $? -ne 0 ]; then
     echo "################################################################################"

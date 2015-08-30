@@ -7,7 +7,9 @@ function launch_frama_clang ()
 {
     cpp_file=$1
     cabs_file=$2
-    file_analysis_options=$3
+    shift
+    shift
+    file_analysis_options=$@
 
     # localize frama-c
     frama_c=`which frama-c`
@@ -35,7 +37,9 @@ function launch_frama_c ()
 {
     c_file=$1
     cabs_file=$2
-    file_analysis_options=$3
+    shift
+    shift
+    file_analysis_options=$@
 
     # localize frama-c
     frama_c=`which frama-c`
@@ -61,7 +65,9 @@ function launch_framaCIRGen ()
 {
     src_file=$1
     fir_file=$2
-    file_analysis_options=$3
+    shift
+    shift
+    file_analysis_options=$@
 
     # localize frama-c
     framaCIRGen=`which framaCIRGen`
@@ -86,7 +92,9 @@ function launch_callers_cpp ()
 {
     cpp_file=$1
     callers_stdout_file=$2
-    file_analysis_options=$3
+    shift
+    shift
+    file_analysis_options=$@
 
     # localize callers
     callers=`which callers++`
@@ -109,7 +117,9 @@ function launch_callers_c ()
 {
     c_file=$1
     callers_stdout_file=$2
-    file_analysis_options=$3
+    shift
+    shift
+    file_analysis_options=$@
 
     # localize callers
     callers=`which callers`
@@ -234,7 +244,10 @@ function prepare_frama_clang_analysis_from_compile_command()
 	    [ ${a} != ${src_file} ] && 
 	    [ ${a} != ${obj_file} ]
 	then
-	    file_build_options="${file_build_options} $a "
+	    if  [ ${a} != "-nostdinc" ]
+	    then
+		file_build_options="${file_build_options} $a "
+	    fi
 	fi
     done
 

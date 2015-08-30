@@ -227,7 +227,7 @@ function prepare_frama_clang_analysis_from_compile_command()
 	    #echo "activates all kind of analysis: callers, frama_clang and framaCIRGen";
 	    run_callers="true"
 	    run_frama_clang="true"
-	    run_framaCIRGen="true"
+	    # run_framaCIRGen="true"
 	    ;;
 
 	*)

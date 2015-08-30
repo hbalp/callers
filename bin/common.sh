@@ -95,3 +95,34 @@ function system_includes ()
     echo "system_includes=\"$system_includes\""
 }
 
+function list_files_in_dirs()
+{
+    root_dirpath=$1
+    fileext=$2
+    jsondir_fileext=$3
+
+    list_json_files_in_dirs.native ${root_dirpath} ${fileext} ${jsondir_fileext}
+    if [ $? -ne 0 ]; then
+	echo "################################################################################"
+	echo "# ERROR in list_json_files_in_dirs.native error $@. Stop here !"
+	echo "################################################################################"
+	exit -1
+    fi
+}
+
+function list_defined_symbols()
+{
+    defined_symbols_jsonfilename=$1
+    current_dir=$2
+    jsondir_fileext=$3
+
+    list_defined_symbols.native ${defined_symbols_jsonfilename} ${current_dir} ${jsondir_fileext}
+    if [ $? -ne 0 ]; then
+	echo "################################################################################"
+	echo "# ERROR in list_defined_symbols.native $@. Stop here !"
+	echo "################################################################################"
+	exit -1
+    fi
+}
+
+

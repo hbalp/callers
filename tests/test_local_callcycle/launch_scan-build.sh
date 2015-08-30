@@ -32,7 +32,7 @@ then
 
     # List all defined symbols in file defined_symbols.json
     list_defined_symbols.native defined_symbols.json test_local_callcycle dir.callers.gen.json
-    read_defined_symbols.native defined_symbols.json file.callers.gen.json
+    #read_defined_symbols.native defined_symbols.json file.callers.gen.json
 
     # add extcallees to json files
     source add_extcallees.sh `pwd` defined_symbols.json

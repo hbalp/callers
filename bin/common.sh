@@ -100,8 +100,9 @@ function list_files_in_dirs()
     root_dirpath=$1
     fileext=$2
     jsondir_fileext=$3
+    ignored_directories=$4
 
-    list_json_files_in_dirs.native ${root_dirpath} ${fileext} ${jsondir_fileext}
+    list_json_files_in_dirs.native ${root_dirpath} ${fileext} ${jsondir_fileext} ${ignored_directories}
     if [ $? -ne 0 ]; then
 	echo "################################################################################"
 	echo "# ERROR in list_json_files_in_dirs.native error $@. Stop here !"
@@ -124,5 +125,3 @@ function list_defined_symbols()
 	exit -1
     fi
 }
-
-

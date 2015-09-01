@@ -100,7 +100,7 @@ function launch_callers_cpp ()
     callers=`which callers++`
 
     # add some options when required
-    callers_options="-std=c++11 -I."
+    callers_options="-std=c++11 -I. -I.."
 
     # build the callers analysis command    
     callers_analysis="${callers} ${callers_options} \${system_includes} ${file_analysis_options} -o ${callers_stdout_file} ${cpp_file}"

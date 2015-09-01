@@ -54,7 +54,8 @@ else
     analysis_type=${CALLERS_ANALYSIS_TYPE}
 
     # prepare launch analysis script
-    launch_script=.tmp.gen.analysis.launch.ccc-analyzer.sh
+    filename=`basename ${file}`
+    launch_script=".${filename}.gen.analysis.launch.ccc-analyzer.sh"
     prepare_analysis_from_scan_build_command ${file} ${build_args} > ${launch_script}
     echo "generated launch script: ${launch_script}"
 

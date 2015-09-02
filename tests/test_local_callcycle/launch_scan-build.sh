@@ -1,6 +1,8 @@
 #!/bin/bash
 #set -x
 
+source "../../bin/common.sh"
+
 #analysis_type=$1
 analysis_type=all
 #analysis_type=callers
@@ -29,7 +31,7 @@ then
 
     # List generated json files
     find . -type f -name "*.gen.json.gz" -exec gunzip {} \;
-    list_files_in_dirs `pwd` .file.callers.gen.json dir.callers.gen.json
+    list_files_in_dirs `pwd` .file.callers.gen.json dir.callers.gen.json "analysis"
 
     # List all defined symbols in file defined_symbols.json
     list_defined_symbols defined_symbols.json `pwd` dir.callers.gen.json

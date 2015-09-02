@@ -37,12 +37,12 @@ then
     find . -type f -name "*.gen.json.gz" -exec gunzip {} \;
     list_files_in_dirs `pwd` .file.callers.gen.json dir.callers.gen.json "analysis"
 
-    # List all defined symbols in file defined_symbols.json
-    list_defined_symbols defined_symbols.json `pwd` dir.callers.gen.json
-    # read_defined_symbols.native defined_symbols.json file.callers.gen.json
+    # List all defined symbols in file defined_symbols.all.gen.json
+    list_defined_symbols defined_symbols.all.gen.json `pwd` dir.callers.gen.json
+    # read_defined_symbols.native defined_symbols.all.gen.json file.callers.gen.json
 
     # add extcallees to json files
-    source add_extcallees.sh `pwd` defined_symbols.json
+    source add_extcallees.sh `pwd` defined_symbols.all.gen.json
     #source add_extcallees.sh `pwd` broken_symbols.json
 
     # add extcallers to json files

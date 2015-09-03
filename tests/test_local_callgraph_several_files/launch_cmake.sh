@@ -42,7 +42,8 @@ then
     # read_defined_symbols.native defined_symbols.all.gen.json file.callers.gen.json
 
     # add extcallees to json files
-    source add_extcallees.sh `pwd` defined_symbols.all.gen.json
+    source add_extcallees.sh `pwd`
+    #source add_extcallees.sh `pwd` defined_symbols.all.gen.json
     #source add_extcallees.sh `pwd` broken_symbols.json
 
     # add extcallers to json files
@@ -50,10 +51,10 @@ then
     source indent_jsonfiles.sh .
 
     # generate callee's tree from main entry point
-    source function_callers_to_dot.sh callees "main" "int main()" $canonical_pwd/test.cpp files
+    source function_callers_to_dot.sh $canonical_pwd/test.cpp callees "main" "int main()" files
 
     # generate caller's tree from main entry point
-    source function_callers_to_dot.sh callers "c" "int c()" $canonical_pwd/dirB/B.cpp files
+    source function_callers_to_dot.sh $canonical_pwd/dirB/B.cpp callers "c" "int c()" files
 
     source process_dot_files.sh . analysis/${analysis_type}
 

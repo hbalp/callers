@@ -45,11 +45,11 @@ then
 
     # generate callee's tree from main entry point
     #function_callers_to_dot.native callees "main" "int main()" `pwd`/test_local_callcycle.c
-    source function_callers_to_dot.sh callees "main" "int main()" `pwd`/test_local_callcycle.c
+    source function_callers_to_dot.sh `pwd`/test_local_callcycle.c callees "main" "int main()"
 
     # generate caller's tree from main entry point
     #source function_callers_to_dot.sh callers "main" "int main()" `pwd`/test_local_callcycle.c
-    source function_callers_to_dot.sh callers "a" "void a()" `pwd`/test_local_callcycle.c
+    source function_callers_to_dot.sh `pwd`/test_local_callcycle.c callers "a" "void a()"
 
     source process_dot_files.sh . analysis/callers
 

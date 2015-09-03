@@ -55,12 +55,12 @@ then
     source indent_jsonfiles.sh .
 
     # generate callee's tree from main entry point
-    function_callers_to_dot.native callees "main" "int main()" `pwd`/test.cpp files
+    function_callers_to_dot.native `pwd`/test.cpp callees "main" "int main()" files
     #source function_callers_to_dot.sh callees "main" "int main()" `pwd`/test.cpp files
 
     # generate caller's tree from main entry point
     #source function_callers_to_dot.sh callers "main" "int main()" `pwd`/test.cpp
-    source function_callers_to_dot.sh callers "main" "int main()" `pwd`/test.cpp files
+    source function_callers_to_dot.sh `pwd`/test.cpp callers "main" "int main()" files
 
     # generate a call graph from "int A::a()" to "int c()"
     source function_callers_to_dot.sh c2c "A_a" "int A::a()" `pwd`/A.cpp "c" "int c()" `pwd`/B.cpp

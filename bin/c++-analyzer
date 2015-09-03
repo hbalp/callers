@@ -55,7 +55,8 @@ else
 
     # prepare launch analysis script
     filename=`basename ${file}`
-    launch_script=".${filename}.gen.analysis.launch.c++-analyzer.sh"
+    #launch_script=".${filename}.gen.analysis.launch.c++-analyzer.sh"
+    launch_script=".tmp.gen.analysis.launch.c++-analyzer.sh"
     prepare_analysis_from_scan_build_command ${file} ${build_args} > ${launch_script}
     echo "generated launch script: ${launch_script}"
 

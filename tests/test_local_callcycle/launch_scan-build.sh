@@ -46,11 +46,11 @@ then
 
     # generate callee's tree from main entry point
     #source function_callers_to_dot.sh callees "main" "int main()" `pwd`/test_local_callcycle.c
-    source function_callers_to_dot.sh `pwd`/test_local_callcycle.c callees "main" "int main()" files
+    source function_callers_to_dot.sh callees `pwd`/test_local_callcycle.c "main" "int main()" files
 
     # generate caller's tree from main entry point
     #source function_callers_to_dot.sh callers "main" "int main()" `pwd`/test_local_callcycle.c
-    source function_callers_to_dot.sh `pwd`/test_local_callcycle.c callers "a" "void a()"
+    source function_callers_to_dot.sh callers `pwd`/test_local_callcycle.c "a" "void a()"
 
     source process_dot_files.sh . analysis/callers
     inkscape analysis/callers/svg/main.fct.callees.gen.dot.svg

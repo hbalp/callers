@@ -44,12 +44,12 @@ then
     source indent_jsonfiles.sh .
 
     # generate callee's tree from main entry point
-    #function_callers_to_dot.native callees "main" "int main()" `pwd`/test_local_callcycle.c
-    source function_callers_to_dot.sh `pwd`/test_local_callcycle.c callees "main" "int main()"
+    #function_callers_to_dot.native callees `pwd`/test_local_callcycle.c "main" "int main()"
+    source function_callers_to_dot.sh callees `pwd`/test_local_callcycle.c "main" "int main()"
 
     # generate caller's tree from main entry point
     #source function_callers_to_dot.sh callers "main" "int main()" `pwd`/test_local_callcycle.c
-    source function_callers_to_dot.sh `pwd`/test_local_callcycle.c callers "a" "void a()"
+    source function_callers_to_dot.sh callers `pwd`/test_local_callcycle.c "a" "void a()"
 
     source process_dot_files.sh . analysis/callers
 

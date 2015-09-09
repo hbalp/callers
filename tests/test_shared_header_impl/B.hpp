@@ -5,7 +5,7 @@
 #include "test.hpp"
 
 //int c();
-int c()
+inline int c()
 {
   printf("c()\n");
   // test des cycles
@@ -17,7 +17,7 @@ class B
 {
 public:
   B();
-  ~B();
+  ~B() {}
   
   int b();
 };

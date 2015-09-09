@@ -102,11 +102,11 @@ void CallersData::File::add_defined_function(CallersData::Fct* fct)
   defined.insert(*fct);
 }
 
-void CallersData::File::add_defined_function(std::string sign, int line)
+void CallersData::File::add_defined_function(std::string sign, std::string filepath, int line)
 {
   std::cout << "Create function \"" << sign
 	    << "\" located in file \"" << this->fullPath() << ":" << line << "\"" << std::endl;
-  Fct *fct = new Fct(sign, line);
+  Fct *fct = new Fct(sign, filepath, line);
   defined.insert(*fct);
 }
 
@@ -127,9 +127,9 @@ CallersData::File::add_function_call(CallersData::FctCall* fc)
     // the caller function belongs to the current file
     {
       // adds the caller function to the defined functions of the current file
-      add_defined_function(fc->caller_sign, fc->caller_line);
+      add_defined_function(fc->caller_sign, fc->caller_file, fc->caller_line);
       // get a reference to the related defined function
-      CallersData::Fct caller_fct(fc->caller_sign, fc->caller_line);
+      CallersData::Fct caller_fct(fc->caller_sign, fc->caller_file, fc->caller_line);
       caller = defined.find(caller_fct);
 
       // Check whether the callee function belongs to the current file.
@@ -138,9 +138,9 @@ CallersData::File::add_function_call(CallersData::FctCall* fc)
 	// the callee function belongs to the current file
 	{
 	  // adds the callee function to the defined functions of the current file
-	  add_defined_function(fc->callee_sign, fc->callee_decl_line);
+	  add_defined_function(fc->callee_sign, fc->callee_decl_file, fc->callee_decl_line);
 	  // get a reference to the related defined function
-	  CallersData::Fct callee_fct(fc->callee_sign, fc->callee_decl_line);
+	  CallersData::Fct callee_fct(fc->callee_sign, fc->callee_decl_file, fc->callee_decl_line);
 	  callee = defined.find(callee_fct);
 
 	  // add local caller to local callee
@@ -171,9 +171,9 @@ CallersData::File::add_function_call(CallersData::FctCall* fc)
 	// the callee function belongs to the current file
 	{
 	  // adds the callee function to the defined functions of the current file
-	  add_defined_function(fc->callee_sign, fc->callee_decl_line);
+	  add_defined_function(fc->callee_sign, fc->callee_decl_file, fc->callee_decl_line);
 	  // get a reference to the related defined function
-	  CallersData::Fct callee_fct(fc->callee_sign, fc->callee_decl_line);
+	  CallersData::Fct callee_fct(fc->callee_sign, fc->callee_decl_file, fc->callee_decl_line);
 	  callee = defined.find(callee_fct);
 
 	  // add the external caller to the local callee
@@ -233,15 +233,17 @@ CallersData::Fct::~Fct()
   delete extcallees;
 }
 
-CallersData::Fct::Fct(const char* sign, const int line)
+CallersData::Fct::Fct(const char* sign, const char* filepath, const int line)
   : sign(sign),
+    file(filepath),
     line(line)
 {
   allocate();
 }
 
-CallersData::Fct::Fct(std::string sign, int line)
+CallersData::Fct::Fct(std::string sign, std::string filepath, int line)
   : sign(sign),
+    file(filepath),
     line(line)
 {
   allocate();

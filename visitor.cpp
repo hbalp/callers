@@ -82,20 +82,20 @@ CallersAction::CreateASTConsumer(clang::CompilerInstance& compilerInstance,
   std::cout << "file: " << inputFile.str() << std::endl;
   boost::filesystem::path p(inputFile);
   std::string basename = p.filename().string();
-  std::string dirname = ::getCanonicalAbsolutePath(p.parent_path().string());
+  std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
 
-  if(dirname == "")
+  if(dirpath == "")
     {
       boost::filesystem::path current_path = boost::filesystem::current_path();
       std::string working_directory = boost::filesystem::canonical(current_path).string();
       std::cout << "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" << std::endl;
       std::cout << "Input JSON file path is empty. So we will use the current working directory: " << current_path << std::endl;
       std::cout << "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" << std::endl;
-      dirname = working_directory;
+      dirpath = working_directory;
     }
 
   std::cout << "IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII" << std::endl;
-  std::cout << "current working directory: " << dirname << std::endl;
+  std::cout << "current working directory: " << dirpath << std::endl;
   std::cout << "IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII" << std::endl;
 
      /*{
@@ -107,9 +107,9 @@ CallersAction::CreateASTConsumer(clang::CompilerInstance& compilerInstance,
       }*/
 
 #ifdef CLANG_VERSION_GREATER_OR_EQUAL_3_7
-  return llvm::make_unique<Visitor>(inputFile.str(), basename, dirname, fOut, compilerInstance); 
+  return llvm::make_unique<Visitor>(inputFile.str(), basename, dirpath, fOut, compilerInstance); 
 #else
-  return new Visitor(inputFile.str(), basename, dirname, fOut, compilerInstance);
+  return new Visitor(inputFile.str(), basename, dirpath, fOut, compilerInstance);
 #endif
 }
 
@@ -137,18 +137,17 @@ std::string
 CallersAction::Visitor::printLocation(const clang::SourceRange& rangeLocation) const {
    assert(psSources);
    auto start = psSources->getPresumedLoc(rangeLocation.getBegin());
-   const char* startFile = start.getFilename();
    int startLine = 0;
-   if (!startFile)
-      startFile = "<unknown>";
-   else
+   std::string startFile = this->printFilePath(rangeLocation);
+   if (startFile != "<unknown>")
+     {
       startLine = start.getLine();
-   std::string result = startFile;
-   result += ':';
-   std::ostringstream out;
-   out << startLine;
-   result += out.str();
-   return result;
+      startFile += ':';
+      std::ostringstream out;
+      out << startLine;
+      startFile += out.str();
+     }
+   return startFile;
 }
 
 std::string
@@ -1059,15 +1058,37 @@ CallersAction::Visitor::TraverseCXXDestructorDecl(clang::CXXDestructorDecl* Decl
    return Parent::TraverseCXXDestructorDecl(Decl);
 }
 
+// add the function to the current json file only if it is really defined in this file
 bool
 CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
    if (Decl->isThisDeclarationADefinition()) {
       pfdParent = Decl;
       sParent = writeFunction(*Decl);
+      std::string fct_filepath = printFilePath(Decl->getSourceRange());
+      int fct_line = printLine(Decl->getSourceRange());
       osOut << "visiting function " << sParent
-            << " at " << printLocation(Decl->getSourceRange()) << '\n';
-      CallersData::Fct fct(writeFunction(*Decl), printLine(Decl->getSourceRange()));
-      jsonFile.add_defined_function(&fct);
+            << " at " << fct_filepath << ':' << fct_line << '\n';
+      CallersData::Fct fct(writeFunction(*Decl), fct_filepath, fct_line);
+      // check whether the function is really defined in this file
+      if(fct_filepath == jsonFile.fullPath())
+	// add the function to the current json file
+	{
+	  jsonFile.add_defined_function(&fct);
+	}
+      // otherwise, check whether a json file is already present for the visited function
+      //else if {
+      //TBC
+      //}
+      else
+      // if no, create this json file
+	{
+	  boost::filesystem::path p(fct_filepath);
+	  std::string basename = p.filename().string();
+	  std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+	  CallersData::File file(basename, dirpath);
+	  file.add_defined_function(&fct);
+	  file.output_json_desc();
+	}
    };
    return true;
 }

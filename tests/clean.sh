@@ -16,4 +16,7 @@ source test_clean.sh
 cd $here/test_local_callgraph_several_files
 source clean.sh
 
+cd $here/test_shared_header_impl
+source test_clean.sh
+
 cd $here

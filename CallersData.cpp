@@ -36,12 +36,8 @@ CallersData::JsonFileWriter::~JsonFileWriter()
 CallersData::Dir::Dir(std::string dir, std::string path)
   : dir(dir), 
     path(path),
-    js(path + "/" + dir + "/" + dir + ".dir.callers.gen.json")
-{ 
-  // jsonFileName = path + "/" + dir + "/" + dir + ".dir.callers.gen.json";
-  // std::cout << "Open file \"" << jsonFileName << "\" in write mode." << std::endl;
-  // jOut.open(jsonFileName.c_str());
-}
+    jsonfilename(path + "/" + dir + "/" + dir + ".dir.callers.gen.json")
+{}
 
 CallersData::Dir::~Dir() {}
 
@@ -59,6 +55,7 @@ void CallersData::Dir::add_file(std::string file)
 
 void CallersData::Dir::output_json_desc()
 {
+  CallersData::JsonFileWriter js(this->jsonfilename);
   js.out << "{\"dir\":\"" << dir << "\",\"path\":\"" << path << "\",\"files\":[";
 
   std::list<std::string>::const_iterator i, last;
@@ -83,8 +80,66 @@ void CallersData::Dir::output_json_desc()
 CallersData::File::File(std::string file, std::string path) 
   : file(file),
     path(path),
-    js(path + "/" + file + ".file.callers.gen.json")
+    jsonfilename(path + "/" + file + ".file.callers.gen.json")
 {}
+
+void CallersData::File::parse_json_file()
+{
+  /* Check whether the related json file does already exists or not. */
+  //std::string jsonfilename = this->js.fileName;
+  std::string jsonfilename = this->path + "/" + file + ".file.callers.gen.json";
+  FILE* pFile = fopen(jsonfilename.c_str(), "rb");
+  // Always check to see if file opening succeeded
+  if (pFile == NULL)
+    std::cout << "WARNING: Could not open file \"" << jsonfilename << "\"\n";
+  else
+    // Parse symbol definitions
+    {
+      char buffer[65536];
+      ::rapidjson::FileReadStream is(pFile, buffer, sizeof(buffer));
+      ::rapidjson::Document file;    
+      file.ParseStream<0, rapidjson::UTF8<>, ::rapidjson::FileReadStream>(is);
+      // Check whether the file is wellformed or not
+      if(file.IsObject())
+	// Document is a JSON value that represents the root of DOM. Root can be either an object or array.
+	{
+	  assert(file.HasMember("file"));
+	  assert(file.HasMember("path"));
+	  assert(file.HasMember("defined"));
+
+	  std::string filename(file["file"].GetString());
+	  std::string dirpath(file["path"].GetString());
+	  std::string filepath(dirpath + "/" + filename);
+
+	  std::cout << "file: " << filename << std::endl;
+	  std::cout << "path: " << dirpath << std::endl;
+
+	  const rapidjson::Value& defined = file["defined"];
+	  assert(defined.IsArray());
+
+	  // rapidjson uses SizeType instead of size_t.
+	  for (rapidjson::SizeType s = 0; s < defined.Size(); s++)
+	    {
+	      const rapidjson::Value& symb = defined[s];
+	      const rapidjson::Value& sign = symb["sign"];
+	      const rapidjson::Value& line = symb["line"];
+	      std::string symbol = sign.GetString();
+	      int pos = line.GetInt();
+	      std::ostringstream spos;
+	      spos << pos;
+	      std::string location(filepath + ":" + spos.str());
+	      //symbol_location.insert(SymbLoc::value_type(symbol, location));
+	      this->add_defined_function(symbol, this->file, pos);
+	      std::cout << "Parsed symbol s[" << s << "]:\"" << symbol << "\"" << std::endl;
+	    }
+	}
+      else
+	{
+	  std::cout << "WARNING: Empty or Malformed file \"" << jsonfilename << "\"\n";
+	}
+    }
+}
+
 
 CallersData::File::~File() {}
 
@@ -195,6 +250,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc)
 
 void CallersData::File::output_json_desc()
 {
+  CallersData::JsonFileWriter js(this->jsonfilename);
   js.out << "{\"file\":\"" << file << "\",\"path\":\"" << path << "\",\"defined\":[";
   
   std::set<Fct>::const_iterator i, last;

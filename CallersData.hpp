@@ -17,6 +17,9 @@
 #include <string>
 #include <fstream>
 #include <rapidjson/document.h>
+#include <rapidjson/filereadstream.h>
+#include <rapidjson/writer.h>
+#include <rapidjson/stringbuffer.h>
 
 namespace CallersData 
 {
@@ -43,7 +46,8 @@ namespace CallersData
       std::string path = "unknownDirPath";
       std::list<std::string> files;
       std::list<std::string> childrens;
-      JsonFileWriter js;
+      std::string jsonfilename = "unknownJsonFileName";
+      //JsonFileWriter js;
   };
 
   class Fct;
@@ -55,6 +59,7 @@ namespace CallersData
       File(std::string file, std::string path);
       ~File();
       std::string fullPath ();
+      void parse_json_file();
       void add_defined_function(Fct* fct);
       void add_defined_function(std::string func, std::string filepath, int sign);
       void add_function_call(FctCall* fc);
@@ -64,8 +69,9 @@ namespace CallersData
       std::set<FctCall> calls;
       std::string file = "unknownFileName";
       std::string path = "unknownFilePath";
+      std::string jsonfilename = "unknownJsonFileName";
       //std::list<std::string> defined;
-      JsonFileWriter js;
+      //JsonFileWriter js;
   };
 
   /* Used to store function call before knowing if it's a local or an external call */

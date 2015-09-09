@@ -1076,9 +1076,6 @@ CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
 	  jsonFile.add_defined_function(&fct);
 	}
       // otherwise, check whether a json file is already present for the visited function
-      //else if {
-      //TBC
-      //}
       else
       // if no, create this json file
 	{
@@ -1086,6 +1083,7 @@ CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
 	  std::string basename = p.filename().string();
 	  std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
 	  CallersData::File file(basename, dirpath);
+	  file.parse_json_file();
 	  file.add_defined_function(&fct);
 	  file.output_json_desc();
 	}

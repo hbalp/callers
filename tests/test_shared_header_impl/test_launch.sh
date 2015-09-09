@@ -63,7 +63,7 @@ then
     source function_callers_to_dot.sh callers `pwd`/test.cpp "main" "int main()" files
 
     # generate a call graph from "int A::a()" to "int c()"
-    source function_callers_to_dot.sh c2c `pwd`/A.cpp "A_a" "int A::a()" `pwd`/B.cpp "c" "int c()"
+    source function_callers_to_dot.sh c2c `pwd`/A.cpp "A_a" "int A::a()" `pwd`/B.hpp "c" "int c()"
 
     source process_dot_files.sh . analysis/${analysis_type}
 

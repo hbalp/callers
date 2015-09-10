@@ -903,19 +903,35 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	    headerName = result->getName();
 	  }
 
-	  osOut << inputFile << ":builtin: " << printParentFunction() << " -> " << builtinName << ", headername: " << headerName << '\n';
-	  
+	  int builtinPos = printLine(fd->getSourceRange());
+	  osOut << inputFile << ":builtin: " << printParentFunction() << " -> " << builtinName << ", defined in: " << headerName << ":" << builtinPos << '\n';
+
+	  // check whether a json file is already present for the builtin function
+	  // if true, parse it and add the defined function only when necessary
+	  // if false, create this json file and add the defined function
+	  {
+	    boost::filesystem::path p(headerName);
+	    std::string basename = p.filename().string();
+	    std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+	    CallersData::File file(basename, dirpath);
+	    file.parse_json_file();
+	    CallersData::Fct fct(builtinName, headerName, builtinPos);
+	    file.add_defined_function(&fct);
+	    file.output_json_desc();
+	  }
+
 	  if(headerName == "noLibBuiltin" )
 	    {
-	      CallersData::FctCall fc = CallersData::FctCall(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
-							     builtinName, printFilePath(fd->getSourceRange()), printLine(fd->getSourceRange()));
-	      fc.is_builtin = true;
-	      jsonFile.add_function_call(&fc);
+	      std::cerr << "ERROR : visitor.cpp : unsupported builtin: \"" << builtinName << "\", headerName: \"" << headerName << "\"" << std::endl;
+	      // CallersData::FctCall fc = CallersData::FctCall(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
+	      // 						     builtinName, printFilePath(fd->getSourceRange()), builtinPos);
+	      // fc.is_builtin = true;
+	      // jsonFile.add_function_call(&fc);
 	    }
 	  else
 	    {
 	      CallersData::FctCall fc = CallersData::FctCall(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
-							     builtinName, headerName, printLine(fd->getSourceRange()));
+							     builtinName, headerName, builtinPos);
 	      fc.is_builtin = true;
 	      jsonFile.add_function_call(&fc);
 	    }
@@ -1097,13 +1113,14 @@ CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
       CallersData::Fct fct(writeFunction(*Decl), fct_filepath, fct_line);
       // check whether the function is really defined in this file
       if(fct_filepath == jsonFile.fullPath())
-	// add the function to the current json file
+	// if true, add the function to the current json file
 	{
 	  jsonFile.add_defined_function(&fct);
 	}
-      // otherwise, check whether a json file is already present for the visited function
       else
-      // if no, create this json file
+	// otherwise, check whether a json file is already present for the visited function
+	// if true, parse it and add the defined function only when necessary
+	// if false, create this json file and add the defined function
 	{
 	  boost::filesystem::path p(fct_filepath);
 	  std::string basename = p.filename().string();

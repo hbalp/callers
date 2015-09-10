@@ -36,6 +36,9 @@ if [ $? -ne 0 ]; then
 fi
 cd ..
 
+if true
+#if false
+then
 if [ $analysis_type == "callers" ] || [ $analysis_type == "all" ]
 then
 
@@ -59,8 +62,13 @@ then
     #source function_callers_to_dot.sh callees "main" "int main()" `pwd`/test.cpp files
 
     # generate caller's tree from main entry point
-    #source function_callers_to_dot.sh callers "main" "int main()" `pwd`/test.cpp
-    source function_callers_to_dot.sh callers `pwd`/test.cpp "main" "int main()" files
+    #source function_callers_to_dot.sh callers `pwd`/test.cpp "main" "int main()" files
+
+    # generate caller's tree from B::B() constructor
+    source function_callers_to_dot.sh callers `pwd`/B.cpp "B" "void B::B()" files
+
+    # generate caller's tree from printf builtin function
+    source function_callers_to_dot.sh callers /usr/include/stdio.h "printf" "printf" files
 
     # generate a call graph from "int A::a()" to "int c()"
     source function_callers_to_dot.sh c2c `pwd`/A.cpp "A_a" "int A::a()" `pwd`/B.hpp "c" "int c()"
@@ -70,4 +78,5 @@ then
     inkscape analysis/${analysis_type}/svg/main.fct.callees.gen.dot.svg
     #inkscape analysis/${analysis_type}/svg/main.fct.callers.gen.dot.svg
     #inkscape analysis/${analysis_type}/svg/A_a.c.c2c.gen.dot.svg
+fi
 fi

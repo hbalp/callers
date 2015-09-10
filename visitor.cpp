@@ -40,6 +40,7 @@
 #include "clang/Frontend/FrontendActions.h"
 #include "clang/Frontend/Utils.h"
 #include "clang/Tooling/Tooling.h"
+#include "clang/Lex/Preprocessor.h"
 
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Host.h"
@@ -66,6 +67,7 @@ std::string
 getCanonicalAbsolutePath(const std::string& path)
 {
    std::string absolutePath = clang::tooling::getAbsolutePath(path);
+   //std::string absolutePath = llvm::sys::fs::make_absolute(path);
    boost::filesystem::path p(absolutePath);
    std::string canonicalPath = boost::filesystem::canonical(p).string();
    return canonicalPath;
@@ -869,28 +871,52 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
    if (fd) {
 
       unsigned builtinID = fd->getBuiltinID();
-      #if 0
+      #if 1
       if (builtinID > 0)
 	{
 	  #if 1
 	  std::string builtinName, headerName = "noLibBuiltin";
 #define BUILTIN(ID, TYPE, ATTRS) case clang::Builtin::BI##ID: builtinName = #ID; break;
-#define LIBBUILTIN(ID, TYPE, ATTRS, HEADER, BUILTIN_LANG) case clang::Builtin::BI##ID: builtinName = #ID; headerName = ::getCanonicalAbsolutePath(HEADER); break;
+	  // TODO: tries to get the header file absolute path. This doesn't work with the getCanonicalAbsolutePath() function
+	  // which concatenates the input path or filename with the current working path; and not the path to the system repository
+	  // where the file is really located
+	  //#define LIBBUILTIN(ID, TYPE, ATTRS, HEADER, BUILTIN_LANG) case clang::Builtin::BI##ID: builtinName = #ID; headerName = ::getCanonicalAbsolutePath(HEADER); break;
+#define LIBBUILTIN(ID, TYPE, ATTRS, HEADER, BUILTIN_LANG) case clang::Builtin::BI##ID: builtinName = #ID; headerName = HEADER; break;
 	  switch( builtinID) {
 #include "clang/Basic/Builtins.def"
 	  };
-	  osOut << inputFile << ":builtin: " << printParentFunction() << " -> " << builtinName << '\n';
+
+	  if(headerName.length() > 0) {
+	    clang::SourceLocation FilenameLoc;
+	    llvm::StringRef Filename(headerName);
+	    bool isAngled = true;
+	    const clang::DirectoryLookup * FromDir = NULL;
+	    const clang::FileID FromFileID = ciCompilerInstance.getSourceManager().getMainFileID();
+	    const clang::FileEntry * FromFile = ciCompilerInstance.getSourceManager().getFileEntryForID(FromFileID);
+	    const clang::DirectoryLookup * CurDir = NULL;
+	    llvm::SmallVectorImpl<char>* SearchPath = NULL;
+	    llvm::SmallVectorImpl<char>* RelativePath = NULL;
+	    clang::ModuleMap::KnownHeader *SuggestedModule = NULL;
+	    bool skipPath = false;
+	    const clang::FileEntry * result = ciCompilerInstance.getPreprocessor().LookupFile(FilenameLoc, Filename, isAngled, FromDir, FromFile, CurDir, SearchPath, RelativePath, SuggestedModule, skipPath);
+	  if(result)
+	    headerName = result->getName();
+	  }
+
+	  osOut << inputFile << ":builtin: " << printParentFunction() << " -> " << builtinName << ", headername: " << headerName << '\n';
 	  
 	  if(headerName == "noLibBuiltin" )
 	    {
 	      CallersData::FctCall fc = CallersData::FctCall(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
 							     builtinName, printFilePath(fd->getSourceRange()), printLine(fd->getSourceRange()));
+	      fc.is_builtin = true;
 	      jsonFile.add_function_call(&fc);
 	    }
 	  else
 	    {
 	      CallersData::FctCall fc = CallersData::FctCall(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
 							     builtinName, headerName, printLine(fd->getSourceRange()));
+	      fc.is_builtin = true;
 	      jsonFile.add_function_call(&fc);
 	    }
 	  #endif

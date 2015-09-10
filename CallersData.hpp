@@ -85,6 +85,7 @@ namespace CallersData
 	    std::string callee_sign, std::string callee_decl_file, int callee_decl_line);
       //FctCall(const FctCall& copy_from_me);
       ~FctCall() {}
+      bool is_builtin = false;
     protected:
       std::string caller_sign = "unknownCallerSign";
       std::string caller_file = "unknownCallerFile";
@@ -105,7 +106,7 @@ namespace CallersData
 
     public:
       ExtFct(std::string sign, std::string decl);
-      //ExtFct(std::string sign, std::string decl, std::string def);
+      ExtFct(std::string sign, std::string decl, std::string def);
       ExtFct(const ExtFct& copy_from_me);
       ~ExtFct() {}
       //void set_file(std::string file);
@@ -129,6 +130,7 @@ namespace CallersData
       void add_local_callee(std::string callee) const;
       void add_external_caller(std::string caller_sign, std::string caller_decl) const;
       void add_external_callee(std::string callee_sign, std::string callee_decl) const;
+      void add_builtin_callee(std::string callee_sign, std::string builtin_decl) const;
 
       void output_local_callers(std::ofstream &js) const;
       void output_local_callees(std::ofstream &js) const;

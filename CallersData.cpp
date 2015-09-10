@@ -213,7 +213,14 @@ CallersData::File::add_function_call(CallersData::FctCall* fc)
 	  out << fc->callee_decl_line;
 	  callee_decl_location += ":";
 	  callee_decl_location += out.str();
-	  caller->add_external_callee(fc->callee_sign, callee_decl_location);
+	  if(fc->is_builtin == true)
+	    {
+	      caller->add_builtin_callee(fc->callee_sign, callee_decl_location);
+	    }
+	  else
+	    {
+	      caller->add_external_callee(fc->callee_sign, callee_decl_location);	      
+	    }
 	}
     }
 
@@ -368,6 +375,16 @@ void CallersData::Fct::add_external_callee(std::string callee_sign, std::string 
   extcallees->insert(*extfct);
 }
 
+void CallersData::Fct::add_builtin_callee(std::string builtin_sign, std::string builtin_decl) const
+{
+  std::cout << "Add builtin callee \"" << builtin_sign
+	    << "\" to function \"" << sign << "\". " 
+	    << "Builtin callee is declared in file: " << builtin_decl
+	    << std::endl;
+  ExtFct *extfct = new ExtFct(builtin_sign, builtin_decl, "builtinFunctionDef");
+  extcallees->insert(*extfct);
+}
+
 void CallersData::Fct::output_local_callers(std::ofstream &js) const
 {
   if (not locallers->empty())
@@ -511,6 +528,16 @@ bool CallersData::operator< (const CallersData::FctCall& fc1, const CallersData:
 
 CallersData::ExtFct::ExtFct(std::string sign, std::string decl)
   : sign(sign), decl(decl), def("unknownExtFctDef")
+{
+  std::cout << "Create external function: "
+	    << "{\"sign\":\"" << sign
+	    << "\",\"decl\":\"" << decl
+	    << "\",\"def\":\"" << def << "\"}"
+	    << std::endl;
+}
+
+CallersData::ExtFct::ExtFct(std::string sign, std::string decl, std::string def)
+  : sign(sign), decl(decl), def(def)
 {
   std::cout << "Create external function: "
 	    << "{\"sign\":\"" << sign

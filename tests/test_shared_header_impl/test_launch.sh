@@ -6,8 +6,8 @@ source "../../bin/common.sh"
 #build_tool=cmake
 build_tool=scan_build
 
-analysis_type=all
-#analysis_type=callers
+#analysis_type=all
+analysis_type=callers
 #analysis_type=frama-c
 #analysis_type=frama-clang
 #analysis_type=framaCIRGen
@@ -44,7 +44,7 @@ then
     list_files_in_dirs `pwd` .file.callers.gen.json dir.callers.gen.json analysis
 
     # List all defined symbols in file defined_symbols.json
-    list_defined_symbols defined_symbols.json `pwd` dir.callers.gen.json
+    list_defined_symbols defined_symbols.gen.json `pwd` dir.callers.gen.json
     #read_defined_symbols.native defined_symbols.json file.callers.gen.json
 
     # add extcallees to json files

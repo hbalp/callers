@@ -39,7 +39,7 @@ function launch_frama_c ()
     cabs_file=$2
     shift
     shift
-    file_analysis_options=$@
+    file_analysis_options="-I.. $@"
 
     # localize frama-c
     frama_c=`which frama-c`
@@ -126,7 +126,7 @@ function launch_callers_c ()
     callers=`which callers`
 
     # add some options when required
-    callers_options="-I."
+    callers_options="-I. -I.."
 
     # build the callers analysis command    
     callers_analysis="${callers} ${callers_options} \${system_includes} ${file_analysis_options} -o ${callers_stdout_file} ${c_file}"
@@ -227,9 +227,9 @@ function prepare_frama_clang_analysis_from_compile_command()
 
 	"all" )
 	    #echo "activates all kind of analysis: callers, frama_clang and framaCIRGen";
-	    run_callers="true"
+	    #run_callers="true"
 	    run_frama_clang="true"
-	    # run_framaCIRGen="true"
+	    run_framaCIRGen="true"
 	    ;;
 
 	*)
@@ -255,13 +255,13 @@ function prepare_frama_clang_analysis_from_compile_command()
 
     if [ $fileext == "cpp" ]
     then
-	if [ $run_frama_clang == "true" ] 
-	then
-	    launch_frama_clang ${src_file} ${cabs_file} ${file_build_options}
-	fi
 	if [ $run_framaCIRGen == "true" ] 
 	then
 	    launch_framaCIRGen ${src_file} ${fir_file} ${file_build_options}
+	fi
+	if [ $run_frama_clang == "true" ] 
+	then
+	    launch_frama_clang ${src_file} ${cabs_file} ${file_build_options}
 	fi
 	if [ $run_callers == "true" ] 
 	then
@@ -269,13 +269,13 @@ function prepare_frama_clang_analysis_from_compile_command()
 	fi
     elif [ $fileext == "c" ]
     then
-	if [ $run_frama_clang == "true" ] 
-	then
-	    launch_frama_c ${src_file} ${cabs_file} ${file_build_options}
-	fi
 	if [ $run_framaCIRGen == "true" ] 
 	then
 	    launch_framaCIRGen ${src_file} ${fir_file} ${file_build_options}
+	fi
+	if [ $run_frama_clang == "true" ] 
+	then
+	    launch_frama_c ${src_file} ${cabs_file} ${file_build_options}
 	fi
 	if [ $run_callers == "true" ] 
 	then

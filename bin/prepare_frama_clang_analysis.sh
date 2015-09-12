@@ -12,7 +12,7 @@ function launch_frama_clang ()
     file_analysis_options=$@
 
     # localize frama-c
-    frama_c=`which frama-c`
+    frama_c=`which frama-c 2> /dev/null`
 
     # define frama-clang configuration options
     frama_clang_options="-cxx-nostdinc -cxx-keep-mangling -fclang-msg-key clang,cabs -fclang-verbose 2 -machdep x86_32 -print -cxx-clang-command"
@@ -42,7 +42,7 @@ function launch_frama_c ()
     file_analysis_options="-I.. $@"
 
     # localize frama-c
-    frama_c=`which frama-c`
+    frama_c=`which frama-c 2> /dev/null`
 
     # define frama-c configuration options
     frama_c_options="-machdep x86_32 -print -no-cpp-gnu-like "
@@ -70,7 +70,7 @@ function launch_framaCIRGen ()
     file_analysis_options=$@
 
     # localize frama-c
-    framaCIRGen=`which framaCIRGen`
+    framaCIRGen=`which framaCIRGen 2> /dev/null`
 
     # define frama-clang configuration options
     framaCIRGen_options=""
@@ -88,64 +88,112 @@ function launch_framaCIRGen ()
     echo "gzip -f ${fir_file}"    
 }
 
+function launch_clang_cpp ()
+{
+    cpp_file=$1
+    clang_cpp_stdout_file=$2
+    shift
+    shift
+    file_build_options=$@
+
+    # localize clang_cpp
+    clang_cpp=`which clang++ 2> /dev/null`
+
+    # add some options when required
+    clang_cpp_options="-std=c++11 -I. -I.."
+
+    # build the clang_cpp build command    
+    clang_cpp_build="${clang_cpp} ${debug_options} ${clang_cpp_options} \${system_includes} ${file_build_options} -o ${clang_cpp_stdout_file} ${cpp_file}"
+
+    echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
+    echo "echo \"launch clang++ build of file: ${cpp_file}\""
+    echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
+    echo "#gdb --args "
+    echo "${clang_cpp_build}"
+    echo "gzip -f ${clang_cpp_stdout_file}"
+    echo "gzip -f ${cpp_file}.file.clang_cpp.gen.json"
+}
+
+function launch_clang_c ()
+{
+    c_file=$1
+    clang_c_stdout_file=$2
+    shift
+    shift
+    file_analysis_options=$@
+
+    # localize clang
+    clang_c=`which clang 2> /dev/null`
+
+    # add some options when required
+    clang_c_options="-I. -I.."
+
+    # build the clang analysis command    
+    clang_c_analysis="${clang_c} ${debug_options} ${clang_c_options} \${system_includes} ${file_analysis_options} -o ${clang_c_stdout_file} ${c_file}"
+
+    echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
+    echo "echo \"launch clang analysis of file: ${c_file}\""
+    echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
+    echo "#gdb --args "
+    echo "${clang_c_analysis}"
+    echo "gzip -f ${clang_c_stdout_file}"
+    echo "gzip -f ${c_file}.file.clang_c.gen.json"
+}
+
 function launch_callers_cpp ()
 {
     cpp_file=$1
-    callers_stdout_file=$2
+    callers_cpp_stdout_file=$2
     shift
     shift
     file_analysis_options=$@
 
     # localize callers
-    callers=`which callers++`
+    callers_cpp=`which callers++ 2> /dev/null`
 
     # add some options when required
-    callers_options="-std=c++11 -I. -I.."
+    callers_cpp_options="-std=c++11 -I. -I.."
 
     # build the callers analysis command    
-    callers_analysis="${callers} ${callers_options} \${system_includes} ${file_analysis_options} -o ${callers_stdout_file} ${cpp_file}"
+    callers_cpp_analysis="${callers_cpp} ${callers_cpp_options} \${system_includes} ${file_analysis_options} -o ${callers_cpp_stdout_file} ${cpp_file}"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch callers++ analysis of file: ${cpp_file}\""
     echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
     echo "#gdb --args "
-    echo "${callers_analysis}"
-    echo "gzip -f ${callers_stdout_file}"
+    echo "${callers_cpp_analysis}"
+    echo "gzip -f ${callers_cpp_stdout_file}"
     echo "gzip -f ${cpp_file}.file.callers.gen.json"
 }
 
 function launch_callers_c ()
 {
     c_file=$1
-    callers_stdout_file=$2
+    callers_c_stdout_file=$2
     shift
     shift
     file_analysis_options=$@
 
     # localize callers
-    callers=`which callers`
+    callers_c=`which callers 2> /dev/null`
 
     # add some options when required
-    callers_options="-I. -I.."
+    callers_c_options="-I. -I.."
 
     # build the callers analysis command    
-    callers_analysis="${callers} ${callers_options} \${system_includes} ${file_analysis_options} -o ${callers_stdout_file} ${c_file}"
+    callers_c_analysis="${callers_c} ${callers_c_options} \${system_includes} ${file_analysis_options} -o ${callers_c_stdout_file} ${c_file}"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch callers analysis of file: ${c_file}\""
     echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
     echo "#gdb --args "
-    echo "${callers_analysis}"
-    echo "gzip -f ${callers_stdout_file}"
+    echo "${callers_c_analysis}"
+    echo "gzip -f ${callers_c_stdout_file}"
     echo "gzip -f ${c_file}.file.callers.gen.json"
 }
 
 function prepare_frama_clang_analysis_from_compile_command()
 {
-    # ignore the path to the build tool
-    #echo "# HBDBG WARNING: ignored first compile command arg=$0 but normally not $1 when extracting compilation options !!!"
-    #echo "# HBDBG input args: $@"
-    #shift # TO_BE_REMOVED because it remove systematically the first build option !
     args=$@
     fileext="unknownFileExt"
     src_file="noSrcFile"
@@ -193,13 +241,27 @@ function prepare_frama_clang_analysis_from_compile_command()
     # echo "src_file: $src_file"
     # echo "obj_file: $obj_file"
 
+    gcc_stdout_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.gcc.stdout/g`
+    clang_stdout_file=${obj_file}
+    callers_stdout_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.callers.stdout/g`
     cabs_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.cabs.c/g`
     fir_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.fir/g`
-    callers_stdout_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.callers.stdout/g`
 
+    debug="true"
+    #debug="false"
+
+    run_gcc="false"
+    run_clang="true"
     run_callers="false"
     run_frama_clang="false"
     run_framaCIRGen="false"
+
+    if [ $debug == "true" ]
+    then
+	debug_options="-g"
+    else
+	debug_options=""
+    fi
 
     # get the analysis_type = callers | frama-clang | framaCIRGen | all
     analysis_type=${CALLERS_ANALYSIS_TYPE}
@@ -229,7 +291,7 @@ function prepare_frama_clang_analysis_from_compile_command()
 
 	"all" )
 	    #echo "activates all kind of analysis: callers, frama_clang and framaCIRGen";
-	    #run_callers="true"
+	    run_callers="true"
 	    run_frama_clang="true"
 	    run_framaCIRGen="true"
 	    ;;
@@ -255,6 +317,14 @@ function prepare_frama_clang_analysis_from_compile_command()
 
     if [ $fileext == "cpp" ]
     then
+	if [ $run_clang == "true" ] 
+	then
+	    launch_clang_cpp ${src_file} ${clang_stdout_file} ${file_build_options}
+	fi
+	if [ $run_callers == "true" ] 
+	then
+	    launch_callers_cpp ${src_file} ${callers_stdout_file} ${file_build_options}
+	fi
 	if [ $run_framaCIRGen == "true" ] 
 	then
 	    launch_framaCIRGen ${src_file} ${fir_file} ${file_build_options}
@@ -263,12 +333,16 @@ function prepare_frama_clang_analysis_from_compile_command()
 	then
 	    launch_frama_clang ${src_file} ${cabs_file} ${file_build_options}
 	fi
-	if [ $run_callers == "true" ] 
-	then
-	    launch_callers_cpp ${src_file} ${callers_stdout_file} ${file_build_options}
-	fi
     elif [ $fileext == "c" ]
     then
+	if [ $run_clang == "true" ] 
+	then
+	    launch_clang_c ${src_file} ${clang_stdout_file} ${file_build_options}
+	fi
+	if [ $run_callers == "true" ] 
+	then
+	    launch_callers_c ${src_file} ${callers_stdout_file} ${file_build_options}
+	fi
 	if [ $run_framaCIRGen == "true" ] 
 	then
 	    launch_framaCIRGen ${src_file} ${fir_file} ${file_build_options}
@@ -277,16 +351,12 @@ function prepare_frama_clang_analysis_from_compile_command()
 	then
 	    launch_frama_c ${src_file} ${cabs_file} ${file_build_options}
 	fi
-	if [ $run_callers == "true" ] 
-	then
-	    launch_callers_c ${src_file} ${callers_stdout_file} ${file_build_options}
-	fi
     else
 	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
 	echo "prepare_frama_clang_analysis::ERROR::interbal error: unreachable state !"
 	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
     fi
-    #echo "# HBDBG output file build options: ${file_build_options}"
+    #echo "# DEBUG: output file build options: ${file_build_options}"
 }
 
 function prepare_analysis_from_cmake_compile_commands()

@@ -36,10 +36,10 @@ build_args=$@
 #################################################################################
 # build the source file to enable link edition and to be sure output directories are well created 
 #################################################################################
-# get clang path
-clang=`which clang++`
+# # get clang path
+# clang=`which clang++`
 
-${clang} ${build_args}
+# ${clang} ${build_args}
 
 #################################################################################
 #       Prepare and launch analysis
@@ -47,22 +47,37 @@ ${clang} ${build_args}
 file=`get_file .cpp ${build_args}`
 if [ -z "${file}" ]
 then
-    echo "No .cpp source file has been found in arguments, so we bypass the callers analysis"
+    echo "# No .cpp source file has been found in arguments, so we bypass the callers analysis"
 else
 
     # get the analysis_type = callers | frama-clang | framaCIRGen | all
     analysis_type=${CALLERS_ANALYSIS_TYPE}
-
+    if [ -z $analysis_type ]
+    then
+	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+	echo "ERROR:c++-analyzer:when trying to analyze the file: $PWD/$file"
+	echo "CAUSE: Not found environment variable CALLERS_ANALYSIS_TYPE"
+	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+	exit -1
+    fi
     # prepare launch analysis script
     filename=`basename ${file}`
-    #launch_script=".${filename}.gen.analysis.launch.c++-analyzer.sh"
-    launch_script=".tmp.gen.analysis.launch.c++-analyzer.sh"
+    launch_script=".${filename}.gen.analysis.launch.c++-analyzer.sh"
+    #launch_script=".tmp.gen.analysis.launch.c++-analyzer.sh"
     prepare_analysis_from_scan_build_command ${file} ${build_args} > ${launch_script}
-    echo "generated launch script: ${launch_script}"
+    echo "generated launch script: ${launch_script} in directory $PWD"
 
     # launch the analysis
     echo "launch the ${analysis_type} analysis..."
     analysis_report=$analysis_type
     mkdir -p ${analysis_report}
-    source ${launch_script} > ${analysis_report}/${launch_script}.stdout 2> ${analysis_report}/${launch_script}.stderr    
+    source ${launch_script} > ${analysis_report}/${launch_script}.stdout 2> ${analysis_report}/${launch_script}.stderr
+
+    if [ $? -ne 0 ]; then
+	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+	echo "ERROR:c++-analyzer:FAILED to analyze the file: $PWD/$file"
+	echo "CAUSE: reported in file \"$PWD/${analysis_report}/${launch_script}.stderr\""
+	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+	exit -2
+    fi
 fi

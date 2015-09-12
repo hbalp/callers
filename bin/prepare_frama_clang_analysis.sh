@@ -143,7 +143,9 @@ function launch_callers_c ()
 function prepare_frama_clang_analysis_from_compile_command()
 {
     # ignore the path to the build tool
-    shift
+    #echo "# HBDBG WARNING: ignored first compile command arg=$0 but normally not $1 when extracting compilation options !!!"
+    #echo "# HBDBG input args: $@"
+    #shift # TO_BE_REMOVED because it remove systematically the first build option !
     args=$@
     fileext="unknownFileExt"
     src_file="noSrcFile"
@@ -243,13 +245,11 @@ function prepare_frama_clang_analysis_from_compile_command()
     do
 	if  [ ${a} != -c ]          && 
 	    [ ${a} != -o ]          && 
+	    [ ${a} != "-nostdinc" ] &&
 	    [ ${a} != ${src_file} ] && 
 	    [ ${a} != ${obj_file} ]
 	then
-	    if  [ ${a} != "-nostdinc" ]
-	    then
-		file_build_options="${file_build_options} $a "
-	    fi
+	    file_build_options="${file_build_options} $a "
 	fi
     done
 
@@ -286,6 +286,7 @@ function prepare_frama_clang_analysis_from_compile_command()
 	echo "prepare_frama_clang_analysis::ERROR::interbal error: unreachable state !"
 	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
     fi
+    #echo "# HBDBG output file build options: ${file_build_options}"
 }
 
 function prepare_analysis_from_cmake_compile_commands()

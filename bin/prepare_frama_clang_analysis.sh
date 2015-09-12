@@ -30,6 +30,12 @@ function launch_frama_clang ()
     echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
     echo "#gdb --args "
     echo "${cpp_analysis}"
+    echo "if [ $? -ne 0 ]; then"
+    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "	echo \"ERROR:launch_frama-clang:FAILED to analyze the file: $cpp_file\""
+    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "	exit 10"
+    echo "fi"
     echo "gzip -f ${cabs_file}"    
 }
 
@@ -58,6 +64,12 @@ function launch_frama_c ()
     echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
     echo "#gdb --args "
     echo "${c_analysis}"
+    echo "if [ $? -ne 0 ]; then"
+    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "	echo \"ERROR:launch_frama-c:FAILED to analyze the file: $c_file\""
+    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "	exit 11"
+    echo "fi"
     echo "gzip -f ${cabs_file}"
 }
 
@@ -85,6 +97,12 @@ function launch_framaCIRGen ()
     echo "echo \"ccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppcc\""
     echo "#gdb --args "
     echo "${fir_analysis}"
+    echo "if [ $? -ne 0 ]; then"
+    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "	echo \"ERROR:launch_framaCIRGen:FAILED to analyze the file: $src_file\""
+    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "	exit 12"
+    echo "fi"
     echo "gzip -f ${fir_file}"    
 }
 
@@ -110,6 +128,12 @@ function launch_gcc_cpp ()
     echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
     echo "#gdb --args "
     echo "${gcc_cpp_build}"
+    echo "if [ $? -ne 0 ]; then"
+    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "	echo \"ERROR:launch_g++:FAILED to build the file: $cpp_file\""
+    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "	exit 13"
+    echo "fi"
     echo "gzip -f ${gcc_cpp_stdout_file}"
 }
 
@@ -135,6 +159,12 @@ function launch_gcc_c ()
     echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
     echo "#gdb --args "
     echo "${gcc_c_build}"
+    echo "if [ $? -ne 0 ]; then"
+    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "	echo \"ERROR:launch_gcc:FAILED to build the file: $c_file\""
+    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "	exit 14"
+    echo "fi"
     echo "gzip -f ${gcc_c_stdout_file}"
 }
 
@@ -160,6 +190,12 @@ function launch_clang_cpp ()
     echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
     echo "#gdb --args "
     echo "${clang_cpp_build}"
+    echo "if [ $? -ne 0 ]; then"
+    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "	echo \"ERROR:launch_clang++:FAILED to build the file: $cpp_file\""
+    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "	exit 15"
+    echo "fi"
     echo "gzip -f ${clang_cpp_stdout_file}"
 }
 
@@ -185,6 +221,12 @@ function launch_clang_c ()
     echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
     echo "#gdb --args "
     echo "${clang_c_build}"
+    echo "if [ $? -ne 0 ]; then"
+    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "	echo \"ERROR:launch_clang:FAILED to build the file: $c_file\""
+    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "	exit 16"
+    echo "fi"
     echo "gzip -f ${clang_c_stdout_file}"
 }
 
@@ -210,6 +252,12 @@ function launch_callers_cpp ()
     echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
     echo "#gdb --args "
     echo "${callers_cpp_analysis}"
+    echo "if [ $? -ne 0 ]; then"
+    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "	echo \"ERROR:launch_callers++:FAILED to analyze the file: $cpp_file\""
+    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "	exit 17"
+    echo "fi"
     echo "gzip -f ${callers_cpp_stdout_file}"
     echo "gzip -f ${cpp_file}.file.callers.gen.json"
 }
@@ -236,6 +284,12 @@ function launch_callers_c ()
     echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
     echo "#gdb --args "
     echo "${callers_c_analysis}"
+    echo "if [ $? -ne 0 ]; then"
+    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "	echo \"ERROR:launch_callers:FAILED to analyze the file: $c_file\""
+    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "	exit 18"
+    echo "fi"
     echo "gzip -f ${callers_c_stdout_file}"
     echo "gzip -f ${c_file}.file.callers.gen.json"
 }

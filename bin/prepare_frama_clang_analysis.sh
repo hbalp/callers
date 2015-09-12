@@ -88,6 +88,56 @@ function launch_framaCIRGen ()
     echo "gzip -f ${fir_file}"    
 }
 
+function launch_gcc_cpp ()
+{
+    cpp_file=$1
+    gcc_cpp_stdout_file=$2
+    shift
+    shift
+    file_build_options=$@
+
+    # localize gcc_cpp
+    gcc_cpp=`which g++ 2> /dev/null`
+
+    # add some options when required
+    gcc_cpp_options="-I. -I.."
+
+    # build the gcc_cpp build command
+    gcc_cpp_build="${gcc_cpp} ${debug_options} ${gcc_cpp_options} ${file_build_options} -o ${gcc_cpp_stdout_file} ${cpp_file}"
+
+    echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
+    echo "echo \"launch gcc++ build of file: ${cpp_file}\""
+    echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
+    echo "#gdb --args "
+    echo "${gcc_cpp_build}"
+    echo "gzip -f ${gcc_cpp_stdout_file}"
+}
+
+function launch_gcc_c ()
+{
+    c_file=$1
+    gcc_c_stdout_file=$2
+    shift
+    shift
+    file_build_options=$@
+
+    # localize gcc
+    gcc_c=`which gcc 2> /dev/null`
+
+    # add some options when required
+    gcc_c_options="-I. -I.."
+
+    # build the gcc build command
+    gcc_c_build="${gcc_c} ${debug_options} ${gcc_c_options} ${file_build_options} -o ${gcc_c_stdout_file} ${c_file}"
+
+    echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
+    echo "echo \"launch gcc build of file: ${c_file}\""
+    echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
+    echo "#gdb --args "
+    echo "${gcc_c_build}"
+    echo "gzip -f ${gcc_c_stdout_file}"
+}
+
 function launch_clang_cpp ()
 {
     cpp_file=$1
@@ -111,7 +161,6 @@ function launch_clang_cpp ()
     echo "#gdb --args "
     echo "${clang_cpp_build}"
     echo "gzip -f ${clang_cpp_stdout_file}"
-    echo "gzip -f ${cpp_file}.file.clang_cpp.gen.json"
 }
 
 function launch_clang_c ()
@@ -120,7 +169,7 @@ function launch_clang_c ()
     clang_c_stdout_file=$2
     shift
     shift
-    file_analysis_options=$@
+    file_build_options=$@
 
     # localize clang
     clang_c=`which clang 2> /dev/null`
@@ -128,16 +177,15 @@ function launch_clang_c ()
     # add some options when required
     clang_c_options="-I. -I.."
 
-    # build the clang analysis command    
-    clang_c_analysis="${clang_c} ${debug_options} ${clang_c_options} \${system_includes} ${file_analysis_options} -o ${clang_c_stdout_file} ${c_file}"
+    # build the clang build command    
+    clang_c_build="${clang_c} ${debug_options} ${clang_c_options} \${system_includes} ${file_build_options} -o ${clang_c_stdout_file} ${c_file}"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
-    echo "echo \"launch clang analysis of file: ${c_file}\""
+    echo "echo \"launch clang build of file: ${c_file}\""
     echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
     echo "#gdb --args "
-    echo "${clang_c_analysis}"
+    echo "${clang_c_build}"
     echo "gzip -f ${clang_c_stdout_file}"
-    echo "gzip -f ${c_file}.file.clang_c.gen.json"
 }
 
 function launch_callers_cpp ()
@@ -241,8 +289,8 @@ function prepare_frama_clang_analysis_from_compile_command()
     # echo "src_file: $src_file"
     # echo "obj_file: $obj_file"
 
-    gcc_stdout_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.gcc.stdout/g`
-    clang_stdout_file=${obj_file}
+    gcc_stdout_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.gcc.out/g`
+    clang_stdout_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.clang.out/g`
     callers_stdout_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.callers.stdout/g`
     cabs_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.cabs.c/g`
     fir_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.fir/g`
@@ -250,7 +298,7 @@ function prepare_frama_clang_analysis_from_compile_command()
     debug="true"
     #debug="false"
 
-    run_gcc="false"
+    run_gcc="true"
     run_clang="true"
     run_callers="false"
     run_frama_clang="false"
@@ -317,6 +365,10 @@ function prepare_frama_clang_analysis_from_compile_command()
 
     if [ $fileext == "cpp" ]
     then
+	if [ $run_gcc == "true" ] 
+	then
+	    launch_gcc_cpp ${src_file} ${gcc_stdout_file} ${file_build_options}
+	fi
 	if [ $run_clang == "true" ] 
 	then
 	    launch_clang_cpp ${src_file} ${clang_stdout_file} ${file_build_options}
@@ -335,6 +387,10 @@ function prepare_frama_clang_analysis_from_compile_command()
 	fi
     elif [ $fileext == "c" ]
     then
+	if [ $run_gcc == "true" ] 
+	then
+	    launch_gcc_c ${src_file} ${gcc_stdout_file} ${file_build_options}
+	fi
 	if [ $run_clang == "true" ] 
 	then
 	    launch_clang_c ${src_file} ${clang_stdout_file} ${file_build_options}

@@ -37,9 +37,9 @@ build_args=$@
 # build the source file to enable link edition and to be sure output directories are well created 
 #################################################################################
 # get clang path
-clang=`which clang`
+#clang=`which clang`
 
-${clang} ${build_args}
+#${clang} ${build_args}
 
 #################################################################################
 #       Prepare and launch analysis
@@ -47,16 +47,24 @@ ${clang} ${build_args}
 file=`get_file .c ${build_args}`
 if [ -z "${file}" ]
 then
-    echo "No .c source file has been found in arguments, so we bypass the callers analysis"
+    echo "# No .c source file has been found in arguments, so we bypass the callers analysis"
 else
 
     # get the analysis_type = callers | frama-clang | framaCIRGen | all
     analysis_type=${CALLERS_ANALYSIS_TYPE}
+    if [ -z $analysis_type ]
+    then
+	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+	echo "ERROR:ccc-analyzer:when trying to analyze the file: $PWD/$file"
+	echo "CAUSE: Not found environment variable CALLERS_ANALYSIS_TYPE"
+	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+	exit -1
+    fi
 
     # prepare launch analysis script
     filename=`basename ${file}`
-    #launch_script=".${filename}.gen.analysis.launch.ccc-analyzer.sh"
-    launch_script=".tmp.gen.analysis.launch.ccc-analyzer.sh"
+    launch_script=".${filename}.gen.analysis.launch.ccc-analyzer.sh"
+    #launch_script=".tmp.gen.analysis.launch.ccc-analyzer.sh"
     prepare_analysis_from_scan_build_command ${file} ${build_args} > ${launch_script}
     echo "generated launch script: ${launch_script}"
 
@@ -64,5 +72,14 @@ else
     echo "launch the ${analysis_type} analysis..."
     analysis_report=$analysis_type
     mkdir -p ${analysis_report}
+
     source ${launch_script} > ${analysis_report}/${launch_script}.stdout 2> ${analysis_report}/${launch_script}.stderr    
+
+    if [ $? -ne 0 ]; then
+	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+	echo "ERROR:ccc-analyzer:FAILED to analyze the file: $PWD/$file"
+	echo "CAUSE: reported in file \"$PWD/${analysis_report}/${launch_script}.stderr\""
+	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+	exit -2
+    fi
 fi

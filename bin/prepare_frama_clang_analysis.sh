@@ -417,8 +417,8 @@ function prepare_frama_clang_analysis_from_compile_command()
     debug="true"
     #debug="false"
 
-    run_gcc="false"
-    #run_gcc="true"
+    #run_gcc="false"
+    run_gcc="true"
     run_clang="true"
     run_callers="false"
     run_frama_clang="false"

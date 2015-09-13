@@ -4,8 +4,8 @@
 source "../../bin/common.sh"
 
 #analysis_type=$1
-analysis_type=all
-#analysis_type=callers
+#analysis_type=all
+analysis_type=callers
 #analysis_type=framaCIRGen
 #analysis_type=frama-clang
 

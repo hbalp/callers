@@ -6,8 +6,8 @@ source "../../bin/common.sh"
 #build_tool=cmake
 build_tool=scan_build
 
-#analysis_type=all
-analysis_type=callers
+analysis_type=all
+#analysis_type=callers
 #analysis_type=frama-c
 #analysis_type=frama-clang
 #analysis_type=framaCIRGen

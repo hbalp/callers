@@ -7,6 +7,9 @@ function launch_frama_clang ()
 {
     cpp_file=$1
     cabs_file=$2
+    cabs_stderr=$3
+    cabs_dir=`dirname $cabs_stderr`
+    shift
     shift
     shift
     file_analysis_options=$@
@@ -28,13 +31,16 @@ function launch_frama_clang ()
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch frama-clang analysis of file: ${cpp_file}\""
     echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
+    echo "mkdir -p $cabs_dir"
+    echo "touch $cabs_stderr"
     echo "#gdb --args "
     echo "${cpp_analysis}"
-    echo "if [ $? -ne 0 ]; then"
-    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
-    echo "	echo \"ERROR:launch_frama-clang:FAILED to analyze the file: $cpp_file\""
-    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
-    echo "	exit 10"
+    #echo "if [ \$? -ne 0 ]; then" # WARNING: uncomment this line to really stop on Frama-clang frontend errors
+    echo "if [ $? -ne 0 ]; then"   # WARNING: because by default, we do not stop on Frama-clang frontend errors
+    echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $cabs_stderr"
+    echo "    echo \"ERROR:launch_frama-clang:FAILED to analyze the file: $cpp_file\" >> $cabs_stderr"
+    echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $cabs_stderr"
+    echo "    exit 10"
     echo "fi"
     echo "gzip -f ${cabs_file}"    
 }
@@ -43,6 +49,9 @@ function launch_frama_c ()
 {
     c_file=$1
     cabs_file=$2
+    cabs_stderr=$3
+    cabs_dir=`dirname $cabs_stderr`
+    shift
     shift
     shift
     file_analysis_options="-I.. $@"
@@ -62,12 +71,14 @@ function launch_frama_c ()
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch frama-c analysis of file: ${c_file}\""
     echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
+    echo "mkdir -p $cabs_dir"
+    echo "touch $cabs_stderr"
     echo "#gdb --args "
     echo "${c_analysis}"
-    echo "if [ $? -ne 0 ]; then"
-    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
-    echo "	echo \"ERROR:launch_frama-c:FAILED to analyze the file: $c_file\""
-    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "if [ \$? -ne 0 ]; then"
+    echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $cabs_stderr"
+    echo "    echo \"ERROR:launch_frama-c:FAILED to analyze the file: $c_file\" >> $cabs_stderr"
+    echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $cabs_stderr"
     echo "	exit 11"
     echo "fi"
     echo "gzip -f ${cabs_file}"
@@ -77,6 +88,9 @@ function launch_framaCIRGen ()
 {
     src_file=$1
     fir_file=$2
+    fir_stderr=$3
+    fir_dir=`dirname $fir_stderr`
+    shift
     shift
     shift
     file_analysis_options=$@
@@ -95,13 +109,17 @@ function launch_framaCIRGen ()
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch framaCIRGen analysis of file: ${src_file}\""
     echo "echo \"ccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppcc\""
+    echo "mkdir -p $fir_dir"
+    echo "touch $fir_stderr"
     echo "#gdb --args "
     echo "${fir_analysis}"
-    echo "if [ $? -ne 0 ]; then"
-    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
-    echo "	echo \"ERROR:launch_framaCIRGen:FAILED to analyze the file: $src_file\""
-    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
-    echo "	exit 12"
+    echo "if [ $? -ne 0 ]; then" # WARNING: fir retcode deactivated by default because it breaks the normal cmake process
+    #echo "if [ \$? -ne 0 ]; then" # to activate the fir retcode
+    echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $fir_stderr"
+    echo "    echo \"ERROR:launch_framaCIRGen:FAILED to analyze the file: $src_file\" >> $fir_stderr"
+    echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $fir_stderr"
+    echo "    return 12"
+    #echo "    exit 12"
     echo "fi"
     echo "gzip -f ${fir_file}"    
 }
@@ -110,6 +128,9 @@ function launch_gcc_cpp ()
 {
     cpp_file=$1
     gcc_cpp_stdout_file=$2
+    gcc_cpp_stderr_file=$3
+    stderr_dir=`dirname $gcc_cpp_stderr_file`
+    shift
     shift
     shift
     file_build_options=$@
@@ -126,21 +147,26 @@ function launch_gcc_cpp ()
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch gcc++ build of file: ${cpp_file}\""
     echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
+    echo "mkdir -p $stderr_dir"
+    echo "touch $gcc_cpp_stderr_file"
     echo "#gdb --args "
     echo "${gcc_cpp_build}"
-    echo "if [ $? -ne 0 ]; then"
-    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
-    echo "	echo \"ERROR:launch_g++:FAILED to build the file: $cpp_file\""
-    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "if [ \$? -ne 0 ]; then"
+    echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $gcc_cpp_stderr_file"
+    echo "    echo \"ERROR:launch_g++:FAILED to build the file: $cpp_file\" >> $gcc_cpp_stderr_file"
+    echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $gcc_cpp_stderr_file"
     echo "	exit 13"
     echo "fi"
-    echo "gzip -f ${gcc_cpp_stdout_file}"
+    #echo "gzip -f ${gcc_cpp_stdout_file}"
 }
 
 function launch_gcc_c ()
 {
     c_file=$1
     gcc_c_stdout_file=$2
+    gcc_c_stderr_file=$3
+    stderr_dir=`dirname $gcc_c_stderr_file`
+    shift
     shift
     shift
     file_build_options=$@
@@ -157,21 +183,26 @@ function launch_gcc_c ()
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch gcc build of file: ${c_file}\""
     echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
+    echo "mkdir -p $stderr_dir"
+    echo "touch $gcc_c_stderr_file"
     echo "#gdb --args "
     echo "${gcc_c_build}"
-    echo "if [ $? -ne 0 ]; then"
-    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
-    echo "	echo \"ERROR:launch_gcc:FAILED to build the file: $c_file\""
-    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
-    echo "	exit 14"
+    echo "if [ \$? -ne 0 ]; then"
+    echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $gcc_c_stderr_file"
+    echo "    echo \"ERROR:launch_gcc:FAILED to build the file: $c_file\" >> $gcc_c_stderr_file"
+    echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $gcc_c_stderr_file"
+    echo "    exit 14"
     echo "fi"
-    echo "gzip -f ${gcc_c_stdout_file}"
+    #echo "gzip -f ${gcc_c_stdout_file}"
 }
 
 function launch_clang_cpp ()
 {
     cpp_file=$1
     clang_cpp_stdout_file=$2
+    clang_cpp_stderr_file=$3
+    stderr_dir=`dirname $clang_cpp_stderr_file`
+    shift
     shift
     shift
     file_build_options=$@
@@ -188,12 +219,14 @@ function launch_clang_cpp ()
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch clang++ build of file: ${cpp_file}\""
     echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
+    echo "mkdir -p $stderr_dir"
+    echo "touch $clang_cpp_stderr_file"
     echo "#gdb --args "
     echo "${clang_cpp_build}"
-    echo "if [ $? -ne 0 ]; then"
-    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
-    echo "	echo \"ERROR:launch_clang++:FAILED to build the file: $cpp_file\""
-    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "if [ \$? -ne 0 ]; then"
+    echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $clang_cpp_stderr_file"
+    echo "    echo \"ERROR:launch_clang++:FAILED to build the file: $cpp_file\" >> $clang_cpp_stderr_file"
+    echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $clang_cpp_stderr_file"
     echo "	exit 15"
     echo "fi"
     echo "gzip -f ${clang_cpp_stdout_file}"
@@ -203,6 +236,9 @@ function launch_clang_c ()
 {
     c_file=$1
     clang_c_stdout_file=$2
+    clang_c_stderr_file=$3
+    stderr_dir=`dirname $clang_c_stderr_file` 
+    shift
     shift
     shift
     file_build_options=$@
@@ -219,12 +255,14 @@ function launch_clang_c ()
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch clang build of file: ${c_file}\""
     echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
+    echo "mkdir -p $stderr_dir"
+    echo "touch $clang_c_stderr_file"
     echo "#gdb --args "
     echo "${clang_c_build}"
-    echo "if [ $? -ne 0 ]; then"
-    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
-    echo "	echo \"ERROR:launch_clang:FAILED to build the file: $c_file\""
-    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "if [ \$? -ne 0 ]; then"
+    echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $clang_c_stderr_file"
+    echo "    echo \"ERROR:launch_clang:FAILED to build the file: $c_file\" >> $clang_c_stderr_file"
+    echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $clang_c_stderr_file"
     echo "	exit 16"
     echo "fi"
     echo "gzip -f ${clang_c_stdout_file}"
@@ -234,6 +272,9 @@ function launch_callers_cpp ()
 {
     cpp_file=$1
     callers_cpp_stdout_file=$2
+    callers_cpp_stderr_file=$3
+    stderr_dir=`dirname $callers_cpp_stderr_file` 
+    shift
     shift
     shift
     file_analysis_options=$@
@@ -250,12 +291,14 @@ function launch_callers_cpp ()
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch callers++ analysis of file: ${cpp_file}\""
     echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
+    echo "mkdir -p $stderr_dir"
+    echo "touch $callers_cpp_stderr_file"
     echo "#gdb --args "
     echo "${callers_cpp_analysis}"
-    echo "if [ $? -ne 0 ]; then"
-    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
-    echo "	echo \"ERROR:launch_callers++:FAILED to analyze the file: $cpp_file\""
-    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "if [ \$? -ne 0 ]; then"
+    echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $callers_cpp_stderr_file"
+    echo "    echo \"ERROR:launch_callers++:FAILED to analyze the file: $cpp_file\" >> $callers_cpp_stderr_file"
+    echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $callers_cpp_stderr_file"
     echo "	exit 17"
     echo "fi"
     echo "gzip -f ${callers_cpp_stdout_file}"
@@ -266,6 +309,9 @@ function launch_callers_c ()
 {
     c_file=$1
     callers_c_stdout_file=$2
+    callers_c_stderr_file=$3
+    stderr_dir=`dirname $callers_c_stderr_file`
+    shift
     shift
     shift
     file_analysis_options=$@
@@ -282,12 +328,14 @@ function launch_callers_c ()
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch callers analysis of file: ${c_file}\""
     echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
+    echo "mkdir -p $stderr_dir"
+    echo "touch $callers_c_stderr_file"
     echo "#gdb --args "
     echo "${callers_c_analysis}"
-    echo "if [ $? -ne 0 ]; then"
-    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
-    echo "	echo \"ERROR:launch_callers:FAILED to analyze the file: $c_file\""
-    echo "	echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\""
+    echo "if [ \$? -ne 0 ]; then"
+    echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $callers_c_stderr_file"
+    echo "    echo \"ERROR:launch_callers:FAILED to analyze the file: $c_file\" >> $callers_c_stderr_file"
+    echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $callers_c_stderr_file"
     echo "	exit 18"
     echo "fi"
     echo "gzip -f ${callers_c_stdout_file}"
@@ -296,6 +344,8 @@ function launch_callers_c ()
 
 function prepare_frama_clang_analysis_from_compile_command()
 {
+    stderr_file=$1
+    shift
     args=$@
     fileext="unknownFileExt"
     src_file="noSrcFile"
@@ -326,28 +376,41 @@ function prepare_frama_clang_analysis_from_compile_command()
 
     if [ -z ${src_file} ]
     then
-	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"  > /dev/stderr
-	echo "prepare_frama_clang_analysis::ERROR::Not Found .c or .cpp source file in args: ${args}" > /dev/stderr
-	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"  > /dev/stderr
+	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"  >> $stderr_file
+	echo "prepare_frama_clang_analysis::ERROR::Not Found .c or .cpp source file in args: ${args}" >> $stderr_file
+	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"  >> $stderr_file
 	return 1
     fi
 
     if [ -z ${obj_file} ]
     then
-	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" > /dev/stderr
-	echo "prepare_frama_clang_analysis::ERROR::Not Found obj source file in args: ${args}"  > /dev/stderr
-	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" > /dev/stderr
+	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" >> $stderr_file
+	echo "prepare_frama_clang_analysis::ERROR::Not Found obj source file in args: ${args}"  >> $stderr_file
+	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" >> $stderr_file
 	return 1
     fi
 
     # echo "src_file: $src_file"
     # echo "obj_file: $obj_file"
 
-    gcc_stdout_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.gcc.out/g`
+    #gcc_stdout_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.gcc.out/g`
+    gcc_stdout_file=${obj_file}
     clang_stdout_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.clang.out/g`
     callers_stdout_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.callers.stdout/g`
     cabs_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.cabs.c/g`
     fir_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.fir/g`
+
+    # gcc_stderr_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.gcc.stderr/g`
+    # clang_stderr_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.clang.stderr/g`
+    # callers_stderr_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.callers.stderr/g`
+    # cabs_stderr_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.cabs.stderr/g`
+    # fir_stderr_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.fir.stderr/g`
+
+    gcc_stderr_file=$stderr_file
+    clang_stderr_file=$stderr_file
+    callers_stderr_file=$stderr_file
+    cabs_stderr_file=$stderr_file
+    fir_stderr_file=$stderr_file
 
     debug="true"
     #debug="false"
@@ -407,8 +470,8 @@ function prepare_frama_clang_analysis_from_compile_command()
     file_build_options=""
     for a in $args
     do
-	if  [ ${a} != -c ]          && 
-	    [ ${a} != -o ]          && 
+	#if  [ ${a} != -c ]          && 
+	if  [ ${a} != -o ]          && 
 	    [ ${a} != "-nostdinc" ] &&
 	    [ ${a} != ${src_file} ] && 
 	    [ ${a} != ${obj_file} ]
@@ -421,49 +484,49 @@ function prepare_frama_clang_analysis_from_compile_command()
     then
 	if [ $run_gcc == "true" ] 
 	then
-	    launch_gcc_cpp ${src_file} ${gcc_stdout_file} ${file_build_options}
+	    launch_gcc_cpp ${src_file} ${gcc_stdout_file} ${gcc_stderr_file} ${file_build_options}
 	fi
 	if [ $run_clang == "true" ] 
 	then
-	    launch_clang_cpp ${src_file} ${clang_stdout_file} ${file_build_options}
+	    launch_clang_cpp ${src_file} ${clang_stdout_file} ${clang_stderr_file} ${file_build_options}
 	fi
 	if [ $run_callers == "true" ] 
 	then
-	    launch_callers_cpp ${src_file} ${callers_stdout_file} ${file_build_options}
+	    launch_callers_cpp ${src_file} ${callers_stdout_file} ${callers_stderr_file} ${file_build_options}
 	fi
 	if [ $run_framaCIRGen == "true" ] 
 	then
-	    launch_framaCIRGen ${src_file} ${fir_file} ${file_build_options}
+	    launch_framaCIRGen ${src_file} ${fir_file} ${fir_stderr_file} ${file_build_options}
 	fi
 	if [ $run_frama_clang == "true" ] 
 	then
-	    launch_frama_clang ${src_file} ${cabs_file} ${file_build_options}
+	    launch_frama_clang ${src_file} ${cabs_file} ${cabs_stderr_file} ${file_build_options}
 	fi
     elif [ $fileext == "c" ]
     then
 	if [ $run_gcc == "true" ] 
 	then
-	    launch_gcc_c ${src_file} ${gcc_stdout_file} ${file_build_options}
+	    launch_gcc_c ${src_file} ${gcc_stdout_file} ${gcc_stderr_file} ${file_build_options}
 	fi
 	if [ $run_clang == "true" ] 
 	then
-	    launch_clang_c ${src_file} ${clang_stdout_file} ${file_build_options}
+	    launch_clang_c ${src_file} ${clang_stdout_file} ${clang_stderr_file} ${file_build_options}
 	fi
 	if [ $run_callers == "true" ] 
 	then
-	    launch_callers_c ${src_file} ${callers_stdout_file} ${file_build_options}
+	    launch_callers_c ${src_file} ${callers_stdout_file} ${callers_stderr_file} ${file_build_options}
 	fi
 	if [ $run_framaCIRGen == "true" ] 
 	then
-	    launch_framaCIRGen ${src_file} ${fir_file} ${file_build_options}
+	    launch_framaCIRGen ${src_file} ${fir_file} ${fir_stderr_file} ${file_build_options}
 	fi
 	if [ $run_frama_clang == "true" ] 
 	then
-	    launch_frama_c ${src_file} ${cabs_file} ${file_build_options}
+	    launch_frama_c ${src_file} ${cabs_file} ${cabs_stderr_file} ${file_build_options}
 	fi
     else
 	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
-	echo "prepare_frama_clang_analysis::ERROR::interbal error: unreachable state !"
+	echo "prepare_frama_clang_analysis::ERROR::internal error: unreachable state !"
 	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
     fi
     #echo "# DEBUG: output file build options: ${file_build_options}"
@@ -471,7 +534,11 @@ function prepare_frama_clang_analysis_from_compile_command()
 
 function prepare_analysis_from_cmake_compile_commands()
 {
-    compile_commands_json=$1
+    stderr_file=$1
+    stderr_dir=`dirname $stderr_file`
+    mkdir -p $stderr_dir
+    touch $stderr_file
+    compile_commands_json=$2
 
     echo "#!/bin/bash"
     echo "#set -x"
@@ -483,12 +550,17 @@ function prepare_analysis_from_cmake_compile_commands()
     system_includes $file
 
     # build the analysis command from the build one listed in file compile_commands.json
-    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | while read command_line; do prepare_frama_clang_analysis_from_compile_command ${command_line}; done
+    cat $compile_commands_json | grep \"command\" | cut -d '"' -f4 | while read command_line; do prepare_frama_clang_analysis_from_compile_command ${stderr_file} ${command_line}; done
 }
 
 function prepare_analysis_from_scan_build_command()
 {
-    src_file=$1
+    stderr_file=$1
+    stderr_dir=`dirname $stderr_file`
+    mkdir -p $stderr_dir
+    touch $stderr_file
+    src_file=$2
+    shift
     shift
     build_command=$@
 
@@ -497,5 +569,5 @@ function prepare_analysis_from_scan_build_command()
     system_includes ${src_file}
 
     # prepare the analysis launch script from the build command
-    prepare_frama_clang_analysis_from_compile_command ${build_command}
+    prepare_frama_clang_analysis_from_compile_command ${stderr_file} ${build_command}
 }

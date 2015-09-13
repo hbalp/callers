@@ -79,7 +79,8 @@ elif test $# = 3; then
 
     # prepare launch analysis script
     launch_script=.tmp.gen.analysis.launch.cmake.sh
-    prepare_analysis_from_cmake_compile_commands $compile_commands_json > ${launch_script}
+    stderr_file="${launch_script}.stderr"
+    prepare_analysis_from_cmake_compile_commands $stderr_file $compile_commands_json > ${launch_script}
     echo "generated launch script: ${launch_script}"
 
     # launch the analysis

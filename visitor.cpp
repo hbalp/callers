@@ -166,11 +166,12 @@ CallersAction::Visitor::printFileName(const clang::SourceRange& rangeLocation) c
 std::string
 CallersAction::Visitor::printFilePath(const clang::SourceRange& rangeLocation) const {
    assert(psSources);
+   bool isValid = rangeLocation.isValid();
    auto start = psSources->getPresumedLoc(rangeLocation.getBegin());
    const char* startFile = start.getFilename();
-   if (!startFile)
-     startFile = "<unknown>";
-   std::string path = ::getCanonicalAbsolutePath(startFile);
+   std::string path = "unknownFilePath";
+   if (startFile)
+     path = ::getCanonicalAbsolutePath(startFile);
    return path;
 }
 
@@ -807,9 +808,16 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
    result += printTemplateKind(function);
    result += printArgumentSignature(function);
    osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
-
+   std::string callee_sign = writeFunction(function);
+   std::string callee_filepath = printFilePath(function.getSourceRange());
+   int callee_filepos = printLine(function.getSourceRange());
+   if(callee_filepath == "unknownFilePath")
+     {
+       osOut << inputFile << ":WARNING: unknownFilePath for callee: " << callee_sign << std::endl;
+       callee_filepos = -1;
+     }
    CallersData::FctCall fc(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
-			   writeFunction(function), printFilePath(function.getSourceRange()), printLine(function.getSourceRange()));
+			   callee_sign, callee_filepath, callee_filepos);
    jsonFile.add_function_call(&fc);
 
    return true;
@@ -820,16 +828,21 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
    if (deleteExpr->getOperatorDelete()
          && !deleteExpr->getOperatorDelete()->isImplicit()) {
       const clang::FunctionDecl& function = *deleteExpr->getOperatorDelete();
-      std::string result = printResultSignature(function);
-      result += ' ';
-      result += printQualifiedName(function);
-      result += printArgumentSignature(function);
-      osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
-
+      std::string callee_sign = printResultSignature(function);
+      callee_sign += ' ';
+      callee_sign += printQualifiedName(function);
+      callee_sign += printArgumentSignature(function);
+      osOut << inputFile << ": " << printParentFunction() << " -> " << callee_sign << '\n';
+      std::string callee_filepath = printFilePath(function.getSourceRange());
+      int callee_filepos = printLine(function.getSourceRange());
+      if(callee_filepath == "unknownFilePath")
+	{
+	  osOut << inputFile << ":WARNING: unknownFilePath for callee: " << callee_sign << std::endl;
+	  callee_filepos = -1;
+	}
       CallersData::FctCall fc(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
-			      result, printFilePath(function.getSourceRange()), printLine(function.getSourceRange()));
+			      callee_sign, callee_filepath, callee_filepos);
       jsonFile.add_function_call(&fc);
-
       return true;
    };
    const auto* recordDecl = deleteExpr->getType()->getPointeeCXXRecordDecl();
@@ -839,12 +852,18 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
    if (recordDecl) {
       clang::CXXDestructorDecl* destructor = recordDecl->getDestructor();
       if (destructor) {
-         std::string result = printQualifiedName(*destructor);
-         result += "()";
-         osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
-
+         std::string callee_sign = printQualifiedName(*destructor);
+         callee_sign += "()";
+         osOut << inputFile << ": " << printParentFunction() << " -> " << callee_sign << '\n';
+	 std::string callee_filepath = printFilePath(destructor->getSourceRange());
+	 int callee_filepos = printLine(destructor->getSourceRange());
+	 if(callee_filepath == "unknownFilePath")
+	   {
+	     osOut << inputFile << ":WARNING: unknownFilePath for callee: " << callee_sign << std::endl;
+	     callee_filepos = -1;
+	   }
 	 CallersData::FctCall fc(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
-				 result, printFilePath(destructor->getSourceRange()), printLine(destructor->getSourceRange()));
+				 callee_sign, callee_filepath, callee_filepos);
 	 jsonFile.add_function_call(&fc);
       };
    };
@@ -885,7 +904,6 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	  switch( builtinID) {
 #include "clang/Basic/Builtins.def"
 	  };
-
 	  if(headerName.length() > 0) {
 	    clang::SourceLocation FilenameLoc;
 	    llvm::StringRef Filename(headerName);
@@ -902,10 +920,8 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	  if(result)
 	    headerName = result->getName();
 	  }
-
 	  int builtinPos = printLine(fd->getSourceRange());
 	  osOut << inputFile << ":builtin: " << printParentFunction() << " -> " << builtinName << ", defined in: " << headerName << ":" << builtinPos << '\n';
-
 	  // check whether a json file is already present for the builtin function
 	  // if true, parse it and add the defined function only when necessary
 	  // if false, create this json file and add the defined function
@@ -919,10 +935,9 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	    file.add_defined_function(&fct);
 	    file.output_json_desc();
 	  }
-
 	  if(headerName == "noLibBuiltin" )
 	    {
-	      std::cerr << "ERROR : visitor.cpp : unsupported builtin: \"" << builtinName << "\", headerName: \"" << headerName << "\"" << std::endl;
+	      std::cerr << "ERROR: visitor.cpp : unsupported builtin: \"" << builtinName << "\", headerName: \"" << headerName << "\"" << std::endl;
 	      // CallersData::FctCall fc = CallersData::FctCall(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
 	      // 						     builtinName, printFilePath(fd->getSourceRange()), builtinPos);
 	      // fc.is_builtin = true;
@@ -944,12 +959,16 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	  return true;
 	}
       #endif
-
       std::string calleeName = writeFunction(*fd);
       osOut << inputFile << ": " << printParentFunction() << " -> " << calleeName << '\n';
-
+      std::string callee_filepath = printFilePath(fd->getSourceRange());
+      int callee_filepos = printLine(fd->getSourceRange());
+      if(callee_filepath == "unknownFilePath")
+	{
+	  callee_filepos = -1;
+	}
       CallersData::FctCall fc(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
-			      calleeName, printFilePath(fd->getSourceRange()), printLine(fd->getSourceRange()));
+			      calleeName, callee_filepath, callee_filepos);
       jsonFile.add_function_call(&fc);
       return true;
    }

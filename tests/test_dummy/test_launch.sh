@@ -37,6 +37,9 @@ if [ $? -ne 0 ]; then
 fi
 cd ..
 
+if true
+#if false
+then
 if [ $analysis_type == "callers" ] || [ $analysis_type == "all" ]; 
 then
 
@@ -65,4 +68,5 @@ then
 
     inkscape analysis/${analysis_type}/svg/main.fct.callees.gen.dot.svg
     #inkscape analysis/${analysis_type}/svg/main.fct.callers.gen.dot.svg
+fi
 fi

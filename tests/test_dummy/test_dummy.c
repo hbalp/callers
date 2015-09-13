@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-int f() {}
+int f() { return 0; }
 
 int main()
 {

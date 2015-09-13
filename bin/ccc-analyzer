@@ -1,6 +1,7 @@
 #!/bin/bash
 #set -x
 
+#analysis_dir="analysis"
 source "common.sh"
 source "prepare_frama_clang_analysis.sh"
 
@@ -61,24 +62,31 @@ else
 	exit -1
     fi
 
-    # prepare launch analysis script
+    # define the analysis report files
+    dirname=`dirname ${file}`
     filename=`basename ${file}`
     launch_script=".${filename}.gen.analysis.launch.ccc-analyzer.sh"
     #launch_script=".tmp.gen.analysis.launch.ccc-analyzer.sh"
-    prepare_analysis_from_scan_build_command ${file} ${build_args} > ${launch_script}
-    echo "generated launch script: ${launch_script}"
+    #analysis_report_dir="${dirname}/${analysis_dir}/${analysis_type}"
+    #analysis_report_dir=$dirname
+    analysis_report_dir=$PWD
+    #mkdir -p ${analysis_report_dir}
+    file_analysis_stdout=${analysis_report_dir}/${launch_script}.stdout
+    file_analysis_stderr=${analysis_report_dir}/${launch_script}.stderr
+    touch ${file_analysis_stderr}
+
+    # prepare the analysis
+    prepare_analysis_from_scan_build_command ${file_analysis_stderr} ${file} ${build_args} > ${launch_script}
+    echo "generated launch script: ${launch_script} in directory $PWD"
 
     # launch the analysis
     echo "launch the ${analysis_type} analysis..."
-    analysis_report=$analysis_type
-    mkdir -p ${analysis_report}
-
-    source ${launch_script} > ${analysis_report}/${launch_script}.stdout 2> ${analysis_report}/${launch_script}.stderr    
+    source ${launch_script} > ${file_analysis_stdout} 2>> ${file_analysis_stderr}
 
     if [ $? -ne 0 ]; then
 	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
 	echo "ERROR:ccc-analyzer:FAILED to analyze the file: $PWD/$file"
-	echo "CAUSE: reported in file \"$PWD/${analysis_report}/${launch_script}.stderr\""
+	echo "CAUSE: reported in file \"$PWD/${analysis_report_dir}/${launch_script}.stderr\""
 	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
 	exit -2
     fi

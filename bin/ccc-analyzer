@@ -65,8 +65,8 @@ else
     # define the analysis report files
     dirname=`dirname ${file}`
     filename=`basename ${file}`
-    launch_script=".${filename}.gen.analysis.launch.ccc-analyzer.sh"
-    #launch_script=".tmp.gen.analysis.launch.ccc-analyzer.sh"
+    #launch_script=".${filename}.gen.analysis.launch.ccc-analyzer.sh"
+    launch_script=".tmp.gen.analysis.launch.ccc-analyzer.sh"
     #analysis_report_dir="${dirname}/${analysis_dir}/${analysis_type}"
     #analysis_report_dir=$dirname
     analysis_report_dir=$PWD

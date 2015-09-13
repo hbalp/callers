@@ -211,7 +211,8 @@ function launch_clang_cpp ()
     clang_cpp=`which clang++ 2> /dev/null`
 
     # add some options when required
-    clang_cpp_options="-std=c++11 -I. -I.."
+    #clang_cpp_options="-std=c++11 -I. -I.."
+    clang_cpp_options="-I. -I.."
 
     # build the clang_cpp build command    
     clang_cpp_build="${clang_cpp} ${debug_options} ${clang_cpp_options} \${system_includes} ${file_build_options} -o ${clang_cpp_stdout_file} ${cpp_file}"
@@ -283,7 +284,8 @@ function launch_callers_cpp ()
     callers_cpp=`which callers++ 2> /dev/null`
 
     # add some options when required
-    callers_cpp_options="-std=c++11 -I. -I.."
+    #callers_cpp_options="-std=c++11 -I. -I.."
+    callers_cpp_options="-I. -I.."
 
     # build the callers analysis command    
     callers_cpp_analysis="${callers_cpp} ${callers_cpp_options} \${system_includes} ${file_analysis_options} -o ${callers_cpp_stdout_file} ${cpp_file}"
@@ -415,7 +417,8 @@ function prepare_frama_clang_analysis_from_compile_command()
     debug="true"
     #debug="false"
 
-    run_gcc="true"
+    run_gcc="false"
+    #run_gcc="true"
     run_clang="true"
     run_callers="false"
     run_frama_clang="false"
@@ -456,6 +459,8 @@ function prepare_frama_clang_analysis_from_compile_command()
 
 	"all" )
 	    #echo "activates all kind of analysis: callers, frama_clang and framaCIRGen";
+	    #run_gcc="true"
+	    run_clang="true"
 	    run_callers="true"
 	    run_frama_clang="true"
 	    run_framaCIRGen="true"

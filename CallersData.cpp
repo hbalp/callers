@@ -246,9 +246,11 @@ CallersData::File::add_function_call(CallersData::FctCall* fc)
 	{
 	  std::cerr << "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww" << std::endl;
 	  std::cerr << "The callee function is defined externally as the caller, so we ignore both of them !!!" << std::endl;
+	  std::cerr << "callee sign: " << fc->callee_sign << std::endl;
+	  std::cerr << "caller sign: " << fc->caller_sign << std::endl;
 	  std::cerr << "current file: " << this->fullPath() << std::endl;
-	  std::cerr << "caller file: " << fc->caller_file << std::endl;
-	  std::cerr << "callee decl file: " << fc->callee_decl_file << std::endl;
+	  std::cerr << "caller def pos: " << fc->caller_file << ":" << fc->caller_line << std::endl;
+	  std::cerr << "callee decl pos: " << fc->callee_decl_file << ":" << fc->callee_decl_line << std::endl;
 	  std::cerr << "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww" << std::endl;
 	  //abort();
 	}

@@ -40,7 +40,7 @@ function launch_frama_clang ()
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $cabs_stderr"
     echo "    echo \"ERROR:launch_frama-clang:FAILED to analyze the file: $cpp_file\" >> $cabs_stderr"
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $cabs_stderr"
-    echo "    exit 10"
+    echo "    return 10"
     echo "fi"
     echo "gzip -f ${cabs_file}"    
 }
@@ -79,7 +79,7 @@ function launch_frama_c ()
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $cabs_stderr"
     echo "    echo \"ERROR:launch_frama-c:FAILED to analyze the file: $c_file\" >> $cabs_stderr"
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $cabs_stderr"
-    echo "	exit 11"
+    echo "    return 11"
     echo "fi"
     echo "gzip -f ${cabs_file}"
 }
@@ -145,7 +145,7 @@ function launch_gcc_cpp ()
     gcc_cpp_build="${gcc_cpp} ${debug_options} ${gcc_cpp_options} ${file_build_options} -o ${gcc_cpp_stdout_file} ${cpp_file}"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
-    echo "echo \"launch gcc++ build of file: ${cpp_file}\""
+    echo "echo \"launch g++ build of file: ${cpp_file}\""
     echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
     echo "mkdir -p $stderr_dir"
     echo "touch $gcc_cpp_stderr_file"
@@ -155,7 +155,7 @@ function launch_gcc_cpp ()
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $gcc_cpp_stderr_file"
     echo "    echo \"ERROR:launch_g++:FAILED to build the file: $cpp_file\" >> $gcc_cpp_stderr_file"
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $gcc_cpp_stderr_file"
-    echo "	exit 13"
+    echo "    return 13"
     echo "fi"
     #echo "gzip -f ${gcc_cpp_stdout_file}"
 }
@@ -191,7 +191,7 @@ function launch_gcc_c ()
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $gcc_c_stderr_file"
     echo "    echo \"ERROR:launch_gcc:FAILED to build the file: $c_file\" >> $gcc_c_stderr_file"
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $gcc_c_stderr_file"
-    echo "    exit 14"
+    echo "    return 14"
     echo "fi"
     #echo "gzip -f ${gcc_c_stdout_file}"
 }
@@ -228,7 +228,7 @@ function launch_clang_cpp ()
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $clang_cpp_stderr_file"
     echo "    echo \"ERROR:launch_clang++:FAILED to build the file: $cpp_file\" >> $clang_cpp_stderr_file"
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $clang_cpp_stderr_file"
-    echo "	exit 15"
+    echo "    return 15"
     echo "fi"
     echo "gzip -f ${clang_cpp_stdout_file}"
 }
@@ -264,7 +264,7 @@ function launch_clang_c ()
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $clang_c_stderr_file"
     echo "    echo \"ERROR:launch_clang:FAILED to build the file: $c_file\" >> $clang_c_stderr_file"
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $clang_c_stderr_file"
-    echo "	exit 16"
+    echo "    return 16"
     echo "fi"
     echo "gzip -f ${clang_c_stdout_file}"
 }
@@ -301,7 +301,7 @@ function launch_callers_cpp ()
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $callers_cpp_stderr_file"
     echo "    echo \"ERROR:launch_callers++:FAILED to analyze the file: $cpp_file\" >> $callers_cpp_stderr_file"
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $callers_cpp_stderr_file"
-    echo "	exit 17"
+    echo "    return 17"
     echo "fi"
     echo "gzip -f ${callers_cpp_stdout_file}"
     echo "gzip -f ${cpp_file}.file.callers.gen.json"
@@ -338,7 +338,7 @@ function launch_callers_c ()
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $callers_c_stderr_file"
     echo "    echo \"ERROR:launch_callers:FAILED to analyze the file: $c_file\" >> $callers_c_stderr_file"
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $callers_c_stderr_file"
-    echo "	exit 18"
+    echo "    return 18"
     echo "fi"
     echo "gzip -f ${callers_c_stdout_file}"
     echo "gzip -f ${c_file}.file.callers.gen.json"

@@ -1,8 +1,8 @@
 #!/bin/bash
 #set -x
-#     Copyright (C) 2015 Commissariat à l'Energie Atomique, Thales Communication & Security
+#     Copyright (C) 2015 Thales Communication & Security
 #       - All Rights Reserved
-#     coded by Franck Vedrine, Hugues Balp
+#     coded by Hugues Balp
 
 progname=$0
 version=0.0.1

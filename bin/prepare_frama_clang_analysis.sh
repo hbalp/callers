@@ -1,5 +1,8 @@
 #!/bin/bash
 #set -x
+# Copyright (C) 2015 Thales Communication & Security
+#   - All Rights Reserved
+# coded by Hugues Balp
 
 source "common.sh" # get_file
 
@@ -33,6 +36,7 @@ function launch_frama_clang ()
     echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
     echo "mkdir -p $cabs_dir"
     echo "touch $cabs_stderr"
+    echo "#callgrind "
     echo "#gdb --args "
     echo "${cpp_analysis}"
     #echo "if [ \$? -ne 0 ]; then" # WARNING: uncomment this line to really stop on Frama-clang frontend errors
@@ -73,6 +77,7 @@ function launch_frama_c ()
     echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
     echo "mkdir -p $cabs_dir"
     echo "touch $cabs_stderr"
+    echo "#callgrind "
     echo "#gdb --args "
     echo "${c_analysis}"
     echo "if [ \$? -ne 0 ]; then"
@@ -111,6 +116,7 @@ function launch_framaCIRGen ()
     echo "echo \"ccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppccccppcc\""
     echo "mkdir -p $fir_dir"
     echo "touch $fir_stderr"
+    echo "#callgrind "
     echo "#gdb --args "
     echo "${fir_analysis}"
     echo "if [ $? -ne 0 ]; then" # WARNING: fir retcode deactivated by default because it breaks the normal cmake process
@@ -149,6 +155,7 @@ function launch_gcc_cpp ()
     echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
     echo "mkdir -p $stderr_dir"
     echo "touch $gcc_cpp_stderr_file"
+    echo "#callgrind "
     echo "#gdb --args "
     echo "${gcc_cpp_build}"
     echo "if [ \$? -ne 0 ]; then"
@@ -185,6 +192,7 @@ function launch_gcc_c ()
     echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
     echo "mkdir -p $stderr_dir"
     echo "touch $gcc_c_stderr_file"
+    echo "#callgrind "
     echo "#gdb --args "
     echo "${gcc_c_build}"
     echo "if [ \$? -ne 0 ]; then"
@@ -222,6 +230,7 @@ function launch_clang_cpp ()
     echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
     echo "mkdir -p $stderr_dir"
     echo "touch $clang_cpp_stderr_file"
+    echo "#callgrind "
     echo "#gdb --args "
     echo "${clang_cpp_build}"
     echo "if [ \$? -ne 0 ]; then"
@@ -258,6 +267,7 @@ function launch_clang_c ()
     echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
     echo "mkdir -p $stderr_dir"
     echo "touch $clang_c_stderr_file"
+    echo "#callgrind "
     echo "#gdb --args "
     echo "${clang_c_build}"
     echo "if [ \$? -ne 0 ]; then"
@@ -295,6 +305,7 @@ function launch_callers_cpp ()
     echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
     echo "mkdir -p $stderr_dir"
     echo "touch $callers_cpp_stderr_file"
+    echo "#callgrind "
     echo "#gdb --args "
     echo "${callers_cpp_analysis}"
     echo "if [ \$? -ne 0 ]; then"
@@ -332,6 +343,7 @@ function launch_callers_c ()
     echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
     echo "mkdir -p $stderr_dir"
     echo "touch $callers_c_stderr_file"
+    echo "#callgrind "
     echo "#gdb --args "
     echo "${callers_c_analysis}"
     echo "if [ \$? -ne 0 ]; then"

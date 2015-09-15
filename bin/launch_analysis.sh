@@ -1,5 +1,8 @@
 #!/bin/bash
 #set -x
+#     Copyright (C) 2015 Thales Communication & Security
+#       - All Rights Reserved
+#     coded by Hugues Balp
 
 # launch scan-callers = scan-build adapted for callers analysis over a cmake build
 function launch_scan_callers_over_cmake()

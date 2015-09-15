@@ -22,8 +22,8 @@ source test_clean.sh
 
 launch_the_analysis ${build_tool} ${analysis_type}
 
-if [ $build_tool != "scan-build" ]
-#if false
+#if [ $build_tool != "scan-build" ]
+if false
 then
 if [ $analysis_type == "callers" ] || [ $analysis_type == "all" ];
 then

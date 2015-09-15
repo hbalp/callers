@@ -1,4 +1,7 @@
 #!/bin/bash
+#     Copyright (C) 2015 Thales Communication & Security
+#       - All Rights Reserved
+#     coded by Hugues Balp
 
 export CC=`which clang`
 export CXX=`which clang++`

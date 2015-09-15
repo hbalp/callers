@@ -1,5 +1,7 @@
 #!/bin/bash
-# author: Hugues Balp
+#     Copyright (C) 2015 Thales Communication & Security
+#       - All Rights Reserved
+#     coded by Hugues Balp
 # WARNING: We assume here that only one input parameter is present and correspond to a valid directory.
 dir=$1
 

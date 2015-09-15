@@ -11,6 +11,7 @@
 # and piped to the static analyzer.
 #
 ##===----------------------------------------------------------------------===##
+# scan-build script version adapted by Hugues Balp for use with the clang Callers analysis plugin
 
 use Devel::Trace;
 use strict;
@@ -1652,12 +1653,16 @@ my $CmdCXX = "$AbsRealBin/libexec/c++-analyzer";
 # file extension to determine if a file is executable (see Perl language
 # reference, perlport)
 if (!defined $Cmd || ! -e $Cmd) {
-  $Cmd = "$AbsRealBin/ccc-analyzer";
-  DieDiag("'ccc-analyzer' does not exist at '$Cmd'\n") if(! -e $Cmd);
+#  $Cmd = "$AbsRealBin/ccc-analyzer";
+#  DieDiag("'ccc-analyzer' does not exist at '$Cmd'\n") if(! -e $Cmd);
+  Diag("'ccc-analyzer' does not exist at '$Cmd', so we search for it in the PATH\n") if(! -e $Cmd);
+  $Cmd = "ccc-analyzer";
 }
 if (!defined $CmdCXX || ! -e $CmdCXX) {
-  $CmdCXX = "$AbsRealBin/c++-analyzer";
-  DieDiag("'c++-analyzer' does not exist at '$CmdCXX'\n") if(! -e $CmdCXX);
+#  $CmdCXX = "$AbsRealBin/c++-analyzer";
+#  DieDiag("'c++-analyzer' does not exist at '$CmdCXX'\n") if(! -e $CmdCXX);
+  Diag("'c++-analyzer' does not exist at '$CmdCXX', so we search for it in the PATH\n") if(! -e $CmdCXX);
+  $CmdCXX = "c++-analyzer";
 }
 
 Diag("Using '$Clang' for static analysis\n");

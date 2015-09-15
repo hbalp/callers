@@ -1,7 +1,8 @@
 #!/bin/bash
 #set -x
 
-canonical_pwd="/media/sf_users_3u$PWD"
+#canonical_pwd="/media/sf_users_3u$PWD"
+canonical_pwd="$PWD"
 
 #build_tool=cmake
 build_tool="scan-callers"

@@ -77,6 +77,12 @@ elif test $# = 3; then
 
     export CALLERS_ANALYSIS_TYPE=${analysis_type}
 
+    # generate the cmake build tree
+    cmake ..
+
+    #build the sources eventually
+    # make VERBOSE=yes
+
     # prepare launch analysis script
     launch_script=.tmp.gen.analysis.launch.cmake.sh
     stderr_file="${launch_script}.stderr"
@@ -87,7 +93,13 @@ elif test $# = 3; then
     echo "launch the analysis..."
     analysis_report=$analysis_type
     mkdir -p ${analysis_report}
-    source ${launch_script} > ${analysis_report}/${launch_script}.stdout 2> ${analysis_report}/${launch_script}.stderr    
+    source ${launch_script} > ${analysis_report}/${launch_script}.stdout 2> ${analysis_report}/${launch_script}.stderr
+    if [ $? -ne 0 ]; then
+	echo "################################################################################"
+	echo "# cmake \"${analysis_type}\" analysis error. Stop here !"
+	echo "################################################################################"
+	exit -1
+    fi
 else
     func_usage $provided_cmds
 fi

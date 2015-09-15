@@ -1,7 +1,8 @@
 #!/bin/bash
 
-#build_tool=cmake
-build_tool=scan_build
+#build_tool="cmake"
+build_tool="scan-callers"
+#build_tool="scan-build"
 
 analysis_type=all
 #analysis_type=callers
@@ -9,35 +10,19 @@ analysis_type=all
 #analysis_type=frama_clang
 #analysis_type=framaCIRGen
 
+#clang=`which clang`
+
 common=`which common.sh`
+launch_scan_build=`which launch_analysis.sh`
+
 source $common
+source $launch_scan_build
 
 source test_clean.sh
 
-mkdir analysis
-cd analysis
-export CALLERS_ANALYSIS_TYPE="$analysis_type"
-if [ $build_tool == "cmake" ]
-then
-    cmake ..
-    # make VERBOSE=yes
-    cmake_analysis.sh compile_commands.json ${analysis_type} all
-elif [ $build_tool == "scan_build" ]
-then
-    scan_build_checkers_options=""
-    #scan_build_checkers_options="-v -v -V -enable-checker debug.DumpCallGraph -enable-checker debug.DumpCalls -enable-checker debug.ViewCallGraph"
-    scan-build -o ${analysis_type} cmake ..
-    scan-build ${scan_build_checkers_options} -o ${analysis_type} make VERBOSE=yes
-fi
-if [ $? -ne 0 ]; then
-    echo "################################################################################"
-    echo "# ${analysis_type} analysis error. Stop here !"
-    echo "################################################################################"
-    exit -1
-fi
-cd ..
+launch_the_analysis ${build_tool} ${analysis_type}
 
-if true
+if [ $build_tool != "scan-build" ]
 #if false
 then
 if [ $analysis_type == "callers" ] || [ $analysis_type == "all" ]; 

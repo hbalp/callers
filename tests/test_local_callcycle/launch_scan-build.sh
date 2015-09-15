@@ -1,7 +1,9 @@
 #!/bin/bash
 #set -x
 
-source "../../bin/common.sh"
+#build_tool=cmake
+build_tool="scan-callers"
+#build_tool="scan-build"
 
 #analysis_type=$1
 analysis_type=all
@@ -9,23 +11,22 @@ analysis_type=all
 #analysis_type=frama-c
 #analysis_type=framaCIRGen
 
+common=`which common.sh`
+bin_dir=`dirname $common`
+launch_scan_build=`which ${bin_dir}/launch_analysis.sh`
+
+source $common
+source $launch_scan_build
+
 # clean test
 source test_clean.sh
 
-# launch callers analysis
-mkdir analysis
-cd analysis
-export CALLERS_ANALYSIS_TYPE="$analysis_type"
-scan-build -o ${analysis_type} cmake ..
-scan-build -o ${analysis_type} make VERBOSE=yes
-if [ $? -ne 0 ]; then
-    echo "################################################################################"
-    echo "# Scan-build analysis launch error. Stop here !"
-    echo "################################################################################"
-    exit -1
-fi
-cd ..
+# launch the analysis
+launch_the_analysis ${build_tool} ${analysis_type}
 
+if [ $build_tool != "scan-build" ]
+#if false
+then
 if [ $analysis_type == "callers" ] || [ $analysis_type == "all" ]; 
 then
 
@@ -56,5 +57,5 @@ then
     inkscape analysis/callers/svg/main.fct.callees.gen.dot.svg
     #inkscape analysis/callers/svg/main.fct.callers.gen.dot.svg
     #inkscape analysis/callers/svg/a.fct.callers.gen.dot.svg
-
+fi
 fi

@@ -2,7 +2,8 @@
 #set -x
 
 #build_tool=cmake
-build_tool=scan_build
+build_tool="scan-callers"
+#build_tool="scan-build"
 
 analysis_type=all
 #analysis_type=callers
@@ -11,33 +12,21 @@ analysis_type=all
 #analysis_type=framaCIRGen
 
 common=`which common.sh`
+bin_dir=`dirname $common`
+launch_scan_build=`which ${bin_dir}/launch_analysis.sh`
+
 source $common
+source $launch_scan_build
 
 # clean test
 source clean.sh
 
-# analysis the application
-mkdir analysis
-cd analysis
-export CALLERS_ANALYSIS_TYPE="$analysis_type"
-if [ $build_tool == "cmake" ]
-then
-    cmake ..
-    # make VERBOSE=yes
-    cmake_analysis.sh compile_commands.json ${analysis_type} all
-elif [ $build_tool == "scan_build" ]
-then
-    scan-build -o ${analysis_type} cmake ..
-    scan-build -o ${analysis_type} make VERBOSE=yes
-fi
-if [ $? -ne 0 ]; then
-    echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
-    echo "ERROR ${analysis_type} analysis error. Stop here !"
-    echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
-    exit -1
-fi
-cd ..
+# launch the analysis
+launch_the_analysis ${build_tool} ${analysis_type}
 
+if [ $build_tool != "scan-build" ]
+#if false
+then
 if [ $analysis_type == "callers" ] || [ $analysis_type == "all" ]
 then
 
@@ -64,5 +53,5 @@ then
 
     inkscape analysis/${analysis_type}/svg/simple_c.fct.callees.gen.dot.svg
     #inkscape analysis/${analysis_type}/svg/simple_cpp.fct.callees.gen.dot.svg
-
+fi
 fi

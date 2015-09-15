@@ -6,5 +6,11 @@ int main()
 {
   printf("dummy test\n");
   f();
-  return 0;
+  int zero = 0;
+
+  // div by zero fault injection
+  int div = 20/zero;
+  return div;
+
+  //return 0;
 }

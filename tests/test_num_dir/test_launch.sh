@@ -1,11 +1,11 @@
 #!/bin/bash
-#set -x
+set -x
 
 #canonical_pwd="/media/sf_users_3u$PWD"
 canonical_pwd="$PWD"
 
-#build_tool=cmake
-build_tool="scan-callers"
+build_tool="cmake"
+#build_tool="scan-callers"
 #build_tool="scan-build"
 
 #analysis_type=$1
@@ -42,7 +42,7 @@ then
     # read_defined_symbols.native defined_symbols.all.gen.json file.callers.gen.json
 
     # add extcallees to json files
-    source add_extcallees.sh `pwd` defined_symbols.all.gen.json
+    source add_extcallees.sh `pwd`
     #source add_extcallees.sh `pwd` broken_symbols.json
 
     # add extcallers to json files
@@ -53,7 +53,8 @@ then
     source function_callers_to_dot.sh callees $canonical_pwd/test.cpp "main" "int main()" files
 
     # generate caller's tree from main entry point
-    source function_callers_to_dot.sh callers $canonical_pwd/dirB/B.cpp "c" "int c()" files
+    #source function_callers_to_dot.sh callers $canonical_pwd/dirB/B.cpp "c" "int c()" files
+    source function_callers_to_dot.sh callers $canonical_pwd/4.8/B.cpp "c" "int c()" files
 
     source process_dot_files.sh . analysis/${analysis_type}
 

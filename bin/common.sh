@@ -102,6 +102,9 @@ function list_files_in_dirs()
     jsondir_fileext=$3
     ignored_directories=$4
 
+    echo "################################################################################"
+    echo "# List callers json files in $root_dirpath ..."
+    echo "################################################################################"
     list_json_files_in_dirs.native ${root_dirpath} ${fileext} ${jsondir_fileext} ${ignored_directories}
     if [ $? -ne 0 ]; then
 	echo "################################################################################"
@@ -117,6 +120,9 @@ function list_defined_symbols()
     current_dir=$2
     jsondir_fileext=$3
 
+    echo "################################################################################"
+    echo "# List defined symbols in $current_dir ..."
+    echo "################################################################################"
     list_defined_symbols.native ${defined_symbols_jsonfilename} ${current_dir} ${jsondir_fileext}
     if [ $? -ne 0 ]; then
 	echo "################################################################################"
@@ -124,4 +130,5 @@ function list_defined_symbols()
 	echo "################################################################################"
 	exit -1
     fi
+    echo "################################################################################"
 }

@@ -1,9 +1,10 @@
 #!/bin/bash
 #set -x
 
-canonical_pwd="/media/sf_users_3u$PWD"
+#canonical_pwd="/media/sf_users_3u$PWD"
+canonical_pwd="$PWD"
 
-build_tool=cmake
+build_tool="cmake"
 #build_tool="scan-callers"
 #build_tool="scan-build"
 
@@ -42,7 +43,6 @@ then
 
     # add extcallees to json files
     source add_extcallees.sh `pwd`
-    #source add_extcallees.sh `pwd` defined_symbols.all.gen.json
     #source add_extcallees.sh `pwd` broken_symbols.json
 
     # add extcallers to json files

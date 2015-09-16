@@ -872,15 +872,37 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
 
 bool
 CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
-   if (newExpr->getOperatorNew() && !newExpr->getOperatorNew()->isImplicit()) {
+  if (newExpr->getOperatorNew() && !newExpr->getOperatorNew()->isImplicit()) 
+    {
       const auto& operatorNew = *newExpr->getOperatorNew();
-      std::string result = printResultSignature(operatorNew);
-      result += ' ';
-      result += printQualifiedName(operatorNew);
+      std::string callee_sign = printResultSignature(operatorNew);
+      callee_sign += ' ';
+      callee_sign += printQualifiedName(operatorNew);
       if (newExpr->isArray())
-         result += " [] ";
-      result += printArgumentSignature(operatorNew);
-   };
+	callee_sign += " [] ";
+      callee_sign += printArgumentSignature(operatorNew);
+      osOut << inputFile << ": " << printParentFunction() << " -> " << callee_sign << '\n';
+      std::string callee_filepath = printFilePath(operatorNew.getSourceRange());
+      int callee_filepos = printLine(operatorNew.getSourceRange());
+      if(callee_filepath == "unknownFilePath")
+	{
+	  osOut << inputFile << ":WARNING: unknownFilePath for callee: " << callee_sign << std::endl;
+	  callee_filepos = -1;
+	}
+      CallersData::FctCall fc(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
+			      callee_sign, callee_filepath, callee_filepos);
+      jsonFile.add_function_call(&fc);
+    }
+  else
+    {
+      std::string callee_sign = "void *malloc(size_t)";
+      osOut << inputFile << ": " << printParentFunction() << " -> " << callee_sign << '\n';
+      std::string callee_filepath = "unknownFilePath";
+      int callee_filepos = -1;
+      CallersData::FctCall fc(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
+			      callee_sign, callee_filepath, callee_filepos);
+      jsonFile.add_function_call(&fc);
+    }
    return true;
 }
 

@@ -62,7 +62,6 @@ void boost::throw_exception(std::exception const&)
 #endif
 #endif
 
-static
 std::string
 getCanonicalAbsolutePath(const std::string& path)
 {
@@ -166,7 +165,7 @@ CallersAction::Visitor::printFileName(const clang::SourceRange& rangeLocation) c
 std::string
 CallersAction::Visitor::printFilePath(const clang::SourceRange& rangeLocation) const {
    assert(psSources);
-   bool isValid = rangeLocation.isValid();
+   //bool isValid = rangeLocation.isValid();
    auto start = psSources->getPresumedLoc(rangeLocation.getBegin());
    const char* startFile = start.getFilename();
    std::string path = "unknownFilePath";

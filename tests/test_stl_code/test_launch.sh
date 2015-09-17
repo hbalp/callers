@@ -35,7 +35,6 @@ then
 
     #cd /usr/include
     cd /usr/include/c++/4.8
-    find . -type f -name "*.gen.json.gz" -exec gunzip {} \;
     list_files_in_dirs `pwd` .file.callers.gen.json dir.callers.gen.json analysis
 
     # List all defined symbols in file defined_symbols.json
@@ -63,11 +62,11 @@ then
 
     ## generate callee's tree from main entry point
     source function_callers_to_dot.sh callees `pwd`/test_std_map.cpp "std_map" "int main()" files
-    source function_callers_to_dot.sh callees `pwd`/test_std_set.cpp "std_set" "int main()" files
+    #source function_callers_to_dot.sh callees `pwd`/test_std_set.cpp "std_set" "int main()" files
 
     ## generate caller's tree from main entry point
     source function_callers_to_dot.sh callers `pwd`/test_std_map.cpp "std_map" "int main()" files
-    source function_callers_to_dot.sh callers `pwd`/test_std_set.cpp "std_set" "int main()" files
+    #source function_callers_to_dot.sh callers `pwd`/test_std_set.cpp "std_set" "int main()" files
 
     source process_dot_files.sh . analysis/${analysis_type}
 

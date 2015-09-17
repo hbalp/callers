@@ -129,8 +129,8 @@ namespace CallersData
       void add_local_caller(std::string caller) const;
       void add_local_callee(std::string callee) const;
       void add_external_caller(std::string caller_sign, std::string caller_decl) const;
-      void add_external_callee(std::string callee_sign, std::string callee_decl) const;
-      void add_builtin_callee(std::string callee_sign, std::string builtin_decl) const;
+      void add_external_callee(std::string callee_sign, std::string callee_decl_file, int callee_decl_line) const;
+      void add_builtin_callee(std::string callee_sign, std::string builtin_decl_file, int builtin_decl_line) const;
 
       void output_local_callers(std::ofstream &js) const;
       void output_local_callees(std::ofstream &js) const;

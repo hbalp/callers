@@ -3,8 +3,8 @@
 #include <iostream>
 
 // from http://stackoverflow.com/questions/8602068/whats-the-difference-between-stdmultimapkey-value-and-stdmapkey-stds
-// template class std::basic_string<char>;
-// template class std::map<std::string, int>;
+template class std::basic_string<char>;
+template class std::map<std::string, int>;
 
 void someFunction()
 {

@@ -5,8 +5,8 @@
 build_tool="scan-callers"
 #build_tool="scan-build"
 
-analysis_type=all
-#analysis_type=callers
+#analysis_type=all
+analysis_type=callers
 #analysis_type=frama-c
 #analysis_type=frama-clang
 #analysis_type=framaCIRGen
@@ -36,7 +36,7 @@ then
     #read_defined_symbols.native defined_symbols.json file.callers.gen.json
 
     # add extcallees to json files
-    source add_extcallees.sh `pwd` defined_symbols.json
+    source add_extcallees.sh `pwd`
 
     # add extcallers to json files
     source add_extcallers.sh .

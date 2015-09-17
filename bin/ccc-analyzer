@@ -87,10 +87,10 @@ else
     source ${launch_script} > ${file_analysis_stdout} 2>> ${file_analysis_stderr}
 
     if [ $? -ne 0 ]; then
-	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
-	echo "ERROR:ccc-analyzer:FAILED to analyze the file: $PWD/$file"
-	echo "CAUSE: reported in file \"$PWD/${analysis_report_dir}/${launch_script}.stderr\""
-	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" > /dev/stderr
+	echo "ERROR:ccc-analyzer:FAILED to analyze the file: $PWD/$file" > /dev/stderr
+	echo "CAUSE: reported in file \"$PWD/${analysis_report_dir}/${launch_script}.stderr\"" > /dev/stderr
+	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" > /dev/stderr
 	exit -2
     fi
 fi

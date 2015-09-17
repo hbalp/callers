@@ -145,7 +145,7 @@ function launch_gcc_cpp ()
     gcc_cpp=`which g++ 2> /dev/null`
 
     # add some options when required
-    gcc_cpp_options="-I. -I.."
+    gcc_cpp_options="-I. -I.. -c"
 
     # build the gcc_cpp build command
     gcc_cpp_build="${gcc_cpp} ${debug_options} ${gcc_cpp_options} ${file_build_options} -o ${gcc_cpp_stdout_file} ${cpp_file}"
@@ -182,7 +182,7 @@ function launch_gcc_c ()
     gcc_c=`which gcc 2> /dev/null`
 
     # add some options when required
-    gcc_c_options="-I. -I.."
+    gcc_c_options="-I. -I.. -c"
 
     # build the gcc build command
     gcc_c_build="${gcc_c} ${debug_options} ${gcc_c_options} ${file_build_options} -o ${gcc_c_stdout_file} ${c_file}"
@@ -214,16 +214,22 @@ function launch_clang_cpp ()
     shift
     shift
     file_build_options=$@
+    clang_cpp_astout_file="${clang_cpp_stdout_file}.ast"
 
     # localize clang_cpp
     clang_cpp=`which clang++ 2> /dev/null`
 
     # add some options when required
     #clang_cpp_options="-std=c++11 -I. -I.."
-    clang_cpp_options="-I. -I.."
+    clang_cpp_build_options="-I. -I.. -c"
+    #clang_cpp_ast_options="-I. -I.. -Xclang -ast-dump -fsyntax-only --disable-extern-template"
+    clang_cpp_ast_options="-I. -I.. -Xclang -ast-dump -fsyntax-only "
+
+    # build the clang_cpp ast command    
+    clang_cpp_ast="${clang_cpp} ${debug_options} ${clang_cpp_ast_options} \${system_includes} ${file_build_options} ${cpp_file} > ${clang_cpp_astout_file}"
 
     # build the clang_cpp build command    
-    clang_cpp_build="${clang_cpp} ${debug_options} ${clang_cpp_options} \${system_includes} ${file_build_options} -o ${clang_cpp_stdout_file} ${cpp_file}"
+    clang_cpp_build="${clang_cpp} ${debug_options} ${clang_cpp_build_options} \${system_includes} ${file_build_options} -o ${clang_cpp_stdout_file} ${cpp_file}"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch clang++ build of file: ${cpp_file}\""
@@ -232,6 +238,7 @@ function launch_clang_cpp ()
     echo "touch $clang_cpp_stderr_file"
     echo "#callgrind "
     echo "#gdb --args "
+    echo "${clang_cpp_ast}"
     echo "${clang_cpp_build}"
     echo "if [ \$? -ne 0 ]; then"
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $clang_cpp_stderr_file"
@@ -239,6 +246,7 @@ function launch_clang_cpp ()
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $clang_cpp_stderr_file"
     echo "    return 15"
     echo "fi"
+    echo "gzip -f ${clang_cpp_astout_file}"
     echo "gzip -f ${clang_cpp_stdout_file}"
 }
 
@@ -252,15 +260,21 @@ function launch_clang_c ()
     shift
     shift
     file_build_options=$@
+    clang_c_astout_file="${clang_c_stdout_file}.ast"
 
     # localize clang
     clang_c=`which clang 2> /dev/null`
 
     # add some options when required
-    clang_c_options="-I. -I.."
+    clang_c_build_options="-I. -I.."
+    #clang_c_ast_options="-I. -I.. -Xclang -ast-dump -fsyntax-only --disable-extern-template"
+    clang_c_ast_options="-I. -I.. -Xclang -ast-dump -fsyntax-only "
+
+    # build the clang ast command    
+    clang_c_ast="${clang_c} ${debug_options} ${clang_c_ast_options} \${system_includes} ${file_build_options} ${c_file} > ${clang_c_astout_file}"
 
     # build the clang build command    
-    clang_c_build="${clang_c} ${debug_options} ${clang_c_options} \${system_includes} ${file_build_options} -o ${clang_c_stdout_file} ${c_file}"
+    clang_c_build="${clang_c} ${debug_options} ${clang_c_build_options} \${system_includes} ${file_build_options} -o ${clang_c_stdout_file} ${c_file}"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch clang build of file: ${c_file}\""
@@ -269,6 +283,7 @@ function launch_clang_c ()
     echo "touch $clang_c_stderr_file"
     echo "#callgrind "
     echo "#gdb --args "
+    echo "${clang_c_ast}"
     echo "${clang_c_build}"
     echo "if [ \$? -ne 0 ]; then"
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $clang_c_stderr_file"
@@ -276,6 +291,7 @@ function launch_clang_c ()
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $clang_c_stderr_file"
     echo "    return 16"
     echo "fi"
+    echo "gzip -f ${clang_c_astout_file}"
     echo "gzip -f ${clang_c_stdout_file}"
 }
 
@@ -295,7 +311,8 @@ function launch_callers_cpp ()
 
     # add some options when required
     #callers_cpp_options="-std=c++11 -I. -I.."
-    callers_cpp_options="-I. -I.."
+    #callers_cpp_options="-I. -I.. --disable-extern-template"
+    callers_cpp_options="-I. -I.. "
 
     # build the callers analysis command    
     callers_cpp_analysis="${callers_cpp} ${callers_cpp_options} \${system_includes} ${file_analysis_options} -o ${callers_cpp_stdout_file} ${cpp_file}"
@@ -333,7 +350,8 @@ function launch_callers_c ()
     callers_c=`which callers 2> /dev/null`
 
     # add some options when required
-    callers_c_options="-I. -I.."
+    #callers_c_options="-I. -I.. --disable-extern-template"
+    callers_c_options="-I. -I.. "
 
     # build the callers analysis command    
     callers_c_analysis="${callers_c} ${callers_c_options} \${system_includes} ${file_analysis_options} -o ${callers_c_stdout_file} ${c_file}"
@@ -487,8 +505,8 @@ function prepare_frama_clang_analysis_from_compile_command()
     file_build_options=""
     for a in $args
     do
-	#if  [ ${a} != -c ]          && 
-	if  [ ${a} != -o ]          && 
+	if  [ ${a} != -c ]          && 
+	    [ ${a} != -o ]          && 
 	    [ ${a} != "-nostdinc" ] &&
 	    [ ${a} != ${src_file} ] && 
 	    [ ${a} != ${obj_file} ]

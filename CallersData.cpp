@@ -14,8 +14,13 @@
 //#include <fstream>
 #include <iostream>
 #include <sstream>
+#ifndef NOT_USE_BOOST_FILESYSTEM
+#include <boost/filesystem.hpp>
+#endif
 
 #include "CallersData.hpp"
+
+extern std::string getCanonicalAbsolutePath(const std::string& path);
 
 /***************************************** class JsonFileWriter ****************************************/
 
@@ -24,11 +29,32 @@ CallersData::JsonFileWriter::JsonFileWriter(std::string jsonFileName)
 { 
   std::cout << "Open file \"" << jsonFileName << "\" in write mode." << std::endl;
   out.open(jsonFileName.c_str());
+  if(out.fail())
+    {
+      std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+      std::cerr << "Failed to open file \"" << fileName << "\" in write mode." << std::endl;
+      std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+    }
+  else
+    {
+      std::cerr << "JSON output file \"" << fileName << "\" is now opened in write mode." << std::endl;
+    }
 }
 
 CallersData::JsonFileWriter::~JsonFileWriter() 
 {
+  std::cout << "Close file \"" << fileName << "\"." << std::endl;  
   out.close();
+  if(out.fail())
+    {
+      std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+      std::cerr << "Failed to close file \"" << fileName << "\"." << std::endl;
+      std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+    }
+  else
+    {
+      std::cerr << "JSON output file \"" << fileName << "\" is now closed." << std::endl;
+    }
 }
 
 /***************************************** class Dir ****************************************/
@@ -167,10 +193,16 @@ void CallersData::File::add_defined_function(std::string sign, std::string filep
 
 void
 CallersData::File::add_function_call(CallersData::FctCall* fc)
-{ 
+{
+  std::cerr << "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii" << std::endl; 
   std::cout << "Register function call from caller \"" << fc->caller_file << ":" << fc->caller_sign
             << "\" to callee \"" << fc->callee_decl_file << ":" << fc->callee_sign
 	    << "\" in file \"" << this->fullPath() << "\"" << std::endl;
+  std::cerr << "caller sign: " << fc->caller_sign << std::endl;
+  std::cerr << "callee sign: " << fc->callee_sign << std::endl;
+  std::cerr << "current file: " << this->fullPath() << std::endl;
+  std::cerr << "caller def pos: " << fc->caller_file << ":" << fc->caller_line << std::endl;
+  std::cerr << "callee decl pos: " << fc->callee_decl_file << ":" << fc->callee_decl_line << std::endl;
 
   calls.insert(*fc);
 
@@ -181,22 +213,30 @@ CallersData::File::add_function_call(CallersData::FctCall* fc)
 
     // the caller function belongs to the current file
     {
+      std::cerr << "The caller function belongs to the current file" << std::endl;
+
       // adds the caller function to the defined functions of the current file
       add_defined_function(fc->caller_sign, fc->caller_file, fc->caller_line);
       // get a reference to the related defined function
       CallersData::Fct caller_fct(fc->caller_sign, fc->caller_file, fc->caller_line);
       caller = defined.find(caller_fct);
+      // ensure caller has really been found
+      assert(caller != defined.end());
 
       // Check whether the callee function belongs to the current file.
       if( fc->callee_decl_file == this->fullPath() )
 
 	// the callee function belongs to the current file
 	{
+	  std::cerr << "The callee function belongs to the current file" << std::endl;
+
 	  // adds the callee function to the defined functions of the current file
 	  add_defined_function(fc->callee_sign, fc->callee_decl_file, fc->callee_decl_line);
 	  // get a reference to the related defined function
 	  CallersData::Fct callee_fct(fc->callee_sign, fc->callee_decl_file, fc->callee_decl_line);
 	  callee = defined.find(callee_fct);
+	  // ensure callee has really been found
+	  assert(callee != defined.end());
 
 	  // add local caller to local callee
 	  callee->add_local_caller(fc->caller_sign);
@@ -207,19 +247,16 @@ CallersData::File::add_function_call(CallersData::FctCall* fc)
       else
 	// the callee function is defined externally
 	{
+	  std::cerr << "The callee function is defined externally" << std::endl;
+
 	  // add the external callee to the local caller
-	  std::string callee_decl_location = fc->callee_decl_file;
-	  std::ostringstream out;
-	  out << fc->callee_decl_line;
-	  callee_decl_location += ":";
-	  callee_decl_location += out.str();
 	  if(fc->is_builtin == true)
 	    {
-	      caller->add_builtin_callee(fc->callee_sign, callee_decl_location);
+	      caller->add_builtin_callee(fc->callee_sign, fc->callee_decl_file, fc->callee_decl_line);
 	    }
 	  else
 	    {
-	      caller->add_external_callee(fc->callee_sign, callee_decl_location);	      
+	      caller->add_external_callee(fc->callee_sign, fc->callee_decl_file, fc->callee_decl_line);
 	    }
 	}
     }
@@ -227,34 +264,94 @@ CallersData::File::add_function_call(CallersData::FctCall* fc)
   else
     // the caller function does not belong to the current file
     {
-      // check whether the callee function does really belong to the current file as expected
+      std::cerr << "The caller function does not belong to the current file" << std::endl;
+
+      // check first whether a json file is already present for the caller function
+      // if true, parse it and add the defined function only when necessary
+      // if false, create the caller json file and add the defined function
+
+      boost::filesystem::path p(fc->caller_file);
+      std::string caller_basename = p.filename().string();
+      std::string caller_dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+      CallersData::File caller_file(caller_basename, caller_dirpath);
+      caller_file.parse_json_file();
+      CallersData::Fct caller_def( fc->caller_sign, fc->caller_file, fc->caller_line);
+      caller_file.add_defined_function(&caller_def);
+      // get a reference to the related defined function
+      caller = caller_file.defined.find(caller_def);
+      // ensure caller has really been found
+      assert(caller != caller_file.defined.end());
+
+      // check whether the callee function belongs to the current file or not
       if( fc->callee_decl_file == this->fullPath() )
 
 	// the callee function belongs to the current file
 	{
+	  std::cerr << "The callee function belongs to the current file" << std::endl;
+
 	  // adds the callee function to the defined functions of the current file
 	  add_defined_function(fc->callee_sign, fc->callee_decl_file, fc->callee_decl_line);
 	  // get a reference to the related defined function
 	  CallersData::Fct callee_fct(fc->callee_sign, fc->callee_decl_file, fc->callee_decl_line);
 	  callee = defined.find(callee_fct);
+	  // ensure callee has really been found
+	  assert(callee != defined.end());
 
 	  // add the external caller to the local callee
 	  callee->add_external_caller(fc->caller_sign, fc->caller_file);
+
+	  // add the local callee to the external caller
+	  caller->add_external_callee(fc->callee_sign, fc->callee_decl_file, fc->callee_decl_line);
 	}
       else
 	// the callee function is defined externally as the caller !!!
 	{
-	  std::cerr << "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww" << std::endl;
-	  std::cerr << "The callee function is defined externally as the caller, so we ignore both of them !!!" << std::endl;
-	  std::cerr << "caller sign: " << fc->caller_sign << std::endl;
-	  std::cerr << "callee sign: " << fc->callee_sign << std::endl;
-	  std::cerr << "current file: " << this->fullPath() << std::endl;
-	  std::cerr << "caller def pos: " << fc->caller_file << ":" << fc->caller_line << std::endl;
-	  std::cerr << "callee decl pos: " << fc->callee_decl_file << ":" << fc->callee_decl_line << std::endl;
-	  std::cerr << "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww" << std::endl;
-	  //abort();
+	  std::cerr << "The callee function is defined externally as the caller !!!" << std::endl;
+
+	  // check first whether a json file is already present for the callee function
+	  // if true, parse it and add the defined function only when necessary
+	  // if false, create the callee json file and add the defined function
+	  
+	  boost::filesystem::path p(fc->callee_decl_file);
+	  std::string callee_basename = p.filename().string();
+	  std::string callee_dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+	  CallersData::File callee_file(callee_basename, callee_dirpath);
+	  callee_file.parse_json_file();
+	  CallersData::Fct callee_def( fc->callee_sign, fc->callee_decl_file, fc->callee_decl_line);
+	  callee_file.add_defined_function(&callee_def);
+	  // get a reference to the related defined function
+	  callee = callee_file.defined.find(callee_def);
+	  // ensure callee has really been found
+	  assert(callee != callee_file.defined.end());
+
+	  // check whether the caller and callee functions are collocated or not
+	  if( fc->caller_file == fc->callee_decl_file )
+	    {
+	      std::cerr << "The caller and callee functions are collocated in the same file" << std::endl;
+
+	      // add the local caller to the local callee
+	      callee->add_local_caller(fc->caller_sign);
+
+	      // add the local callee to the local caller
+	      caller->add_local_callee(fc->callee_sign);
+	    }
+	  else
+	    {
+	      std::cerr << "The caller and callee functions are located in different files" << std::endl;
+	      
+	      // add the external caller to the external callee
+	      callee->add_external_caller(fc->caller_sign, fc->caller_file);
+
+	      // add the external callee to the external caller
+	      caller->add_external_callee(fc->callee_sign, fc->callee_decl_file, fc->callee_decl_line);
+	    }
+
+	  callee_file.output_json_desc();
 	}
+      
+      caller_file.output_json_desc();
     }
+  std::cerr << "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii" << std::endl;
 }
 
 void CallersData::File::output_json_desc()
@@ -360,30 +457,47 @@ void CallersData::Fct::add_local_callee(std::string callee) const
   locallees->insert(callee);
 }
 
-void CallersData::Fct::add_external_caller(std::string caller_sign, std::string caller_decl) const
+void CallersData::Fct::add_external_caller(std::string caller_sign, std::string caller_decl_file_pos) const
 {
-  std::cout << "Add external caller \"" << caller_sign << "\" to function \"" << sign << "\"" << std::endl;
-  ExtFct *extfct = new ExtFct(caller_sign, caller_decl);
+  std::cout << "Add external caller \"" << caller_sign << "\" to callee function \"" << sign << "\"" << std::endl;
+  std::cout << "Caller function is located at: " << caller_decl_file_pos << std::endl;
+  ExtFct *extfct = new ExtFct(caller_sign, caller_decl_file_pos);
   extcallers->insert(*extfct);
 }
 
-void CallersData::Fct::add_external_callee(std::string callee_sign, std::string callee_decl) const
+void CallersData::Fct::add_external_callee(std::string callee_sign, std::string callee_decl_file, int callee_decl_line) const
 {
+  std::string callee_decl_location = callee_decl_file;
+  std::ostringstream out;
+  out << callee_decl_line;
+  callee_decl_location += ":";
+  callee_decl_location += out.str();
+  
   std::cout << "Add external callee \"" << callee_sign
 	    << "\" to function \"" << sign << "\". " 
-	    << "Callee is declared in file: " << callee_decl
+	    << "Callee is declared in file: " << callee_decl_file
+	    << " at line: " << callee_decl_line
 	    << std::endl;
-  ExtFct *extfct = new ExtFct(callee_sign, callee_decl);
+  
+  ExtFct *extfct = new ExtFct(callee_sign, callee_decl_location);
   extcallees->insert(*extfct);
 }
 
-void CallersData::Fct::add_builtin_callee(std::string builtin_sign, std::string builtin_decl) const
+void CallersData::Fct::add_builtin_callee(std::string builtin_sign, std::string builtin_decl_file, int builtin_decl_line) const
 {
+  std::string builtin_decl_location = builtin_decl_file;
+  std::ostringstream out;
+  out << builtin_decl_line;
+  builtin_decl_location += ":";
+  builtin_decl_location += out.str();
+  
   std::cout << "Add builtin callee \"" << builtin_sign
 	    << "\" to function \"" << sign << "\". " 
-	    << "Builtin callee is declared in file: " << builtin_decl
+	    << "Builtin callee is declared in file: " << builtin_decl_file
+	    << " at line: " << builtin_decl_line
 	    << std::endl;
-  ExtFct *extfct = new ExtFct(builtin_sign, builtin_decl, "builtinFunctionDef");
+  
+  ExtFct *extfct = new ExtFct(builtin_sign, builtin_decl_location, "builtinFunctionDef");
   extcallees->insert(*extfct);
 }
 

@@ -34,7 +34,8 @@ then
     # list the symbols referenced by the program and defined in the standard C++ library
 
     #cd /usr/include
-    cd /usr/include/c++/4.8
+    cd /usr/include/c++/4.7
+    #cd /usr/include/c++/4.8
     list_files_in_dirs `pwd` .file.callers.gen.json dir.callers.gen.json analysis
 
     # List all defined symbols in file defined_symbols.json

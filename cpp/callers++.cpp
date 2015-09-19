@@ -168,7 +168,7 @@ main(int argc, char** argv) {
    // equivalent command-line option: callers -std=c++11
    // enable to analyze C++11 source code like clang version 3.7.0 (trunk 240320)
    //invocation->getLangOpts()->CPlusPlus11 = true;
-   //invocation->getLangOpts()->CPlusPlus11 = false;
+   invocation->getLangOpts()->CPlusPlus11 = false;
    invocation->getFrontendOpts().ProgramAction = clang::frontend::ParseSyntaxOnly;
    compiler.setInvocation(invocation);
 

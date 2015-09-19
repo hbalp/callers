@@ -150,11 +150,13 @@ main(int argc, char** argv) {
    clang::CompilerInvocation*
       invocation = clang::createInvocationFromCommandLine(Argv,Diag);
 
-   if (!invocation) {
-      std::cerr << 
-         "Could not create clang invocation; Aborting";
-      exit(2);
-   }
+   if (!invocation) 
+     {
+       std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+       std::cerr << "callers: Could not create clang invocation; Aborting";
+       std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+       exit(2);
+     }
 
    invocation->getLangOpts()->C99 = true;
    // invocation->getLangOpts()->Bool = true;
@@ -169,6 +171,7 @@ main(int argc, char** argv) {
    // equivalent command-line option: callers -std=c++11
    // enable to analyze C++11 source code like clang version 3.7.0 (trunk 240320)
    // invocation->getLangOpts()->CPlusPlus11 = true;
+   invocation->getLangOpts()->CPlusPlus11 = false;
    invocation->getFrontendOpts().ProgramAction = clang::frontend::ParseSyntaxOnly;
    compiler.setInvocation(invocation);
 

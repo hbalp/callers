@@ -1,6 +1,6 @@
 #!/bin/bash
 #set -x
-system_includes="-I/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/c++/4.8 -I/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/x86_64-linux-gnu/c++/4.8 -I/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/x86_64-linux-gnu/c++/4.8 -I/usr/lib/gcc/x86_64-linux-gnu/4.8/../../../../include/c++/4.8/backward -I/usr/local/include -I/home/hbalp/work/src/llvm/build/bin/../lib/clang/3.7.0/include -I/usr/include/x86_64-linux-gnu -I/include -I/usr/include "
+system_includes="-I/usr/lib/gcc/x86_64-linux-gnu/4.7/../../../../include/c++/4.7 -I/usr/lib/gcc/x86_64-linux-gnu/4.7/../../../../include/x86_64-linux-gnu/c++/4.7 -I/usr/lib/gcc/x86_64-linux-gnu/4.7/../../../../include/x86_64-linux-gnu/c++/4.7 -I/usr/lib/gcc/x86_64-linux-gnu/4.7/../../../../include/c++/4.7/backward -I/usr/local/include -I/home/hbalp/work/src/llvm/build/bin/../lib/clang/3.7.0/include -I/usr/include/x86_64-linux-gnu -I/include -I/usr/include "
 
 echo "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 echo "launch callers++ analysis of file: test_std_map.cpp"

@@ -32,21 +32,28 @@ namespace CallersData
       std::ofstream out;
   };
 
+  class File;
+
   class Dir
   {
     public:
+      Dir();
       Dir(std::string dir, std::string path);
       ~Dir();
       std::string fullPath ();
       void add_children(std::string dir);
       void add_file(std::string file);
-      void output_json_desc();
+      void add_file(File *file);
+      std::set<File>::iterator get_file(std::string filename, std::string dirpath);
+      void output_json_files();
+      void output_json_dir();
     private:
       std::string dir = "unknownDirName";
       std::string path = "unknownDirPath";
-      std::list<std::string> files;
+      std::list<std::string> filenames;
       std::list<std::string> childrens;
       std::string jsonfilename = "unknownJsonFileName";
+      std::set<File> files;
       //JsonFileWriter js;
   };
 
@@ -55,18 +62,20 @@ namespace CallersData
 
   class File
   {
+    friend bool operator< (const CallersData::File& file1, const CallersData::File& file2);
+
     public:
       File(std::string file, std::string path);
       ~File();
-      std::string fullPath ();
-      void parse_json_file();
-      void add_defined_function(Fct* fct);
-      void add_defined_function(std::string func, std::string filepath, int sign);
-      void add_function_call(FctCall* fc);
-      void output_json_desc();
-      std::set<Fct> defined;
+      std::string fullPath () const;
+      void parse_json_file() const;
+      void add_defined_function(Fct* fct) const;
+      void add_defined_function(std::string func, std::string filepath, int sign) const;
+      void add_function_call(FctCall* fc, Dir *context) const;
+      void output_json_desc() const;
+      std::set<Fct> *defined;
   private:
-      std::set<FctCall> calls;
+      std::set<FctCall> *calls;
       std::string file = "unknownFileName";
       std::string path = "unknownFilePath";
       std::string jsonfilename = "unknownJsonFileName";
@@ -78,7 +87,7 @@ namespace CallersData
   class FctCall
   {
     friend bool operator< (const CallersData::FctCall& fc1, const CallersData::FctCall& fc2);
-    friend void File::add_function_call(FctCall* fc);
+    friend void File::add_function_call(FctCall* fc, Dir* context) const;
 
     public:
       FctCall(std::string caller_sign, std::string caller_file, int caller_line, 

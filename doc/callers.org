@@ -1,6 +1,27 @@
-* Callers
-  Callers is a static analysis plugin extending the clang/LLVM compilation framework for enabling early syntactic-based security analysis on large-scale C/C++ software.
-** Aims
+#+AUTHOR Hugues Balp
+#+TITLE The Callers plug-in
+
+* TODO The Callers plug-in [2/7]
+  :PROPERTIES:
+  :author:   Hugues Balp
+  :partner:  Thales Communications & Security
+  :version:  0.1
+  :END:
+** Header
+   #+BEGIN_SRC org :tangle callers.chap6.tcs.D4.2.2.org
+#+AUTHOR Hugues Balp
+#+TITLE The Callers plug-in
+The Callers plug-in
+   #+END_SRC
+** DONE Introduction/Executive Summary [1/1]
+   - [X] Introduce the plugin
+   #+BEGIN_SRC org :tangle callers.chap6.tcs.D4.2.2.org
+   Callers is a static analysis plugin extending the clang/LLVM compilation framework for enabling early syntactic-based security analysis on large-scale C/C++ software.
+   #+END_SRC
+** DONE Aims [1/1]
+   - [X] Describe the objectives of the plug-in and its relation with the security analysis of source code (what security properties are analysed)   
+   #+BEGIN_SRC org :tangle callers.chap6.tcs.D4.2.2.org
+* Aim
    The initial goal of the Callers plugin is to enable early security risks assessments based on the analysis of function calls dependencies.
 
    However, this plugin has been designed to be extensible and it could also in the future support other types of dependency like:
@@ -14,13 +35,37 @@
 
    Based on this information, the tool can generate differents instances of function callgraphs, depending on the end-user analysis focus.
    Those callgraphs can also been further exploited to enable the verification of some global security properties on the software.
-
-** Principle
+   #+END_SRC
+** TODO Functioning and user interface [0/1]
+   - [ ] Describe the main functions of the plug-in and its user interface, if any.
+   #+BEGIN_SRC org :tangle callers.chap6.tcs.D4.2.2.org
+* Functioning and user interface
+   TBC
    Function call dependencies can be analyzed at different granularity levels (function, file, directory, libraries, application).
-   
-** Design
-
-
-** Example
-   main()->
-** 
+   #+END_SRC
+** TODO Implementation [0/1]
+   - [ ] Describe the internals of the plug-in (architecture of the code, usage of other plug-ins, special requirements such as libraries or external tools, etc.)
+   #+BEGIN_SRC org :tangle callers.chap6.tcs.D4.2.2.org
+* Implementation
+   TBC
+   #+END_SRC
+** TODO Example [0/1]
+   - [ ] Illustrate the functioning of the plug-in through a small example (source code, steps to analyse it, results and interpretation of results).
+   #+BEGIN_SRC org :tangle callers.chap6.tcs.D4.2.2.org
+* Example
+   TBC
+   #+END_SRC
+** TODO Requirements and availability [0/2]
+   Describe
+   1. [ ] the requirements for compiling, installing and using the plug-in
+   2. [ ] the location (URL) where it can be downloaded with its documentation and 3) the support (versions of Frama-C supported, plans for future support, integration into Frama-C distro, etc.)
+   #+BEGIN_SRC org :tangle callers.chap6.tcs.D4.2.2.org
+* Requirements and availability
+   TBC
+   #+END_SRC
+** TODO References [0/1]
+   - [ ] Add some references
+   #+BEGIN_SRC org :tangle callers.chap6.tcs.D4.2.2.org
+* References
+   TBC
+   #+END_SRC

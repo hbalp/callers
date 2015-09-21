@@ -92,6 +92,7 @@ digraph "Callers integration with Clang/LLVM "
 "llvm" -> "clang object code"
 
 // clang compilation of C code
+"clang compiler" [ label="Clang compiler" ]
 "clang AST" [ shape=box ]
 "scan-build" -> "clang compiler"
 "clang frontend" [ label="Clang frontend" ]
@@ -103,6 +104,7 @@ digraph "Callers integration with Clang/LLVM "
 "clang compiler" -> "llvm"
 
 // clang++ compilation of C++ code
+"clang compiler" [ label="Clang++ compiler" ]
 "scan-build" -> "clang++ compiler"
 "clang++ frontend" [ label="Clang++ frontend" ]
 "clang++ frontend" -> "cpp code" [ dir=back ]
@@ -126,7 +128,7 @@ digraph "Callers integration with Clang/LLVM "
 "clang static analyzer" -> "clang++ frontend"
 
 // callers analysis
-"metadata json file" [ label="Callers metadata\njson file" ]
+"metadata json file" [ label="Callers metadata\njson files" ]
 "metadata json file" [ shape="box" ]
 
 // callers C code analysis
@@ -138,6 +140,11 @@ digraph "Callers integration with Clang/LLVM "
 "scan-callers" -> "callers++ frontend"
 "callers++ frontend" -> "clang++ frontend"
 "callers++ frontend" -> "metadata json file"
+
+// callers backends
+"metadata json file" -> "Callers backends"
+"user config" -> "Callers backends"
+"Callers backends" -> "function callgraphs"
 
 // frama-c++
 "scan-callers" -> "frama-c++"

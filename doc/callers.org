@@ -47,53 +47,149 @@ The Callers plug-in
    Describe the internals of the plug-in
 *** TODO architecture of the plugin
     #+BEGIN_SRC dot :tangle callers.frontend.internals.gen.dot
-digraph "Callers integration with Clang/LLVM " {
+digraph "Callers integration with Clang/LLVM " 
+{
 
-"scan-build" [ label="scan-build" ]
-"cmake-callers" [ label="cmake-callers" ]
+"scan-build" [ label="clang scan-build" ]
+"scan-callers" [ label="STANCE scan-callers" ]
+"cmake-callers" [ label="STANCE cmake-callers" ]
+"scan-callers" -> "scan-build" [ label="extends" ]
 
-// entry points
-"src code" [ label="user src code", shape="box" ]
+// user build
 "user build" [ label="custom build\n(autoconf, cmake..)" ]
-"user compiler" [ label="user compiler\n(gcc, g++,clang..)" ]
-"user build" -> "user compiler"
-"user compiler" -> "src code" [ dir=back ]
-
-// user compilation
-"user object code" [ shape="box" ]
 "scan-build" -> "user build"
-"user compiler" -> "user object code"
+
+// compilation
+"object code" [ shape="box" ]
+
+// c compilation
+"c code" [ label="C code", shape="box" ]
+"c compiler" [ label="C compiler\n(gcc, clang..)" ]
+"user build" -> "c compiler"
+"c compiler" -> "c code" [ dir=back ]
+"c compiler" -> "object code"
+
+// c++ compilation
+"cpp code" [ label="C++ code", shape="box" ]
+"cpp compiler" [ label="C++ compiler\n(g++,clang++..)" ]
+"user build" -> "cpp compiler"
+"cpp compiler" -> "cpp code" [ dir=back ]
+"cpp compiler" -> "object code"
 
 // cmake build
 "cmake-callers" -> "cmake build"
-"cmake build" -> "user compiler"
+"cmake build" -> "cpp compiler"
+"cmake build" -> "c compiler"
 
 // cmake callers analysis
-"cmake-callers" -> "Callers frontend"
+"cmake-callers" -> "callers frontend"
+"cmake-callers" -> "callers++ frontend"
+"cmake-callers" -> "frama-c++"
 
 // clang compilation
-"Clang object code" [ shape="box" ]
-"LLVM Optimizer & Code Generator" [ label="LLVM Optimizer\n& Code Generator" ]
-"scan-build" -> "Clang Compiler"
-"Clang Compiler" -> "src code"  [ dir=back ]
-"Clang Compiler" -> "LLVM Optimizer & Code Generator"
-"LLVM Optimizer & Code Generator" -> "Clang object code"
+"clang object code" [ label="Clang/LLVM object code", shape="box" ]
+"llvm" [ label="LLVM Optimizer\n& Code Generator" ]
+"llvm" -> "clang object code"
+
+// clang compilation of C code
+"clang AST" [ shape=box ]
+"scan-build" -> "clang compiler"
+"clang frontend" [ label="Clang frontend" ]
+"clang frontend" -> "c code" [ dir=back ]
+//"clang frontend" -> "clang AST"
+"clang AST" -> "clang frontend" [ dir=back ]
+"clang compiler" -> "clang frontend"
+"clang compiler" -> "clang AST"  [ dir=back ]
+"clang compiler" -> "llvm"
+
+// clang++ compilation of C++ code
+"scan-build" -> "clang++ compiler"
+"clang++ frontend" [ label="Clang++ frontend" ]
+"clang++ frontend" -> "cpp code" [ dir=back ]
+//"clang++ frontend" -> "clang AST"
+"clang AST" -> "clang++ frontend" [ dir=back ]
+"clang++ compiler" -> "clang++ frontend"
+"clang++ compiler" -> "clang AST"  [ dir=back ]
+"clang++ compiler" -> "llvm"
 
 // clang analysis
-"Clang analysis results" [ shape="box" ]
-"scan-build" -> "Clang Static Analyzer"
-"Clang Static Analyzer" -> "src code"  [ dir=back ]
-//"Clang Static Analyzer" -> "LLVM Optimizer\n& Code Generator"
-"Clang Static Analyzer" -> "Clang Checkers"
-"Clang Checkers" -> "Clang analysis results"
-//"Clang Static Analyzer" -> "Clang Compiler"
+"clang analysis results" [ shape="box" ]
+"scan-build" -> "clang static analyzer"
+"clang static analyzer" -> "clang checkers"
+"clang checkers" -> "clang analysis results"
+"clang checkers" -> "clang AST" [ dir=back ]
+
+// clang C code analysis
+"clang static analyzer" -> "clang frontend"
+
+// clang C++ code analysis
+"clang static analyzer" -> "clang++ frontend"
 
 // callers analysis
 "metadata json file" [ label="Callers metadata\njson file" ]
 "metadata json file" [ shape="box" ]
-"scan-build" -> "Callers frontend"
-"Callers frontend" -> "src code"  [ dir=back ]
-"Callers frontend" -> "metadata json file"
+
+// callers C code analysis
+"scan-callers" -> "callers frontend"
+"callers frontend" -> "clang frontend"
+"callers frontend" -> "metadata json file"
+
+// callers C++ code analysis
+"scan-callers" -> "callers++ frontend"
+"callers++ frontend" -> "clang++ frontend"
+"callers++ frontend" -> "metadata json file"
+
+// frama-c++
+"scan-callers" -> "frama-c++"
+"frama-c++" [ label="frama-c++" ]
+"frama-c++" -> "clang++ frontend"
+"frama-c++" -> "framaCIRGen"
+"frama-c++" -> "frama-clang"
+
+// frama-clang analysis
+//"scan-callers" -> "frama-clang"
+"cmake-callers" -> "frama-clang"
+"frama-clang" [ label="frama-clang" ]
+"framaCIRGen" [ label="framaCIRGen" ]
+//"fir" [ label="Frama-C Intermediate\nRepresentation", shape=box ]
+"fir" [ label="Frama-C IR", shape=box ]
+"cabs" [ label = "C Abstract", shape=box ]
+//"cil" [ label = "C Intermediate Language" ]
+"cil" [ label = "CIL", shape=box ]
+
+"clang AST" -> "framaCIRGen" 
+//"framaCIRGen" -> "fir"
+"fir" -> "framaCIRGen" [ dir=back ]
+"fir" -> "frama-clang"
+//"frama-clang" -> "cabs"
+"cabs" -> "frama-clang" [ dir=back ]
+"cabs" -> "frama-c"
+
+// security analysis plugins
+"fc security plugins" [ label="STANCE frama-c\nsecurity plugins" ]
+"fc security plugins" -> "VA"
+"fc security plugins" -> "VA_results" [ dir=back ]
+
+// frama-c value analysis
+"VA_results" [ shape=box ]
+"VA" [ label="Value Analysis" ]
+"VA_results" [ label="VA results" ]
+"VA" -> "frama-c" [ dir=back ]
+//"VA" -> "VA_results"
+"VA_results" -> "VA" [ dir=back ]
+"VA" -> "cil" [ dir=back ]
+
+// frama-c analysis
+"pp C code" [ shape=box ]
+"frama-c" [ label="frama-c" ]
+"frama-c" -> "c code" [ dir=back ]
+//"c code" -> "frama-c"
+"cil" -> "frama-c"
+"cil" -> "frama-c" [ dir=back ]
+//"frama-c" -> "pretty-printed c code" [ label="print" ]
+"frama-c" -> "pp C code" [ label="print" ]
+//"frama-c" -> "c code" [ label="print" ]
+
 }
 
 // Local Variables:

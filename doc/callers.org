@@ -1,0 +1,26 @@
+* Callers
+  Callers is a static analysis plugin extending the clang/LLVM compilation framework for enabling early syntactic-based security analysis on large-scale C/C++ software.
+** Aims
+   The initial goal of the Callers plugin is to enable early security risks assessments based on the analysis of function calls dependencies.
+
+   However, this plugin has been designed to be extensible and it could also in the future support other types of dependency like:
+   - data type dependencies (inheritence, composition...)
+   - control-flow dependencies (behavioral analysis based on sequence diagram generation)
+   - use of shared variables
+   - use of vulnerable system calls (related to specific CVEs)
+
+   The main idea behind the Callers plugin is to perform some kind of global static link edition of the whole software
+   in order to be able to capture the callers/callees relationships between each function.
+
+   Based on this information, the tool can generate differents instances of function callgraphs, depending on the end-user analysis focus.
+   Those callgraphs can also been further exploited to enable the verification of some global security properties on the software.
+
+** Principle
+   Function call dependencies can be analyzed at different granularity levels (function, file, directory, libraries, application).
+   
+** Design
+
+
+** Example
+   main()->
+** 

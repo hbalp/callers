@@ -14,6 +14,7 @@
 //#include <fstream>
 #include <iostream>
 #include <sstream>
+#include <unistd.h>
 #ifndef NOT_USE_BOOST_FILESYSTEM
 #include <boost/filesystem.hpp>
 #endif
@@ -27,18 +28,26 @@ extern std::string getCanonicalAbsolutePath(const std::string& path);
 CallersData::JsonFileWriter::JsonFileWriter(std::string jsonFileName)
   : fileName(jsonFileName), out()
 { 
-  std::cout << "Open file \"" << jsonFileName << "\" in write mode." << std::endl;
-  out.open(jsonFileName.c_str());
-  if(out.fail())
+  std::cout << "Try to open file \"" << jsonFileName << "\" in write mode..." << std::endl;
+  bool opened = false;
+  do
     {
-      std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
-      std::cerr << "Failed to open file \"" << fileName << "\" in write mode." << std::endl;
-      std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+      out.open(jsonFileName.c_str());
+      if(out.fail())
+	{
+	  std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+	  std::cerr << "WARNING: Failed to open file \"" << fileName << "\" in write mode." << std::endl;
+	  std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+	  exit(-1);
+	  //sleep(1);
+	}
+      else
+	{
+	  std::cout << "JSON output file \"" << fileName << "\" is now opened in write mode." << std::endl;
+	  opened = true;
+	}
     }
-  else
-    {
-      std::cerr << "JSON output file \"" << fileName << "\" is now opened in write mode." << std::endl;
-    }
+  while( opened == false );
 }
 
 CallersData::JsonFileWriter::~JsonFileWriter() 
@@ -50,22 +59,31 @@ CallersData::JsonFileWriter::~JsonFileWriter()
       std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
       std::cerr << "Failed to close file \"" << fileName << "\"." << std::endl;
       std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+      exit(2);
     }
   else
     {
-      std::cerr << "JSON output file \"" << fileName << "\" is now closed." << std::endl;
+      std::cout << "JSON output file \"" << fileName << "\" is now closed." << std::endl;
     }
 }
 
 /***************************************** class Dir ****************************************/
 
+CallersData::Dir::Dir()
+{}
+
 CallersData::Dir::Dir(std::string dir, std::string path)
   : dir(dir), 
     path(path),
     jsonfilename(path + "/" + dir + "/" + dir + ".dir.callers.gen.json")
-{}
+{
+  // files = new std::set<CallersData::File>;
+}
 
-CallersData::Dir::~Dir() {}
+CallersData::Dir::~Dir()
+{
+  //this->output_json_files();
+}
 
 std::string CallersData::Dir::fullPath()
 {
@@ -75,18 +93,62 @@ std::string CallersData::Dir::fullPath()
 
 void CallersData::Dir::add_file(std::string file)
 {
-  std::cout << "Register file \"" << file << "\" in directory \"" << this->fullPath() << "\"" << std::endl;
-  files.push_back(file);
+  std::cout << "Register file name \"" << file << "\" in directory \"" << this->fullPath() << "\"" << std::endl;
+  filenames.push_back(file);
 }
 
-void CallersData::Dir::output_json_desc()
+void CallersData::Dir::add_file(File *file)
+{
+  std::cout << "Register file path \"" << file->fullPath() << "\"" << std::endl;
+  files.insert(*file);
+}
+
+std::set<CallersData::File>::iterator CallersData::Dir::get_file(std::string filename, std::string dirpath)
+{
+  std::string filepath = dirpath + "/" + filename;
+  //std::cout << "Check whether the file \"" << filepath << "\" is already opened or not..." << std::endl;
+  std::set<CallersData::File>::iterator search_result;
+  CallersData::File searched_file(filename, dirpath);
+  search_result = files.find(searched_file);
+  if(search_result != files.end())
+    {
+      std::cout << "The file \"" << filepath << "\" is already opened." << std::endl;
+    }
+  else
+    {
+      //std::cout << "The file \"" << filepath << "\" is not yet opened." << std::endl;      
+      std::cout << "Tries to open and parse the file \"" << filepath << "\"..." << std::endl;
+      CallersData::File *file = new CallersData::File(filename, dirpath);
+      file->parse_json_file();
+      this->add_file(file);
+      search_result = files.find(searched_file);
+      if(search_result != files.end())
+	{
+	  std::cout << "The file \"" << filepath << "\" is well opened now !" << std::endl;
+	}
+    }
+  return search_result;
+}
+
+void CallersData::Dir::output_json_files()
+{
+  std::set<CallersData::File>::const_iterator f;  
+
+  for(f=files.begin(); f!=files.end(); ++f)
+    {
+      std::cout << "Edit file \"" << f->fullPath() << "\"..." << std::endl;
+      f->output_json_desc();
+    }
+}
+
+void CallersData::Dir::output_json_dir()
 {
   CallersData::JsonFileWriter js(this->jsonfilename);
   js.out << "{\"dir\":\"" << dir << "\",\"path\":\"" << path << "\",\"files\":[";
 
   std::list<std::string>::const_iterator i, last;
-  last = files.empty() ? files.end() : --files.end();
-  for(i=files.begin(); i!=files.end(); ++i)
+  last = filenames.empty() ? filenames.end() : --filenames.end();
+  for(i=filenames.begin(); i!=filenames.end(); ++i)
     {
       if(i != last)
 	{
@@ -107,9 +169,12 @@ CallersData::File::File(std::string file, std::string path)
   : file(file),
     path(path),
     jsonfilename(path + "/" + file + ".file.callers.gen.json")
-{}
+{
+  defined = new std::set<CallersData::Fct>;
+  calls = new std::set<CallersData::FctCall>;
+}
 
-void CallersData::File::parse_json_file()
+void CallersData::File::parse_json_file() const
 {
   /* Check whether the related json file does already exists or not. */
   //std::string jsonfilename = this->js.fileName;
@@ -117,7 +182,11 @@ void CallersData::File::parse_json_file()
   FILE* pFile = fopen(jsonfilename.c_str(), "rb");
   // Always check to see if file opening succeeded
   if (pFile == NULL)
-    std::cout << "WARNING: Could not open file \"" << jsonfilename << "\"\n";
+    {
+      //std::cout << "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww" << std::endl;
+      std::cout << "WARNING: do not parse json file \"" << jsonfilename << "\" which doesn't exists yet !" << std::endl;
+      //std::cout << "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww" << std::endl;
+    }
   else
     // Parse symbol definitions
     {
@@ -161,50 +230,57 @@ void CallersData::File::parse_json_file()
 	}
       else
 	{
-	  std::cout << "WARNING: Empty or Malformed file \"" << jsonfilename << "\"\n";
+	  std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+	  std::cerr << "ERROR: Empty or Malformed file \"" << jsonfilename << "\"\n" << std::endl;
+	  std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+	  exit(3);
 	}
     }
 }
 
+CallersData::File::~File()
+{
+  //this->output_json_desc();
+  delete defined;
+  delete calls;
+}
 
-CallersData::File::~File() {}
-
-std::string CallersData::File::fullPath()
+std::string CallersData::File::fullPath() const
 {
   std::string fullPath = path + "/" + file;
   return fullPath;
 }
 
-void CallersData::File::add_defined_function(CallersData::Fct* fct)
+void CallersData::File::add_defined_function(CallersData::Fct* fct) const
 {
   std::cout << "Register function \"" << fct->sign
 	    << "\" defined in file \"" << this->fullPath() << ":" 
 	    << fct->line << "\"" << std::endl;
-  defined.insert(*fct);
+  defined->insert(*fct);
 }
 
-void CallersData::File::add_defined_function(std::string sign, std::string filepath, int line)
+void CallersData::File::add_defined_function(std::string sign, std::string filepath, int line) const
 {
   std::cout << "Create function \"" << sign
 	    << "\" located in file \"" << this->fullPath() << ":" << line << "\"" << std::endl;
   Fct *fct = new Fct(sign, filepath, line);
-  defined.insert(*fct);
+  defined->insert(*fct);
 }
 
 void
-CallersData::File::add_function_call(CallersData::FctCall* fc)
+CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir *files) const
 {
-  std::cerr << "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii" << std::endl; 
+  std::cout << "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii" << std::endl; 
   std::cout << "Register function call from caller \"" << fc->caller_file << ":" << fc->caller_sign
             << "\" to callee \"" << fc->callee_decl_file << ":" << fc->callee_sign
 	    << "\" in file \"" << this->fullPath() << "\"" << std::endl;
-  std::cerr << "caller sign: " << fc->caller_sign << std::endl;
-  std::cerr << "callee sign: " << fc->callee_sign << std::endl;
-  std::cerr << "current file: " << this->fullPath() << std::endl;
-  std::cerr << "caller def pos: " << fc->caller_file << ":" << fc->caller_line << std::endl;
-  std::cerr << "callee decl pos: " << fc->callee_decl_file << ":" << fc->callee_decl_line << std::endl;
+  std::cout << "caller sign: " << fc->caller_sign << std::endl;
+  std::cout << "callee sign: " << fc->callee_sign << std::endl;
+  std::cout << "current file: " << this->fullPath() << std::endl;
+  std::cout << "caller def pos: " << fc->caller_file << ":" << fc->caller_line << std::endl;
+  std::cout << "callee decl pos: " << fc->callee_decl_file << ":" << fc->callee_decl_line << std::endl;
 
-  calls.insert(*fc);
+  calls->insert(*fc);
 
   std::set<CallersData::Fct>::const_iterator caller, callee;
 
@@ -213,30 +289,30 @@ CallersData::File::add_function_call(CallersData::FctCall* fc)
 
     // the caller function belongs to the current file
     {
-      std::cerr << "The caller function belongs to the current file" << std::endl;
+      std::cout << "The caller function belongs to the current file" << std::endl;
 
       // adds the caller function to the defined functions of the current file
       add_defined_function(fc->caller_sign, fc->caller_file, fc->caller_line);
       // get a reference to the related defined function
       CallersData::Fct caller_fct(fc->caller_sign, fc->caller_file, fc->caller_line);
-      caller = defined.find(caller_fct);
+      caller = defined->find(caller_fct);
       // ensure caller has really been found
-      assert(caller != defined.end());
+      assert(caller != defined->end());
 
       // Check whether the callee function belongs to the current file.
       if( fc->callee_decl_file == this->fullPath() )
 
 	// the callee function belongs to the current file
 	{
-	  std::cerr << "The callee function belongs to the current file" << std::endl;
+	  std::cout << "The callee function belongs to the current file" << std::endl;
 
 	  // adds the callee function to the defined functions of the current file
 	  add_defined_function(fc->callee_sign, fc->callee_decl_file, fc->callee_decl_line);
 	  // get a reference to the related defined function
 	  CallersData::Fct callee_fct(fc->callee_sign, fc->callee_decl_file, fc->callee_decl_line);
-	  callee = defined.find(callee_fct);
+	  callee = defined->find(callee_fct);
 	  // ensure callee has really been found
-	  assert(callee != defined.end());
+	  assert(callee != defined->end());
 
 	  // add local caller to local callee
 	  callee->add_local_caller(fc->caller_sign);
@@ -247,7 +323,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc)
       else
 	// the callee function is defined externally
 	{
-	  std::cerr << "The callee function is defined externally" << std::endl;
+	  std::cout << "The callee function is defined externally" << std::endl;
 
 	  // add the external callee to the local caller
 	  if(fc->is_builtin == true)
@@ -264,38 +340,38 @@ CallersData::File::add_function_call(CallersData::FctCall* fc)
   else
     // the caller function does not belong to the current file
     {
-      std::cerr << "The caller function does not belong to the current file" << std::endl;
+      std::cout << "The caller function does not belong to the current file" << std::endl;
 
       // check first whether a json file is already present for the caller function
       // if true, parse it and add the defined function only when necessary
       // if false, create the caller json file and add the defined function
-
       boost::filesystem::path p(fc->caller_file);
       std::string caller_basename = p.filename().string();
       std::string caller_dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-      CallersData::File caller_file(caller_basename, caller_dirpath);
-      caller_file.parse_json_file();
+      std::set<CallersData::File>::iterator caller_file = files->get_file(caller_basename, caller_dirpath);
+      // CallersData::File caller_file(caller_basename, caller_dirpath);
+      // caller_file.parse_json_file();
       CallersData::Fct caller_def( fc->caller_sign, fc->caller_file, fc->caller_line);
-      caller_file.add_defined_function(&caller_def);
+      caller_file->add_defined_function(&caller_def);
       // get a reference to the related defined function
-      caller = caller_file.defined.find(caller_def);
+      caller = caller_file->defined->find(caller_def);
       // ensure caller has really been found
-      assert(caller != caller_file.defined.end());
+      assert(caller != caller_file->defined->end());
 
       // check whether the callee function belongs to the current file or not
       if( fc->callee_decl_file == this->fullPath() )
 
 	// the callee function belongs to the current file
 	{
-	  std::cerr << "The callee function belongs to the current file" << std::endl;
+	  std::cout << "The callee function belongs to the current file" << std::endl;
 
 	  // adds the callee function to the defined functions of the current file
 	  add_defined_function(fc->callee_sign, fc->callee_decl_file, fc->callee_decl_line);
 	  // get a reference to the related defined function
 	  CallersData::Fct callee_fct(fc->callee_sign, fc->callee_decl_file, fc->callee_decl_line);
-	  callee = defined.find(callee_fct);
+	  callee = defined->find(callee_fct);
 	  // ensure callee has really been found
-	  assert(callee != defined.end());
+	  assert(callee != defined->end());
 
 	  // add the external caller to the local callee
 	  callee->add_external_caller(fc->caller_sign, fc->caller_file);
@@ -306,28 +382,28 @@ CallersData::File::add_function_call(CallersData::FctCall* fc)
       else
 	// the callee function is defined externally as the caller !!!
 	{
-	  std::cerr << "The callee function is defined externally as the caller !!!" << std::endl;
+	  std::cout << "The callee function is defined externally as the caller !!!" << std::endl;
 
 	  // check first whether a json file is already present for the callee function
 	  // if true, parse it and add the defined function only when necessary
 	  // if false, create the callee json file and add the defined function
-	  
 	  boost::filesystem::path p(fc->callee_decl_file);
 	  std::string callee_basename = p.filename().string();
 	  std::string callee_dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-	  CallersData::File callee_file(callee_basename, callee_dirpath);
-	  callee_file.parse_json_file();
+	  std::set<CallersData::File>::iterator callee_file = files->get_file(callee_basename, callee_dirpath);
+	  //CallersData::File callee_file(callee_basename, callee_dirpath);
+	  //callee_file.parse_json_file();
 	  CallersData::Fct callee_def( fc->callee_sign, fc->callee_decl_file, fc->callee_decl_line);
-	  callee_file.add_defined_function(&callee_def);
+	  callee_file->add_defined_function(&callee_def);
 	  // get a reference to the related defined function
-	  callee = callee_file.defined.find(callee_def);
+	  callee = callee_file->defined->find(callee_def);
 	  // ensure callee has really been found
-	  assert(callee != callee_file.defined.end());
+	  assert(callee != callee_file->defined->end());
 
 	  // check whether the caller and callee functions are collocated or not
 	  if( fc->caller_file == fc->callee_decl_file )
 	    {
-	      std::cerr << "The caller and callee functions are collocated in the same file" << std::endl;
+	      std::cout << "The caller and callee functions are collocated in the same file" << std::endl;
 
 	      // add the local caller to the local callee
 	      callee->add_local_caller(fc->caller_sign);
@@ -337,7 +413,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc)
 	    }
 	  else
 	    {
-	      std::cerr << "The caller and callee functions are located in different files" << std::endl;
+	      std::cout << "The caller and callee functions are located in different files" << std::endl;
 	      
 	      // add the external caller to the external callee
 	      callee->add_external_caller(fc->caller_sign, fc->caller_file);
@@ -346,22 +422,22 @@ CallersData::File::add_function_call(CallersData::FctCall* fc)
 	      caller->add_external_callee(fc->callee_sign, fc->callee_decl_file, fc->callee_decl_line);
 	    }
 
-	  callee_file.output_json_desc();
+	  //callee_file->output_json_desc();
 	}
       
-      caller_file.output_json_desc();
+      //caller_file->output_json_desc();
     }
-  std::cerr << "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii" << std::endl;
+  std::cout << "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii" << std::endl;
 }
 
-void CallersData::File::output_json_desc()
+void CallersData::File::output_json_desc() const
 {
   CallersData::JsonFileWriter js(this->jsonfilename);
   js.out << "{\"file\":\"" << file << "\",\"path\":\"" << path << "\",\"defined\":[";
   
   std::set<Fct>::const_iterator i, last;
-  last = defined.empty() ? defined.end() : --defined.end();
-  for(i=defined.begin(); i!=defined.end(); ++i)
+  last = defined->empty() ? defined->end() : --defined->end();
+  for(i=defined->begin(); i!=defined->end(); ++i)
     {
       if(i != last)
 	{
@@ -375,6 +451,11 @@ void CallersData::File::output_json_desc()
     }
 
   js.out << "]}" << std::endl;
+}
+
+bool CallersData::operator< (const CallersData::File& file1, const CallersData::File& file2)
+{
+  return file1.fullPath() < file2.fullPath();
 }
 
 /***************************************** class Fct ****************************************/

@@ -68,8 +68,8 @@ else
     # define the analysis report files
     dirname=`dirname ${file}`
     filename=`basename ${file}`
-    launch_script=".${filename}.gen.analysis.launch.c++-analyzer.sh"
-    #launch_script=".tmp.gen.analysis.launch.c++-analyzer.sh"
+    #launch_script=".${filename}.gen.analysis.launch.c++-analyzer.sh"
+    launch_script=".tmp.gen.analysis.launch.c++-analyzer.sh"
     #analysis_report_dir="${dirname}/${analysis_dir}/${analysis_type}"
     #analysis_report_dir=$dirname
     analysis_report_dir=$PWD
@@ -84,7 +84,8 @@ else
 
     # launch the analysis
     echo "launch the ${analysis_type} analysis..."
-    source ${launch_script} > ${file_analysis_stdout} 2>> ${file_analysis_stderr}
+    #source ${launch_script} > ${file_analysis_stdout} 2>> ${file_analysis_stderr}
+    source ${launch_script} > /dev/null 2>> ${file_analysis_stderr}
 
     if [ $? -ne 0 ]; then
 	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" > /dev/stderr

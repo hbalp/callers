@@ -817,7 +817,7 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
      }
    CallersData::FctCall fc(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
 			   callee_sign, callee_filepath, callee_filepos);
-   jsonFile.add_function_call(&fc);
+   currentJsonFile.add_function_call(&fc, &otherJsonFiles);
 
    return true;
 }
@@ -841,7 +841,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
 	}
       CallersData::FctCall fc(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
 			      callee_sign, callee_filepath, callee_filepos);
-      jsonFile.add_function_call(&fc);
+      currentJsonFile.add_function_call(&fc, &otherJsonFiles);
       return true;
    };
    const auto* recordDecl = deleteExpr->getType()->getPointeeCXXRecordDecl();
@@ -863,7 +863,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
 	   }
 	 CallersData::FctCall fc(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
 				 callee_sign, callee_filepath, callee_filepos);
-	 jsonFile.add_function_call(&fc);
+	 currentJsonFile.add_function_call(&fc, &otherJsonFiles);
       };
    };
    return true;
@@ -890,17 +890,20 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
 	}
       CallersData::FctCall fc(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
 			      callee_sign, callee_filepath, callee_filepos);
-      jsonFile.add_function_call(&fc);
+      currentJsonFile.add_function_call(&fc, &otherJsonFiles);
     }
   else
     {
+      std::cout << "WARNING VisitCXXNewExpr: implicit operator new, replace it by an explicit call to \"void *malloc(size_t)\"" << std::endl;
       std::string callee_sign = "void *malloc(size_t)";
       osOut << inputFile << ": " << printParentFunction() << " -> " << callee_sign << '\n';
-      std::string callee_filepath = "unknownFilePath";
-      int callee_filepos = -1;
+      //std::string callee_filepath = "unknownFilePath";
+      std::string callee_filepath = "/usr/include/malloc.h";
+      //int callee_filepos = -1;
+      int callee_filepos = 51;
       CallersData::FctCall fc(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
 			      callee_sign, callee_filepath, callee_filepos);
-      jsonFile.add_function_call(&fc);
+      currentJsonFile.add_function_call(&fc, &otherJsonFiles);
     }
    return true;
 }
@@ -914,8 +917,8 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
       #if 1
       if (builtinID > 0)
 	{
-	  #if 1
-	  std::string builtinName, headerName = "noLibBuiltin";
+#if 1
+	  std::string builtinName, headerName = "notFoundBuiltinImpl";
 #define BUILTIN(ID, TYPE, ATTRS) case clang::Builtin::BI##ID: builtinName = #ID; break;
 	  // TODO: tries to get the header file absolute path. This doesn't work with the getCanonicalAbsolutePath() function
 	  // which concatenates the input path or filename with the current working path; and not the path to the system repository
@@ -925,24 +928,51 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	  switch( builtinID) {
 #include "clang/Basic/Builtins.def"
 	  };
-	  if(headerName.length() > 0) {
-	    clang::SourceLocation FilenameLoc;
-	    llvm::StringRef Filename(headerName);
-	    bool isAngled = true;
-	    const clang::DirectoryLookup * FromDir = NULL;
-	    const clang::FileID FromFileID = ciCompilerInstance.getSourceManager().getMainFileID();
-	    const clang::FileEntry * FromFile = ciCompilerInstance.getSourceManager().getFileEntryForID(FromFileID);
-	    const clang::DirectoryLookup * CurDir = NULL;
-	    llvm::SmallVectorImpl<char>* SearchPath = NULL;
-	    llvm::SmallVectorImpl<char>* RelativePath = NULL;
-	    clang::ModuleMap::KnownHeader *SuggestedModule = NULL;
-	    bool skipPath = false;
-	    const clang::FileEntry * result = ciCompilerInstance.getPreprocessor().LookupFile(FilenameLoc, Filename, isAngled, FromDir, FromFile, CurDir, SearchPath, RelativePath, SuggestedModule, skipPath);
-	  if(result)
-	    headerName = result->getName();
-	  }
+
+	  std::string builtinFile = printFilePath(fd->getSourceRange());
 	  int builtinPos = printLine(fd->getSourceRange());
-	  osOut << inputFile << ":builtin: " << printParentFunction() << " -> " << builtinName << ", defined in: " << headerName << ":" << builtinPos << '\n';
+	  std::cout << "DEBUG: builtin name: \"" << builtinName << "\"" << std::endl;
+	  std::cout << "DEBUG: builtin decl location: " << builtinFile << ":" << builtinPos << std::endl;
+	  std::cout << "DEBUG: builtin def location (headerName): " << headerName << std::endl;
+	  osOut << inputFile << ":builtin: " << printParentFunction() << " -> " << builtinName << ", defined in: " << headerName << ":" << builtinPos;
+	  if(headerName == "notFoundBuiltinImpl")
+	    {
+	      // std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+	      // std::cerr << "ERROR: visitor.cpp : not found implem of builtin: \"" << builtinName << "\", headerName: \"" << headerName << "\"" << std::endl;
+	      // std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+	      //std::cout << "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" << std::endl;
+	      std::cout << "WARNING: visitor.cpp : not found implementation of builtin: \"" << builtinName << "\", headerName: \"" << headerName << "\"" << std::endl;
+	      //std::cout << "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" << std::endl;
+	      headerName = builtinFile;
+	      // CallersData::FctCall fc = CallersData::FctCall(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
+	      // 						     builtinName, printFilePath(fd->getSourceRange()), builtinPos);
+	      // fc.is_builtin = true;
+	      // currentJsonFile.add_function_call(&fc, &otherJsonFiles);
+	      //exit(5);
+	    }
+	  else
+            {
+              // Tries to get the full path of the builtin implementation file
+              //if(headerName.length() > 0) 
+
+	      clang::SourceLocation FilenameLoc;
+	      llvm::StringRef Filename(headerName);
+	      bool isAngled = true;
+	      const clang::DirectoryLookup * FromDir = NULL;
+	      const clang::FileID FromFileID = ciCompilerInstance.getSourceManager().getMainFileID();
+	      const clang::FileEntry * FromFile = ciCompilerInstance.getSourceManager().getFileEntryForID(FromFileID);
+	      const clang::DirectoryLookup * CurDir = NULL;
+	      llvm::SmallVectorImpl<char>* SearchPath = NULL;
+	      llvm::SmallVectorImpl<char>* RelativePath = NULL;
+	      clang::ModuleMap::KnownHeader *SuggestedModule = NULL;
+	      bool skipPath = false;
+	      const clang::FileEntry * result = ciCompilerInstance.getPreprocessor().LookupFile(FilenameLoc, Filename, isAngled, FromDir, FromFile, CurDir, SearchPath, RelativePath, SuggestedModule, skipPath);
+	      if(result)
+		headerName = result->getName();
+	    }
+
+	  std::cout << "DEBUG: builtin location (headerName): " << headerName << std::endl;
+ 
 	  // check whether a json file is already present for the builtin function
 	  // if true, parse it and add the defined function only when necessary
 	  // if false, create this json file and add the defined function
@@ -950,28 +980,18 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	    boost::filesystem::path p(headerName);
 	    std::string basename = p.filename().string();
 	    std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-	    CallersData::File file(basename, dirpath);
-	    file.parse_json_file();
+	    std::set<CallersData::File>::iterator file = otherJsonFiles.get_file(basename, dirpath);
+	    //CallersData::File file(basename, dirpath);
+	    //file.parse_json_file();
 	    CallersData::Fct fct(builtinName, headerName, builtinPos);
-	    file.add_defined_function(&fct);
-	    file.output_json_desc();
+	    file->add_defined_function(&fct);
+	    //file.output_json_desc();
+	    CallersData::FctCall fc = CallersData::FctCall(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
+							   builtinName, headerName, builtinPos);
+	    fc.is_builtin = true;
+	    currentJsonFile.add_function_call(&fc, &otherJsonFiles);
 	  }
-	  if(headerName == "noLibBuiltin" )
-	    {
-	      std::cerr << "ERROR: visitor.cpp : unsupported builtin: \"" << builtinName << "\", headerName: \"" << headerName << "\"" << std::endl;
-	      // CallersData::FctCall fc = CallersData::FctCall(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
-	      // 						     builtinName, printFilePath(fd->getSourceRange()), builtinPos);
-	      // fc.is_builtin = true;
-	      // jsonFile.add_function_call(&fc);
-	    }
-	  else
-	    {
-	      CallersData::FctCall fc = CallersData::FctCall(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
-							     builtinName, headerName, builtinPos);
-	      fc.is_builtin = true;
-	      jsonFile.add_function_call(&fc);
-	    }
-	  #endif
+#endif
 	  return true;
 	}
       #else
@@ -990,7 +1010,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	}
       CallersData::FctCall fc(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
 			      calleeName, callee_filepath, callee_filepos);
-      jsonFile.add_function_call(&fc);
+      currentJsonFile.add_function_call(&fc, &otherJsonFiles);
       return true;
    }
 
@@ -1152,10 +1172,10 @@ CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
             << " at " << fct_filepath << ':' << fct_line << '\n';
       CallersData::Fct fct(writeFunction(*Decl), fct_filepath, fct_line);
       // check whether the function is really defined in this file
-      if(fct_filepath == jsonFile.fullPath())
+      if(fct_filepath == currentJsonFile.fullPath())
 	// if true, add the function to the current json file
 	{
-	  jsonFile.add_defined_function(&fct);
+	  currentJsonFile.add_defined_function(&fct);
 	}
       else
 	// otherwise, check whether a json file is already present for the visited function
@@ -1165,10 +1185,11 @@ CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
 	  boost::filesystem::path p(fct_filepath);
 	  std::string basename = p.filename().string();
 	  std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-	  CallersData::File file(basename, dirpath);
-	  file.parse_json_file();
-	  file.add_defined_function(&fct);
-	  file.output_json_desc();
+	  std::set<CallersData::File>::iterator file = otherJsonFiles.get_file(basename, dirpath);
+	  //CallersData::File file(basename, dirpath);
+	  //file.parse_json_file();
+	  file->add_defined_function(&fct);
+	  //file.output_json_desc();
 	}
    };
    return true;

@@ -35,15 +35,15 @@ CallersData::JsonFileWriter::JsonFileWriter(std::string jsonFileName)
       out.open(jsonFileName.c_str());
       if(out.fail())
 	{
-	  //std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+	  std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
 	  std::cerr << "WARNING: Failed to open file \"" << fileName << "\" in write mode." << std::endl;
-	  //std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
-	  //exit(-1);
-	  sleep(1);
+	  std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+	  exit(-1);
+	  //sleep(1);
 	}
       else
 	{
-	  std::cerr << "JSON output file \"" << fileName << "\" is now opened in write mode." << std::endl;
+	  std::cout << "JSON output file \"" << fileName << "\" is now opened in write mode." << std::endl;
 	  opened = true;
 	}
     }
@@ -63,7 +63,7 @@ CallersData::JsonFileWriter::~JsonFileWriter()
     }
   else
     {
-      std::cerr << "JSON output file \"" << fileName << "\" is now closed." << std::endl;
+      std::cout << "JSON output file \"" << fileName << "\" is now closed." << std::endl;
     }
 }
 

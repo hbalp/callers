@@ -266,7 +266,7 @@ function launch_clang_c ()
     clang_c=`which clang 2> /dev/null`
 
     # add some options when required
-    clang_c_build_options="-I. -I.."
+    clang_c_build_options="-I. -I.. -c"
     #clang_c_ast_options="-I. -I.. -Xclang -ast-dump -fsyntax-only --disable-extern-template"
     clang_c_ast_options="-I. -I.. -Xclang -ast-dump -fsyntax-only "
 

@@ -931,18 +931,18 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 
 	  std::string builtinFile = printFilePath(fd->getSourceRange());
 	  int builtinPos = printLine(fd->getSourceRange());
-	  std::cerr << "DEBUG: builtin name: \"" << builtinName << "\"" << std::endl;
-	  std::cerr << "DEBUG: builtin decl location: " << builtinFile << ":" << builtinPos << std::endl;
-	  std::cerr << "DEBUG: builtin def location (headerName): " << headerName << std::endl;
+	  std::cout << "DEBUG: builtin name: \"" << builtinName << "\"" << std::endl;
+	  std::cout << "DEBUG: builtin decl location: " << builtinFile << ":" << builtinPos << std::endl;
+	  std::cout << "DEBUG: builtin def location (headerName): " << headerName << std::endl;
 	  osOut << inputFile << ":builtin: " << printParentFunction() << " -> " << builtinName << ", defined in: " << headerName << ":" << builtinPos;
 	  if(headerName == "notFoundBuiltinImpl")
 	    {
 	      // std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
 	      // std::cerr << "ERROR: visitor.cpp : not found implem of builtin: \"" << builtinName << "\", headerName: \"" << headerName << "\"" << std::endl;
 	      // std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
-	      std::cerr << "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" << std::endl;
-	      std::cerr << "WARNING: visitor.cpp : not found implemenation of builtin: \"" << builtinName << "\", headerName: \"" << headerName << "\"" << std::endl;
-	      std::cerr << "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" << std::endl;
+	      //std::cout << "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" << std::endl;
+	      std::cout << "WARNING: visitor.cpp : not found implementation of builtin: \"" << builtinName << "\", headerName: \"" << headerName << "\"" << std::endl;
+	      //std::cout << "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" << std::endl;
 	      headerName = builtinFile;
 	      // CallersData::FctCall fc = CallersData::FctCall(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
 	      // 						     builtinName, printFilePath(fd->getSourceRange()), builtinPos);
@@ -971,7 +971,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 		headerName = result->getName();
 	    }
 
-	  std::cerr << "DEBUG: builtin location (headerName): " << headerName << std::endl;
+	  std::cout << "DEBUG: builtin location (headerName): " << headerName << std::endl;
  
 	  // check whether a json file is already present for the builtin function
 	  // if true, parse it and add the defined function only when necessary

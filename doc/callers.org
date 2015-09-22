@@ -46,14 +46,15 @@ The Callers plug-in
 ** TODO Implementation [0/3]
    Describe the internals of the plug-in
 *** TODO architecture of the plugin
-    #+BEGIN_SRC dot :tangle callers.frontend.internals.gen.dot
+**** big picture of clang, callers and frama-C++ plugins		:all:
+    #+BEGIN_SRC dot :tangle callers.frama-c++.launcher.gen.dot
 digraph "Callers integration with Clang/LLVM " 
 {
 
 "scan-build" [ label="clang scan-build" ]
-"scan-callers" [ label="STANCE scan-callers" ]
-"cmake-callers" [ label="STANCE cmake-callers" ]
-"scan-callers" -> "scan-build" [ label="extends" ]
+"scan-callers" [ label="STANCE scan-callers\nbash script", color=green ]
+"cmake-callers" [ label="STANCE cmake-callers\nbash script", color=green ]
+"scan-callers" -> "scan-build" [ label="extends", color=green ]
 
 // user build
 "user build" [ label="custom build\n(autoconf, cmake..)" ]
@@ -77,14 +78,17 @@ digraph "Callers integration with Clang/LLVM "
 "cpp compiler" -> "object code"
 
 // cmake build
-"cmake-callers" -> "cmake build"
+"cmake-callers" -> "cmake build" [ color=green ]
+"compile_commands" [ label="compile_commands.json", shape=box ]
 "cmake build" -> "cpp compiler"
 "cmake build" -> "c compiler"
+"cmake build" -> "compile_commands"[ dir=back, color=green ]
+
+"cmake-callers" -> "compile_commands" [ dir=back, color=green ]
 
 // cmake callers analysis
-"cmake-callers" -> "callers frontend"
-"cmake-callers" -> "callers++ frontend"
-"cmake-callers" -> "frama-c++"
+"cmake-callers" -> "callers frontend" [ color=green ]
+"cmake-callers" -> "callers++ frontend" [ color=green ]
 
 // clang compilation
 "clang object code" [ label="Clang/LLVM object code", shape="box" ]
@@ -108,7 +112,6 @@ digraph "Callers integration with Clang/LLVM "
 "scan-build" -> "clang++ compiler"
 "clang++ frontend" [ label="Clang++ frontend" ]
 "clang++ frontend" -> "cpp code" [ dir=back ]
-//"clang++ frontend" -> "clang AST"
 "clang AST" -> "clang++ frontend" [ dir=back ]
 "clang++ compiler" -> "clang++ frontend"
 "clang++ compiler" -> "clang AST"  [ dir=back ]
@@ -129,53 +132,64 @@ digraph "Callers integration with Clang/LLVM "
 
 // callers analysis
 "metadata json file" [ label="Callers metadata\njson files" ]
-"metadata json file" [ shape="box" ]
+"metadata json file" [ shape="box", color=green ]
 
 // callers C code analysis
-"scan-callers" -> "callers frontend"
-"callers frontend" -> "clang frontend"
-"callers frontend" -> "metadata json file"
+"callers frontend" [ color=green, label="Callers frontend\n(C++)" ]
+"callers frontend" -> "clang frontend" [ color=green ]
+"callers frontend" -> "clang AST" [ dir=back, color=green ]
+"callers frontend" -> "metadata json file" [ color=green ]
 
 // callers C++ code analysis
-"scan-callers" -> "callers++ frontend"
-"callers++ frontend" -> "clang++ frontend"
-"callers++ frontend" -> "metadata json file"
+"callers++ frontend" [ color=green, label="Callers++ frontend\n(C++)" ]
+"callers++ frontend" -> "clang++ frontend" [ color=green ]
+"callers++ frontend" -> "clang AST" [ dir=back, color=green ]
+"callers++ frontend" -> "metadata json file" [ color=green ]
 
 // callers backends
-"metadata json file" -> "Callers backends"
-"user config" -> "Callers backends"
-"Callers backends" -> "function callgraphs"
+"analysis goals" [ label="analysis goals", shape=box, color=green ]
+"user config" [ label="user analysis\nbash script", shape=box, color=green ]
+"analysis goals" -> "user config" [ style=dashed, label=manual, color=green ]
+"analysis goals" -> "function callgraphs" [ style=dashed, label="manual", dir=back, color=green ]
+"function callgraphs" [ label="function callgraphs\n.dot files", shape=box, color=green ]
+"callers backends" [ label="Callers backends\n(OCAML)", color="green" ]
+"metadata json file" -> "callers backends" [ color=green ]
+"user config" -> "callers backends" [ color=green ]
+"callers backends" -> "function callgraphs" [ color=green ]
 
 // frama-c++
-"scan-callers" -> "frama-c++"
-"frama-c++" [ label="frama-c++" ]
-"frama-c++" -> "clang++ frontend"
-"frama-c++" -> "framaCIRGen"
-"frama-c++" -> "frama-clang"
+"scan-callers" -> "frama-c++" [ color=green ]
+"frama-c++" [ label="frama-c++", color=blue ]
+"frama-c++" -> "clang++ frontend" [ color=blue ]
+"frama-c++" -> "framaCIRGen" [ color=blue ]
+"frama-c++" -> "frama-clang" [ color=blue ]
 
 // frama-clang analysis
 //"scan-callers" -> "frama-clang"
-"cmake-callers" -> "frama-clang"
-"frama-clang" [ label="frama-clang" ]
-"framaCIRGen" [ label="framaCIRGen" ]
+"cmake-callers" -> "frama-clang" [ color=green ]
+"frama-clang" [ label="frama-clang\n(OCAML)", color=blue ]
+"framaCIRGen" [ label="framaCIRGen\n(C++)", color=blue ]
 //"fir" [ label="Frama-C Intermediate\nRepresentation", shape=box ]
-"fir" [ label="Frama-C IR", shape=box ]
-"cabs" [ label = "C Abstract", shape=box ]
+"fir" [ label="Frama-C IR", shape=box, color=blue ]
+"cabs" [ label = "C Abstract", shape=box, color=blue ]
 //"cil" [ label = "C Intermediate Language" ]
 "cil" [ label = "CIL", shape=box ]
 
-"clang AST" -> "framaCIRGen" 
+"clang AST" -> "framaCIRGen" [ color=blue ]
 //"framaCIRGen" -> "fir"
-"fir" -> "framaCIRGen" [ dir=back ]
-"fir" -> "frama-clang"
-//"frama-clang" -> "cabs"
-"cabs" -> "frama-clang" [ dir=back ]
-"cabs" -> "frama-c"
+"fir" -> "framaCIRGen" [ dir=back, color=blue ]
+"fir" -> "frama-clang" [ color=blue ]
+"frama-clang" -> "cabs" [ color=blue ]
+//"cabs" -> "frama-clang" [ dir=back, color=blue ]
+"cabs" -> "frama-c" [ color=blue ]
+//"cabs" -> "frama-c" [ dir=back ]
 
 // security analysis plugins
-"fc security plugins" [ label="STANCE frama-c\nsecurity plugins" ]
-"fc security plugins" -> "VA"
-"fc security plugins" -> "VA_results" [ dir=back ]
+"scan-callers" -> "fc security plugins" [ color="blue" ]
+"cmake-callers" -> "fc security plugins" [ color="blue" ]
+"fc security plugins" [ label="STANCE frama-c\nsecurity plugins", color=blue ]
+"fc security plugins" -> "VA" [ color=blue ]
+"fc security plugins" -> "VA_results" [ dir=back, color=blue ]
 
 // frama-c value analysis
 "VA_results" [ shape=box ]
@@ -200,9 +214,201 @@ digraph "Callers integration with Clang/LLVM "
 }
 
 // Local Variables:
-// compile-command: "dot -Tpng callers.frontend.internals.gen.dot > callers.frontend.internals.gen.png"
+// compile-command: "dot -Tpng callers.frama-c++.launcher.gen.dot > callers.frama-c++.launcher.gen.png"
 // End:
-    #+END_SRC
+ 
+   #+END_SRC
+**** use of the Callers plugin with the cmake build 		      :cmake:
+    #+BEGIN_SRC dot :tangle callers.cmake.gen.dot
+digraph "Callers integration with Clang/LLVM " 
+{
+"cmake-callers" [ label="STANCE cmake-callers\nbash script", color=green ]
+
+// compilation
+"object code" [ shape="box" ]
+
+// c compilation
+"c code" [ label="C code", shape="box" ]
+"c compiler" [ label="C compiler\n(gcc, clang..)" ]
+"c compiler" -> "c code" [ dir=back ]
+"c compiler" -> "object code"
+
+// c++ compilation
+"cpp code" [ label="C++ code", shape="box" ]
+"cpp compiler" [ label="C++ compiler\n(g++,clang++..)" ]
+"cpp compiler" -> "cpp code" [ dir=back ]
+"cpp compiler" -> "object code"
+
+// cmake build
+"cmake-callers" -> "cmake build" [ color=green ]
+"compile_commands" [ label="compile_commands.json", shape=box ]
+"cmake build" -> "cpp compiler"
+"cmake build" -> "c compiler"
+"cmake build" -> "compile_commands"
+
+"cmake-callers" -> "compile_commands" [ dir=back, color=green ]
+
+// cmake callers analysis
+"cmake-callers" -> "callers frontend" [ color=green ]
+"cmake-callers" -> "callers++ frontend" [ color=green ]
+
+// clang compilation
+
+// clang compilation of C code
+"clang AST" [ shape=box ]
+"clang frontend" [ label="Clang frontend" ]
+"clang frontend" -> "c code" [ dir=back ]
+"clang AST" -> "clang frontend" [ dir=back ]
+
+// clang++ compilation of C++ code
+"clang++ frontend" [ label="Clang++ frontend" ]
+"clang++ frontend" -> "cpp code" [ dir=back ]
+"clang AST" -> "clang++ frontend" [ dir=back ]
+
+// callers analysis
+"metadata json file" [ label="Callers metadata\njson files" ]
+"metadata json file" [ shape="box", color=green ]
+
+// callers C code analysis
+"callers frontend" [ color=green, label="Callers frontend\n(C++)" ]
+"callers frontend" -> "clang frontend" [ color=green ]
+"callers frontend" -> "clang AST" [ dir=back, color=green ]
+"callers frontend" -> "metadata json file" [ color=green ]
+
+// callers C++ code analysis
+"callers++ frontend" [ color=green, label="Callers++ frontend\n(C++)" ]
+"callers++ frontend" [ color=green ]
+"callers++ frontend" -> "clang++ frontend" [ color=green ]
+"callers++ frontend" -> "clang AST" [ dir=back, color=green ]
+"callers++ frontend" -> "metadata json file" [ color=green ]
+
+// callers backends
+"analysis goals" [ label="analysis goals", shape=box, color=green ]
+"user config" [ label="user analysis\nbash script", shape=box, color=green ]
+"analysis goals" -> "user config" [ style=dashed, label=manual, color=green ]
+"analysis goals" -> "function callgraphs" [ style=dashed, label="manual", dir=back, color=green ]
+"function callgraphs" [ label="function callgraphs\n.dot files", shape=box, color=green ]
+"callers backends" [ label="Callers backends\n(OCAML)", color="green" ]
+"metadata json file" -> "callers backends" [ color=green ]
+"user config" -> "callers backends" [ color=green ]
+"callers backends" -> "function callgraphs" [ color=green ]
+
+// frama-c++
+
+// frama-clang analysis
+
+// security analysis plugins
+
+// frama-c value analysis
+
+// frama-c analysis
+
+}
+
+// Local Variables:
+// compile-command: "dot -Tpng callers.cmake.gen.dot > callers.cmake.gen.png"
+// End:
+   #+END_SRC
+**** use of the Callers plugin with a custom build		       :scan:
+    #+BEGIN_SRC dot :tangle callers.scan.gen.dot
+digraph "scan-callers" 
+{
+
+"scan-build" [ label="clang scan-build" ]
+"scan-callers" [ label="STANCE scan-callers\nbash script", color=green ]
+"scan-callers" -> "scan-build" [ label="extends", color=green ]
+"scan-callers" -> "callers frontend" [ color=green ]
+"scan-callers" -> "callers++ frontend" [ color=green ]
+
+// user build
+"user build" [ label="custom build\n(autoconf, cmake..)" ]
+"scan-build" -> "user build"
+
+// compilation
+"object code" [ shape="box" ]
+
+// c compilation
+"c code" [ label="C code", shape="box" ]
+"c compiler" [ label="C compiler\n(gcc, clang..)" ]
+"user build" -> "c compiler"
+"c compiler" -> "c code" [ dir=back ]
+"c compiler" -> "object code"
+
+// c++ compilation
+"cpp code" [ label="C++ code", shape="box" ]
+"cpp compiler" [ label="C++ compiler\n(g++,clang++..)" ]
+"user build" -> "cpp compiler"
+"cpp compiler" -> "cpp code" [ dir=back ]
+"cpp compiler" -> "object code"
+
+// cmake build
+
+// cmake callers analysis
+
+// clang compilation
+
+// clang compilation of C code
+"clang AST" [ shape=box ]
+"clang frontend" [ label="Clang frontend" ]
+"clang frontend" -> "c code" [ dir=back ]
+//"clang frontend" -> "clang AST"
+"clang AST" -> "clang frontend" [ dir=back ]
+
+// clang++ compilation of C++ code
+"clang++ frontend" [ label="Clang++ frontend" ]
+"clang++ frontend" -> "cpp code" [ dir=back ]
+"clang AST" -> "clang++ frontend" [ dir=back ]
+
+// clang analysis
+
+// clang C code analysis
+
+// clang C++ code analysis
+
+// callers analysis
+"metadata json file" [ label="Callers metadata\njson files" ]
+"metadata json file" [ shape="box", color=green ]
+
+// callers C code analysis
+"callers frontend" [ color=green, label="Callers frontend\n(C++)" ]
+"callers frontend" -> "clang frontend" [ color=green ]
+"callers frontend" -> "clang AST" [ dir=back, color=green ]
+"callers frontend" -> "metadata json file" [ color=green ]
+
+// callers C++ code analysis
+"callers++ frontend" [ color=green, label="Callers frontend\n(C++)" ]
+"callers++ frontend" -> "clang++ frontend" [ color=green ]
+"callers++ frontend" -> "clang AST" [ dir=back, color=green ]
+"callers++ frontend" -> "metadata json file" [ color=green ]
+
+// callers backends
+"analysis goals" [ label="analysis goals", shape=box, color=green ]
+"user config" [ label="user analysis\nbash script", shape=box, color=green ]
+"analysis goals" -> "user config" [ style=dashed, label=manual, color=green ]
+"analysis goals" -> "function callgraphs" [ style=dashed, label="manual", dir=back, color=green ]
+"function callgraphs" [ label="function callgraphs\n.dot files", shape=box, color=green ]
+"callers backends" [ label="Callers backends\n(OCAML)", color="green" ]
+"metadata json file" -> "callers backends" [ color=green ]
+"user config" -> "callers backends" [ color=green ]
+"callers backends" -> "function callgraphs" [ color=green ]
+
+// frama-c++
+
+// frama-clang analysis
+
+// security analysis plugins
+
+// frama-c value analysis
+
+// frama-c analysis
+
+}
+
+// Local Variables:
+// compile-command: "dot -Tpng callers.scan.gen.dot > callers.scan.gen.png"
+// End:
+ 
+   #+END_SRC
 *** TODO usage of other plug-ins
 *** TODO special requirements such as libraries or external tools, etc.
    #+BEGIN_SRC org :tangle callers.chap6.tcs.D4.2.2.gen.org

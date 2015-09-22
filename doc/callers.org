@@ -47,7 +47,7 @@ The Callers plug-in
 ** TODO Implementation [0/4]
    Describe the internals of the plug-in
 *** TODO architecture of the plugin
-*** TODO big pictures [12/13]
+*** TODO big pictures [13/14]
 **** DONE big picture of clang, callers and frama-C++ plugins	:all:ARCHIVE:
     #+BEGIN_SRC dot : tangle callers.frama-c++.launcher.gen.dot
 digraph "Integration of Frama-C++ and Callers into the Clang/LLVM build & analysis process"
@@ -143,20 +143,20 @@ label="Integration of Frama-C++ and Callers into the Clang/LLVM build & analysis
 "clang static analyzer" -> "clang++ frontend"
 
 // callers analysis
-"metadata json file" [ label="Callers metadata\njson files" ]
-"metadata json file" [ shape="box", color=green ]
+"metadata json files" [ label="Callers metadata\njson files" ]
+"metadata json files" [ shape="box", color=green ]
 
 // callers C code analysis
 "callers frontend" [ color=green, label="Callers frontend\n(C++)" ]
 "callers frontend" -> "clang frontend" [ color=green ]
 "callers frontend" -> "clang AST" [ dir=back, color=green ]
-"callers frontend" -> "metadata json file" [ color=green ]
+"callers frontend" -> "metadata json files" [ color=green ]
 
 // callers C++ code analysis
 "callers++ frontend" [ color=green, label="Callers++ frontend\n(C++)" ]
 "callers++ frontend" -> "clang++ frontend" [ color=green ]
 "callers++ frontend" -> "clang AST" [ dir=back, color=green ]
-"callers++ frontend" -> "metadata json file" [ color=green ]
+"callers++ frontend" -> "metadata json files" [ color=green ]
 
 // callers backends
 "analysis goals" [ label="analysis goals", shape=box, color=green ]
@@ -165,8 +165,8 @@ label="Integration of Frama-C++ and Callers into the Clang/LLVM build & analysis
 "analysis goals" -> "function callgraphs" [ style=dashed, label="manual", dir=back, color=green ]
 "function callgraphs" [ label="function callgraphs\n.dot files", shape=box, color=green ]
 "callers backends" [ label="Callers backends\n(OCAML)", color="green" ]
-"metadata json file" -> "callers backends" [ color=green ]
-"metadata json file" -> "callers backends" [ dir=back, color=green ]
+"metadata json files" -> "callers backends" [ color=green ]
+"metadata json files" -> "callers backends" [ dir=back, color=green ]
 "user config" -> "callers backends" [ color=green ]
 "callers backends" -> "function callgraphs" [ color=green ]
 
@@ -228,7 +228,6 @@ label="Integration of Frama-C++ and Callers into the Clang/LLVM build & analysis
 // Local Variables:
 // compile-command: "dot -Tpng callers.frama-c++.launcher.gen.dot > callers.frama-c++.launcher.gen.png"
 // End:
- 
    #+END_SRC
 **** DONE use of the Callers plugin with the cmake build :analysis:callers:cmake:
     #+BEGIN_SRC dot :tangle callers.cmake.gen.dot
@@ -283,21 +282,21 @@ label="Use of the Callers plugin with the cmake build"
 "clang AST" -> "clang++ frontend" [ dir=back ]
 
 // callers analysis
-"metadata json file" [ label="Callers metadata\njson files" ]
-"metadata json file" [ shape="box", color=blue ]
+"metadata json files" [ label="Callers metadata\njson files" ]
+"metadata json files" [ shape="box", color=blue ]
 
 // callers C code analysis
 "callers frontend" [ color=blue, label="Callers frontend\n(C++)" ]
 "callers frontend" -> "clang frontend" [ color=blue ]
 "callers frontend" -> "clang AST" [ dir=back, color=blue ]
-"callers frontend" -> "metadata json file" [ color=blue ]
+"callers frontend" -> "metadata json files" [ color=blue ]
 
 // callers C++ code analysis
 "callers++ frontend" [ color=blue, label="Callers++ frontend\n(C++)" ]
 "callers++ frontend" [ color=blue ]
 "callers++ frontend" -> "clang++ frontend" [ color=blue ]
 "callers++ frontend" -> "clang AST" [ dir=back, color=blue ]
-"callers++ frontend" -> "metadata json file" [ color=blue ]
+"callers++ frontend" -> "metadata json files" [ color=blue ]
 
 // callers backends
 "analysis goals" [ label="analysis goals", shape=box, color=blue ]
@@ -306,8 +305,8 @@ label="Use of the Callers plugin with the cmake build"
 "analysis goals" -> "function callgraphs" [ style=dashed, label="manual", dir=back, color=blue ]
 "function callgraphs" [ label="function callgraphs\n.dot files", shape=box, color=blue ]
 "callers backends" [ label="Callers backends\n(OCAML)", color="blue" ]
-"metadata json file" -> "callers backends" [ color=blue ]
-"metadata json file" -> "callers backends" [ dir=back, color=blue ]
+"metadata json files" -> "callers backends" [ color=blue ]
+"metadata json files" -> "callers backends" [ dir=back, color=blue ]
 "user config" -> "callers backends" [ color=blue ]
 "callers backends" -> "function callgraphs" [ color=blue ]
 
@@ -393,20 +392,20 @@ label="Use of the Callers plugin with a custom build"
 // clang C++ code analysis
 
 // callers analysis
-"metadata json file" [ label="Callers metadata\njson files" ]
-"metadata json file" [ shape="box", color=blue ]
+"metadata json files" [ label="Callers metadata\njson files" ]
+"metadata json files" [ shape="box", color=blue ]
 
 // callers C code analysis
 "callers frontend" [ color=blue, label="Callers frontend\n(C++)" ]
 "callers frontend" -> "clang frontend" [ color=blue ]
 "callers frontend" -> "clang AST" [ dir=back, color=blue ]
-"callers frontend" -> "metadata json file" [ color=blue ]
+"callers frontend" -> "metadata json files" [ color=blue ]
 
 // callers C++ code analysis
 "callers++ frontend" [ color=blue, label="Callers frontend\n(C++)" ]
 "callers++ frontend" -> "clang++ frontend" [ color=blue ]
 "callers++ frontend" -> "clang AST" [ dir=back, color=blue ]
-"callers++ frontend" -> "metadata json file" [ color=blue ]
+"callers++ frontend" -> "metadata json files" [ color=blue ]
 
 // callers backends
 "analysis goals" [ label="analysis goals", shape=box, color=blue ]
@@ -415,8 +414,8 @@ label="Use of the Callers plugin with a custom build"
 "analysis goals" -> "function callgraphs" [ style=dashed, label="manual", dir=back, color=blue ]
 "function callgraphs" [ label="function callgraphs\n.dot files", shape=box, color=blue ]
 "callers backends" [ label="Callers backends\n(OCAML)", color="blue" ]
-"metadata json file" -> "callers backends" [ color=blue ]
-"metadata json file" -> "callers backends" [ dir=back, color=blue ]
+"metadata json files" -> "callers backends" [ color=blue ]
+"metadata json files" -> "callers backends" [ dir=back, color=blue ]
 "user config" -> "callers backends" [ color=blue ]
 "callers backends" -> "function callgraphs" [ color=blue ]
 
@@ -701,7 +700,7 @@ label="From Frama-C++ frontend to value analysis"
 // // clang C++ code analysis
 // "clang static analyzer" -> "clang++ frontend"
 
-// "metadata json file" [ shape="box", color=green ]
+// "metadata json files" [ shape="box", color=green ]
 
 // "analysis goals" [ label="analysis goals", shape=box, color=green ]
 // "user config" [ label="user analysis\nbash script", shape=box, color=green ]
@@ -909,20 +908,20 @@ label="Frama-C Security Analysis processes"
 // "clang static analyzer" -> "clang++ frontend"
 
 // // callers analysis
-// "metadata json file" [ label="Callers metadata\njson files" ]
-// "metadata json file" [ shape="box", color=blue ]
+// "metadata json files" [ label="Callers metadata\njson files" ]
+// "metadata json files" [ shape="box", color=blue ]
 
 // // callers C code analysis
 // "callers frontend" [ color=blue, label="Callers frontend\n(C++)" ]
 // "callers frontend" -> "clang frontend" [ color=blue ]
 // "callers frontend" -> "clang AST" [ dir=back, color=blue ]
-// "callers frontend" -> "metadata json file" [ color=blue ]
+// "callers frontend" -> "metadata json files" [ color=blue ]
 
 // // callers C++ code analysis
 // "callers++ frontend" [ color=blue, label="Callers++ frontend\n(C++)" ]
 // "callers++ frontend" -> "clang++ frontend" [ color=blue ]
 // "callers++ frontend" -> "clang AST" [ dir=back, color=blue ]
-// "callers++ frontend" -> "metadata json file" [ color=blue ]
+// "callers++ frontend" -> "metadata json files" [ color=blue ]
 
 // // callers backends
 // "analysis goals" [ label="analysis goals", shape=box, color=blue ]
@@ -931,7 +930,7 @@ label="Frama-C Security Analysis processes"
 // "analysis goals" -> "function callgraphs" [ style=dashed, label="manual", dir=back, color=blue ]
 // "function callgraphs" [ label="function callgraphs\n.dot files", shape=box, color=blue ]
 // "callers backends" [ label="Callers backends\n(OCAML)", color="blue" ]
-// "metadata json file" -> "callers backends" [ color=blue ]
+// "metadata json files" -> "callers backends" [ color=blue ]
 // "user config" -> "callers backends" [ color=blue ]
 // "callers backends" -> "function callgraphs" [ color=blue ]
 
@@ -1005,6 +1004,102 @@ label="Frama-C Security Analysis processes"
 // End:
  
    #+END_SRC
+**** TODO Callers analysis process		   :analysis:callers:process:
+     #+BEGIN_SRC dot :tangle analysis.callers.process.gen.dot
+digraph "Callers analysis process"
+{
+// title
+labelloc="b"
+label="Callers analysis process"
+
+"src code" [ label="C/C++ code", shape="box" ]
+
+// callers analysis
+"local metadata" [ label="local symbols & calls\njson files", shape="box", color=black ]
+"extcallees metadata" [ label="local calls & ext callees\njson files", shape="box", color=black ]
+"extcallers metadata" [ label="local & ext callers/callees\njson files", shape="box", color=black ]
+"json files list" [ label="json files lists\nin dirs", shape="box", color=black ]
+"defined symbols" [ label="defined symbols list\nin dirs", shape="box", color=black ]
+
+// callers src code analysis
+
+// callers C++ code analysis
+
+// callers backends
+"analysis goals" [ label="analysis goals", shape=box, color=black ]
+
+//"build tool" [ label="build tool\ncmake | custom", shape=box, color=black ]
+//"analysis type" [ label="analysis type\ncmake-callers|scan-callers", shape=box, color=black ]
+
+"launch test" [ label="1) launch test\n(bash)", shape=oval, color=black, labelloc=l ]
+"launch analysis" [ label="2) launch callers analysis\ncmake-callers | scan-callers", shape=oval, color=black ]
+//"launch cmake-callers" [ label="cmake-callers analysis\n(bash)", shape=oval, color=black ]
+//"launch scan-callers" [ label="scan-callers analysis\n(bash)", shape=oval, color=black ]
+"list json files" [ label="3) list json files\n(OCAML)", shape=oval, color=black ]
+"list defined symbols" [ label="4) list defined symbols\n(OCAML)", shape=oval, color=black ]
+"add extern callees" [ label="5) add external callees\n(OCAML)", shape=oval, color=black ]
+"add extern callers" [ label="6) add external callers\n(OCAML)", shape=oval, color=black ]
+"json to dot" [ label="7) generate dot graphs\n(OCAML)", shape=oval, color=black ]
+"dot to image" [ label="8) generate images\n(bash)", shape=oval, color=black ]
+
+//"build tool" -> "launch test"
+
+"launch test" -> "launch analysis"
+"src code" -> "launch analysis"
+"launch analysis" -> "local metadata"
+
+//"launch analysis" -> "launch cmake-callers" [ label="build tool=cmake" ]
+//"src code" -> "launch cmake-callers"
+//"launch cmake-callers" -> "local metadata"
+
+//"launch analysis" -> "launch scan-callers" [ label="build tool=custom" ]
+//"src code" -> "launch scan-callers"
+//"launch scan-callers" -> "local metadata"
+
+"analysis goals" -> "launch test" [ style=dashed, label=manual, color=black ]
+"analysis goals" -> "callgraphs images" [ style=dashed, label="manual", dir=back, color=black ]
+
+subgraph "callers backends" {
+
+label="Callers OCAML backends"
+
+"launch test" -> "list json files"
+"local metadata" -> "list json files" -> "json files list"
+
+"launch test" -> "list defined symbols"
+"json files list" -> "list defined symbols" -> "defined symbols"
+
+"launch test" -> "add extern callees"
+"local metadata" -> "add extern callees"
+"defined symbols" -> "add extern callees" -> "extcallees metadata"
+
+"launch test" -> "add extern callers"
+"extcallees metadata" -> "add extern callers" -> "extcallers metadata"
+
+"launch test" -> "json to dot"
+"user config" -> "json to dot"
+"extcallers metadata" -> "json to dot" -> "dot callgraphs"
+
+"launch test" -> "dot to image"
+"dot callgraphs" -> "dot to image" -> "callgraphs images"
+
+"user config" [ label="user navigation parameters\n.dot files", shape=box, color=black ]
+"dot callgraphs" [ label="function callgraphs\n.dot files", shape=box, color=black ]
+"callgraphs images" [ label="function callgraphs\n.png | svg files", shape=box, color=black ]
+
+}
+
+// "metadata json files" -> "callers backends" [ color=black ]
+// "metadata json files" -> "callers backends" [ dir=back, color=black ]
+// "launch script" -> "callers backends" [ color=black ]
+// "callers backends" -> "dot callgraphs" [ color=black ]
+
+}
+
+// Local Variables:
+// compile-command: "dot -Tpng analysis.callers.process.gen.dot > analysis.callers.process.gen.png"
+// End:
+     #+END_SRC
 **** DONE preprocess dot files					    :dot2png:
      #+BEGIN_SRC bash :tangle dot2png.gen.sh
 #!/bin/bash
@@ -1019,7 +1114,7 @@ done
 #!/bin/bash
 rm -f *.gen.*
      #+END_SRC
-**** TODO [#A] Envoyer ces figures à Frank Védrine comme annoncé hier :email:cea:
+**** DONE [#A] Envoyer ces figures à Frank Védrine comme annoncé hier :email:cea:
      DEADLINE: <2015-09-22 mar.>
 *** TODO usage of other plug-ins
 *** TODO special requirements such as libraries or external tools, etc.

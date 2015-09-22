@@ -1,7 +1,7 @@
 #+AUTHOR Hugues Balp
 #+TITLE The Callers plug-in
 
-* TODO The Callers plug-in [2/7]
+* TODO The Callers plug-in [2/7]				    :callers:
   :PROPERTIES:
   :author:   Hugues Balp
   :partner:  Thales Communications & Security
@@ -82,7 +82,7 @@ digraph "Callers integration with Clang/LLVM "
 "compile_commands" [ label="compile_commands.json", shape=box ]
 "cmake build" -> "cpp compiler"
 "cmake build" -> "c compiler"
-"cmake build" -> "compile_commands"[ dir=back, color=green ]
+"cmake build" -> "compile_commands"
 
 "cmake-callers" -> "compile_commands" [ dir=back, color=green ]
 
@@ -108,7 +108,7 @@ digraph "Callers integration with Clang/LLVM "
 "clang compiler" -> "llvm"
 
 // clang++ compilation of C++ code
-"clang compiler" [ label="Clang++ compiler" ]
+"clang++ compiler" [ label="Clang++ compiler" ]
 "scan-build" -> "clang++ compiler"
 "clang++ frontend" [ label="Clang++ frontend" ]
 "clang++ frontend" -> "cpp code" [ dir=back ]
@@ -210,7 +210,6 @@ digraph "Callers integration with Clang/LLVM "
 //"frama-c" -> "pretty-printed c code" [ label="print" ]
 "frama-c" -> "pp C code" [ label="print" ]
 //"frama-c" -> "c code" [ label="print" ]
-
 }
 
 // Local Variables:
@@ -218,7 +217,7 @@ digraph "Callers integration with Clang/LLVM "
 // End:
  
    #+END_SRC
-**** use of the Callers plugin with the cmake build 		      :cmake:
+**** use of the Callers plugin with the cmake build	     :analysis:cmake:
     #+BEGIN_SRC dot :tangle callers.cmake.gen.dot
 digraph "Callers integration with Clang/LLVM " 
 {
@@ -309,7 +308,7 @@ digraph "Callers integration with Clang/LLVM "
 // compile-command: "dot -Tpng callers.cmake.gen.dot > callers.cmake.gen.png"
 // End:
    #+END_SRC
-**** use of the Callers plugin with a custom build		       :scan:
+**** use of the Callers plugin with a custom build	      :analysis:scan:
     #+BEGIN_SRC dot :tangle callers.scan.gen.dot
 digraph "scan-callers" 
 {
@@ -406,6 +405,110 @@ digraph "scan-callers"
 
 // Local Variables:
 // compile-command: "dot -Tpng callers.scan.gen.dot > callers.scan.gen.png"
+// End:
+ 
+   #+END_SRC
+**** custom build process				       :build:custom:
+    #+BEGIN_SRC dot :tangle build.custom.gen.dot
+digraph "custom build " 
+{
+// user build
+"user build" [ label="custom build\n(autoconf, cmake..)" ]
+
+// compilation
+"object code" [ shape="box" ]
+
+// c compilation
+"c code" [ label="C code", shape="box" ]
+"c compiler" [ label="C compiler\n(gcc, clang..)" ]
+"user build" -> "c compiler"
+"c compiler" -> "c code" [ dir=back ]
+"c compiler" -> "object code"
+
+// c++ compilation
+"cpp code" [ label="C++ code", shape="box" ]
+"cpp compiler" [ label="C++ compiler\n(g++,clang++..)" ]
+"user build" -> "cpp compiler"
+"cpp compiler" -> "cpp code" [ dir=back ]
+"cpp compiler" -> "object code"
+}
+
+// Local Variables:
+// compile-command: "dot -Tpng build.custom.gen.dot > build.custom.gen.png"
+// End:
+ 
+   #+END_SRC
+**** cmake-build process					:build:cmake:
+    #+BEGIN_SRC dot :tangle build.cmake.gen.dot
+digraph "cmake build" 
+{
+// compilation
+"object code" [ shape="box" ]
+
+// c compilation
+"c code" [ label="C code", shape="box" ]
+"c compiler" [ label="C compiler\n(gcc, clang..)" ]
+"c compiler" -> "c code" [ dir=back ]
+"c compiler" -> "object code"
+
+// c++ compilation
+"cpp code" [ label="C++ code", shape="box" ]
+"cpp compiler" [ label="C++ compiler\n(g++,clang++..)" ]
+"cpp compiler" -> "cpp code" [ dir=back ]
+"cpp compiler" -> "object code"
+
+// cmake build
+"compile_commands" [ label="compile_commands.json", shape=box ]
+"cmake build" -> "cpp compiler"
+"cmake build" -> "c compiler"
+"cmake build" -> "compile_commands"
+}
+
+// Local Variables:
+// compile-command: "dot -Tpng build.cmake.gen.dot > build.cmake.gen.png"
+// End:
+ 
+   #+END_SRC
+**** clang build process					:build:clang:
+    #+BEGIN_SRC dot :tangle build.clang.gen.dot
+digraph "clang build" 
+{
+"scan-build" [ label="clang scan-build" ]
+
+"c code" [ label="C code", shape="box" ]
+"cpp code" [ label="C++ code", shape="box" ]
+
+// clang compilation
+"clang object code" [ label="object code", shape="box" ]
+"llvm" [ label="LLVM" ]
+//"llvm" [ label="LLVM Optimizer\n& Code Generator" ]
+"llvm" -> "clang object code"
+
+// clang compilation of C code
+"clang compiler" [ label="Clang compiler" ]
+"clang AST" [ shape=box ]
+"scan-build" -> "clang compiler"
+"clang frontend" [ label="Clang frontend" ]
+"clang frontend" -> "c code" [ dir=back ]
+//"clang frontend" -> "clang AST"
+"clang AST" -> "clang frontend" [ dir=back ]
+"clang compiler" -> "clang frontend"
+"clang compiler" -> "clang AST"  [ dir=back ]
+"clang compiler" -> "llvm"
+
+// clang++ compilation of C++ code
+"clang++ compiler" [ label="Clang++ compiler" ]
+"scan-build" -> "clang++ compiler"
+"clang++ frontend" [ label="Clang++ frontend" ]
+"clang++ frontend" -> "cpp code" [ dir=back ]
+"clang AST" -> "clang++ frontend" [ dir=back ]
+"clang++ compiler" -> "clang++ frontend"
+"clang++ compiler" -> "clang AST"  [ dir=back ]
+"clang++ compiler" -> "llvm"
+}
+
+// Local Variables:
+// compile-command: "dot -Tpng build.clang.gen.dot > build.clang.gen.png"
 // End:
  
    #+END_SRC

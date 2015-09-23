@@ -23,15 +23,15 @@ The Callers plug-in
    - [X] Describe the objectives of the plug-in and its relation with the security analysis of source code (what security properties are analysed)   
    #+BEGIN_SRC org :tangle callers.chap6.tcs.D4.2.2.gen.org
 * Aim
-   The initial goal of the Callers plugin is to enable early security risks assessments based on the analysis of function calls dependencies.
+   The main goal of the Callers plugin is to enable early security risks assessments based on the analysis of function calls dependencies.
 
-   This plugin is extensible and it could also be completed in the future to support other types of dependencies like:
+   This plugin is extensible and may be completed in the future to support other types of dependencies like:
    - data type dependencies (inheritence, composition...)
    - control-flow dependencies (behavioral analysis based on sequence diagram generation)
    - use of shared variables
    - use of vulnerable system calls (related to specific CVEs)
 
-   The main idea behind the Callers plugin is to perform some kind of global static link edition of the whole software
+   The basic idea behind the Callers plugin is to perform some kind of global static link edition of the whole software
    in order to be able to capture all the possible execution paths of the software and the different usage contexts of each function.
 
    Based on this information, the tool can generate different instances of function callgraphs, depending on the end-user analysis focus.
@@ -48,7 +48,7 @@ The Callers plug-in
    Describe the internals of the plug-in
 *** DONE architecture of the plugin
 *** DONE big pictures [14/14]
-**** DONE big picture of clang, callers and frama-C++ plugins		:all:
+**** DONE big picture of clang, callers and frama-C++ plugins	:all:ARCHIVE:
     #+BEGIN_SRC dot : tangle callers.frama-c++.launcher.gen.dot
 digraph "Integration of Frama-C++ and Callers into the Clang/LLVM build & analysis process"
 {
@@ -876,7 +876,7 @@ label="Callers ocaml backends"
 
 "user config" [ label="user navigation parameters\n.dot files", shape=box, color=black ]
 "dot callgraphs" [ label="function callgraphs\n.dot files", shape=box, color=black ]
-"callgraphs images" [ label="function callgraphs\n.png | svg files", shape=box, color=black ]
+"callgraphs images" [ label="function callgraphs\n.png | png files", shape=box, color=black ]
 
 }
 
@@ -894,7 +894,8 @@ label="Callers ocaml backends"
 **** DONE preprocess dot files					    :dot2png:
      #+BEGIN_SRC bash :tangle dot2png.gen.sh
 #!/bin/bash
-for d in `ls *.gen.dot`
+#for d in `ls *.gen.dot example/*.dot`
+for d in `ls *.dot`
 do
 dot -Tpng $d > $d.png
 #dot -Tpng $d > $d.png 2> $d.stderr
@@ -903,7 +904,8 @@ done
 **** DONE clean work directory					      :clean:
      #+BEGIN_SRC bash :tangle clean.gen.sh
 #!/bin/bash
-rm -f *.gen.*
+rm -f *.gen.* *.hdm.*
+#rm -f ./example/*.png
      #+END_SRC
 **** DONE [#A] Envoyer ces figures à Frank Védrine comme annoncé hier :email:cea:
      DEADLINE: <2015-09-22 mar.>
@@ -917,7 +919,7 @@ rm -f *.gen.*
 
 ** Callers C/C++ frontends
 
-  The Callers frontends, named callers and callers++ are used to analyze C and C++ source files respectivally.
+  The Callers frontends, named callers and callers++ are used to analyze C and C++ source files respectively.
   For each source file, a json file is generated containing local symbols definitions, local function calls
   and references to the declaration of external callee functions, as mentioned in step 2 of figure TBC.
 
@@ -936,7 +938,8 @@ rm -f *.gen.*
   [[./callers.cmake.gen.dot.png]]
 
   In case of another custom build process, we use the scan-callers analysis process described on figure TBC, which is a derivation of the Clang scan-build utility. 
-  As documented in TBC, scan-build is a command line utility that enables a user to run the static analyzer over their codebase as part of performing a regular build.
+
+  As documented in [scan-build], scan-build is a command line utility that enables a user to run the static analyzer over their codebase as part of performing a regular build.
   It works by overriding the CC and CXX environment variables to (hopefully) change your build to use a "fake" compiler instead of the one that would normally build the end-user project. 
   This fake compiler executes either clang or gcc (depending on the platform) to compile the code and then executes the static analyzer to analyze the code.
   It is thus also able to capture the build command of each source file, as down otherwise by the cmake build.
@@ -955,6 +958,10 @@ rm -f *.gen.*
   
   The static link edition is composed of several steps, as presented on figure TBC:
 
+  #+CAPTION: Use of the Callers plugin with a custom build
+  #+NAME:   fig:callers-backends
+  [[./analysis.callers.process.gen.dot.png]]
+
   1) we first gather the Callers frontend analysis results of all source and header files analyzed during the build process.
      
      In order to support scalability requirements, the idea is not to centralize all the collected information in a single file or database,
@@ -969,10 +976,380 @@ rm -f *.gen.*
    #+END_SRC
 ** TODO Example [0/1]
    - [ ] Illustrate the functioning of the plug-in through a small example (source code, steps to analyse it, results and interpretation of results).
-   #+BEGIN_SRC org :tangle callers.chap6.tcs.D4.2.2.gen.org
-* Example
+*** DONE samples of extracted callgraphs [4/4]
+**** DONE callgraph of all function callees from the main entry point
+    #+BEGIN_SRC dot :tangle main.fct.callees.gen.dot
+digraph G {
+  "(B)* A::get_b()";
+  "int A::a()";
+  "int B::b()";
+  "int c()";
+  "int main()";
+  "printf";
+  "void *malloc(size_t)";
+  "void A::A()";
+  "void B::B()";
+  
+  subgraph cluster__tools_llvm_trunk_tools_clang_tools_extra_callers_tests_test_local_callgraph_several_files_dirA_A_cpp { 
+    label="A.cpp"; "void A::A()";"int A::a()";
+     };
+  subgraph cluster__tools_llvm_trunk_tools_clang_tools_extra_callers_tests_test_local_callgraph_several_files_dirB_B_cpp { 
+    label="B.cpp"; "void B::B()";"int c()";"int B::b()";
+     };
+  subgraph cluster__tools_llvm_trunk_tools_clang_tools_extra_callers_tests_test_local_callgraph_several_files_test_cpp { 
+    label="test.cpp"; "int main()";"(B)* A::get_b()";
+     };
+  subgraph cluster__usr_include_malloc_h { label="malloc.h"; "void *malloc(size_t)";
+     };
+  subgraph cluster__usr_include_stdio_h { label="stdio.h"; "printf";
+     };
+  
+  "(B)* A::get_b()" -> "printf" [color="#0008FC", label="", style="solid", ];
+  "int A::a()" -> "(B)* A::get_b()" [color="#0008FC", label="",
+                                     style="solid", ];
+  "int A::a()" -> "int B::b()" [color="#0008FC", label="", style="solid", ];
+  "int A::a()" -> "printf" [color="#0008FC", label="", style="solid", ];
+  "int B::b()" -> "printf" [color="#0008FC", label="", style="solid", ];
+  "int c()" -> "printf" [color="#0008FC", label="", style="solid", ];
+  "int main()" -> "(B)* A::get_b()" [color="#0008FC", label="",
+                                     style="dashed", ];
+  "int main()" -> "int A::a()" [color="#0008FC", label="", style="solid", ];
+  "int main()" -> "int B::b()" [color="#0008FC", label="", style="solid", ];
+  "int main()" -> "void *malloc(size_t)" [color="#0008FC", label="",
+                                          style="solid", ];
+  "int main()" -> "void A::A()" [color="#0008FC", label="", style="solid", ];
+  "void A::A()" -> "void B::B()" [color="#0008FC", label="", style="solid", ];
+  "void B::B()" -> "int c()" [color="#0008FC", label="", style="dashed", ];
+  }
+    #+END_SRC
+**** DONE callgraph of all function callers of the c function callee
+    #+BEGIN_SRC dot :tangle c.fct.callers.gen.dot
+digraph G {
+  "int c()";
+  "int main()";
+  "void A::A()";
+  "void B::B()";
+  
+  subgraph cluster__media_sf_users_3u_tools_llvm_trunk_tools_clang_tools_extra_callers_tests_test_local_callgraph_several_files_dirA_A_cpp { 
+    label="A.cpp"; "void A::A()";
+     };
+  subgraph cluster__media_sf_users_3u_tools_llvm_trunk_tools_clang_tools_extra_callers_tests_test_local_callgraph_several_files_test_cpp { 
+    label="test.cpp"; "int main()";
+     };
+  subgraph cluster__tools_llvm_trunk_tools_clang_tools_extra_callers_tests_test_local_callgraph_several_files_dirB_B_cpp { 
+    label="B.cpp"; "void B::B()";"int c()";
+     };
+  
+  "int main()" -> "void A::A()" [color="#0008FC", label="", style="solid", ];
+  "void A::A()" -> "void B::B()" [color="#0008FC", label="", style="solid", ];
+  "void B::B()" -> "int c()" [color="#0008FC", label="", style="dashed", ];
+  }
+    #+END_SRC
+**** DONE callgraph of all function callers of the printf system call
+    #+BEGIN_SRC dot :tangle printf.fct.callers.gen.dot
+digraph G {
+  "(B)* A::get_b()";
+  "int A::a()";
+  "int B::b()";
+  "int c()";
+  "int main()";
+  "printf";
+  "void A::A()";
+  "void B::B()";
+  
+  subgraph cluster__media_sf_users_3u_tools_llvm_trunk_tools_clang_tools_extra_callers_tests_test_local_callgraph_several_files_dirA_A_cpp { 
+    label="A.cpp"; "void A::A()";"int A::a()";
+     };
+  subgraph cluster__media_sf_users_3u_tools_llvm_trunk_tools_clang_tools_extra_callers_tests_test_local_callgraph_several_files_dirB_B_cpp { 
+    label="B.cpp"; "void B::B()";"int c()";"int B::b()";
+     };
+  subgraph cluster__media_sf_users_3u_tools_llvm_trunk_tools_clang_tools_extra_callers_tests_test_local_callgraph_several_files_test_cpp { 
+    label="test.cpp"; "int main()";"(B)* A::get_b()";
+     };
+  subgraph cluster__usr_include_stdio_h { label="stdio.h"; "printf";
+     };
+  
+  "(B)* A::get_b()" -> "printf" [color="#0008FC", label="", style="solid", ];
+  "int A::a()" -> "(B)* A::get_b()" [color="#0008FC", label="",
+                                     style="solid", ];
+  "int A::a()" -> "int B::b()" [color="#0008FC", label="", style="solid", ];
+  "int A::a()" -> "printf" [color="#0008FC", label="", style="solid", ];
+  "int B::b()" -> "printf" [color="#0008FC", label="", style="solid", ];
+  "int c()" -> "printf" [color="#0008FC", label="", style="solid", ];
+  "int main()" -> "int A::a()" [color="#0008FC", label="", style="solid", ];
+  "int main()" -> "int B::b()" [color="#0008FC", label="", style="solid", ];
+  "int main()" -> "void A::A()" [color="#0008FC", label="", style="solid", ];
+  "void A::A()" -> "void B::B()" [color="#0008FC", label="", style="solid", ];
+  "void B::B()" -> "int c()" [color="#0008FC", label="", style="dashed", ];
+  }    
+    #+END_SRC
+**** DONE callgraph of all function callers of the malloc system call
+    #+BEGIN_SRC dot :tangle malloc.fct.callers.hdm.dot
+digraph G {
+
+"int main()";
+  "void *malloc(size_t)";
+  
+  subgraph cluster__tools_llvm_trunk_tools_clang_tools_extra_callers_tests_test_local_callgraph_several_files_test_cpp { 
+    label="test.cpp"; "int main()";
+    //"(B)* A::get_b()";
+     };
+  subgraph cluster__usr_include_malloc_h { label="malloc.h"; "void *malloc(size_t)";
+     };
+     "int main()" -> "void *malloc(size_t)" [color="#0008FC", label=""];
+  }    
+    #+END_SRC
+*** documentation
+    #+BEGIN_SRC org :tangle callers.chap6.tcs.D4.2.2.gen.org
+* Example [0/0]
    TBC
-   #+END_SRC
+** input source files
+*** header files
+**** test.hpp
+    # +BEGIN_SRC C verbatim
+#ifndef _TEST_H_
+#define _TEST_H_
+int main();
+#endif
+    # +END_SRC
+**** A.hpp
+    # +BEGIN_SRC C verbatim
+#ifndef _A_H_
+#define _A_H_
+#include <stdio.h>
+#include "B.hpp"
+
+class B;
+
+class A
+{
+public:
+  A();
+  ~A();
+  int a();
+  B* get_b();
+private:
+  B m_b;
+};
+#endif
+    # +END_SRC
+**** B.hpp
+    # +BEGIN_SRC C verbatim
+#ifndef _B_H_
+#define _B_H_
+
+#include <stdio.h>
+
+class B
+{
+public:
+  B();
+  ~B();
+  int b();
+};
+#endif
+    # +END_SRC
+*** source files
+**** test.cpp
+    # +BEGIN_SRC C verbatim
+#include "A.hpp"
+#include "B.hpp"
+#include "test.hpp"
+
+int main() {
+  A* a = new A();
+  a->a();
+  B* b = a->get_b();
+  b->b();
+  return 0;
+}
+
+B* A::get_b() {
+  printf("get_b()\n");
+  return &m_b;
+}
+    # +END_SRC
+**** A.cpp
+    # +BEGIN_SRC C verbatim
+#include <stdio.h>
+#include "A.hpp"
+
+A::A() {}
+
+int A::a() {
+  printf("a()\n");
+  get_b()->b();
+  return 0;
+}
+    # +END_SRC
+**** B.cpp
+    # +BEGIN_SRC C verbatim
+#include <stdio.h>
+#include "B.hpp"
+#include "test.hpp"
+
+int c() {
+  printf("c()\n");
+  // test des cycles
+  //main();
+  return 0;
+}
+B::B() {
+  c();
+}
+int B::b() {
+  printf("b()\n");
+  return 0;
+}    
+    # +END_SRC
+** output json files
+*** list of generated json files in test directory
+     # +BEGIN_SRC json verbatim
+{ "dir": "test_dir",
+  "files": [ "test.cpp.file.callers.gen.json",
+             "B.cpp.file.callers.gen.json",
+             "A.cpp.file.callers.gen.json" ]}     
+     # +END_SRC
+*** test.cpp.file.callers.gen.json
+     # +BEGIN_SRC json verbatim
+{
+  "file": "test.cpp",
+  "path": ".",
+  "defined": [
+    {
+      "sign": "(B)* A::get_b()", "line": 14,
+      "extcallers": [ {
+          "sign": "int A::a()",
+          "def": "./dirA/A.cpp:7" 
+        } ], 
+      "extcallees": [
+        {
+          "sign": "printf",
+          "decl": "/usr/include/stdio.h:359"
+        } ] },
+    {
+      "sign": "int main()", "line": 5,
+      "locallees": [ "(B)* A::get_b()" ],
+      "extcallees": [ {
+          "sign": "int A::a()",
+          "decl": "./dirA/A.hpp:15",
+          "def": "./dirA/A.cpp:7" },
+        {
+          "sign": "int B::b()",
+          "decl": "./dirB/B.hpp:12",
+          "def": "./dirB/B.cpp:18" },
+        {
+          "sign": "void *malloc(size_t)",
+          "decl": "/usr/include/malloc.h:51" },
+        {
+          "sign": "void A::A()",
+          "decl": "./dirA/A.hpp:12",
+          "def": "./dirA/A.cpp:5" 
+        }
+      ]
+    }
+  ]
+}
+     # +END_SRC
+*** A.cpp.file.callers.gen.json
+     # +BEGIN_SRC json verbatim
+{
+  "file": "A.cpp",
+  "path": "test_dir/dirA",
+  "defined": [
+    {
+      "sign": "int A::a()", "line": 7,
+      "extcallers": [ {
+          "sign": "int main()",
+          "def": "test_dir/test.cpp:5"
+        } ],
+      "extcallees": [
+        {
+          "sign": "(B)* A::get_b()",
+          "decl": "test_dir/dirA/A.hpp:17",
+          "def": "test_dir/test.cpp:14" },
+        {
+          "sign": "int B::b()",
+          "decl": "test_dir/dirB/B.hpp:12",
+          "def": "test_dir/dirB/B.cpp:18" },
+        {
+          "sign": "printf",
+          "decl": "/usr/include/stdio.h:359"
+        } 
+      ]
+    },
+    {
+      "sign": "void A::A()", "line": 5,
+      "extcallers": [
+        {
+          "sign": "int main()",
+          "def": "test_dir/test.cpp:5"
+        }
+      ],
+      "extcallees": [
+        {
+          "sign": "void B::B()",
+          "decl": "test_dir/dirB/B.hpp:9",
+          "def": "test_dir/dirB/B.cpp:13"
+        }
+      ]
+    }
+  ]
+}     
+     # +END_SRC
+*** B.cpp.file.callers.gen.json
+     # +BEGIN_SRC json verbatim
+{
+  "file": "B.cpp",
+  "path": "test_dir/dirB",
+  "defined": [
+    {
+      "sign": "int B::b()", "line": 18,
+      "extcallers": [
+        {
+          "sign": "int A::a()",
+          "def": "test_dir/dirA/A.cpp:7" },
+        {
+          "sign": "int main()",
+          "def": "test_dir/test.cpp:5" }
+      ],
+      "extcallees": [
+        {
+          "sign": "printf",
+          "decl": "/usr/include/stdio.h:359"
+        } ]
+    },
+    {
+      "sign": "int c()", "line": 5,
+      "locallers": [ "void B::B()" ],
+      "extcallees": [
+        {
+          "sign": "printf",
+          "decl": "/usr/include/stdio.h:359"
+        } ] },
+    {
+      "sign": "void B::B()", "line": 13,
+      "locallees": [ "int c()" ],
+      "extcallers": [
+        {
+          "sign": "void A::A()",
+          "def": "test_dir/dirA/A.cpp:5"
+        }
+      ]
+    }
+  ]
+}     
+     # +END_SRC
+** samples of extracted callgraphs [0/0]
+*** callgraph of all function callees from the main entry point
+    [[./main.fct.callees.gen.dot.png]]
+*** callgraph of all function callers of the c function callee
+    [[./c.fct.callers.gen.dot.png]]    
+*** callgraph of all function callers of the printf system call
+    [[./printf.fct.callers.gen.dot.png]]    
+*** callgraph of all function callers of the malloc system call
+    [[./malloc.fct.callers.hdm.dot.png]]    
+    #+END_SRC
 ** TODO Requirements and availability [0/2]
    Describe
    1. [ ] the requirements for compiling, installing and using the plug-in

@@ -18,6 +18,7 @@ The Callers plug-in
    - [X] Introduce the plugin
    #+BEGIN_SRC org :tangle callers.chap6.tcs.D4.2.2.gen.org
    Callers is a static analysis plugin extending the clang/LLVM compilation framework for enabling early syntactic-based security analysis on large-scale C/C++ software.
+   The principle motivation for such a plugin is to satisfy some of the security analysis needs of the Thales Single Sign-On use case (in frame of tasks T5.4 & T5.5).
    #+END_SRC
 ** DONE Aims [1/1]
    - [X] Describe the objectives of the plug-in and its relation with the security analysis of source code (what security properties are analysed)   
@@ -42,6 +43,8 @@ The Callers plug-in
    #+BEGIN_SRC org :tangle callers.chap6.tcs.D4.2.2.gen.org
 * Functioning and user interface
    TBC
+   
+
    Function call dependencies can be analyzed at different granularity levels (function, file, directory, libraries, application).
    #+END_SRC
 ** DONE Implementation [4/4]
@@ -974,11 +977,11 @@ rm -f *.gen.* *.hdm.*
      of each external callee function referenced in Callers frontend's generated json files (step 5).
   
    #+END_SRC
-** TODO Example [0/1]
-   - [-] Illustrate the functioning of the plug-in through a small example [1/3]
+** DONE Example [1/1]
+   - [X] Illustrate the functioning of the plug-in through a small example [3/3]
      - [X] source code
-     - [ ] steps to analyse it
-     - [ ] results and interpretation of results
+     - [X] steps to analyse it
+     - [X] results and interpretation of results
 *** DONE samples of extracted callgraphs [4/4]
 **** DONE callgraph of all function callees from the main entry point
     #+BEGIN_SRC dot :tangle main.fct.callees.gen.dot
@@ -1496,20 +1499,100 @@ More detailed information
     #+NAME:   fig:
     [[./A_A.c.c2c.dot.png]]
     #+END_SRC
-** TODO Requirements and availability [0/2]
+** DONE Requirements and availability [3/3]
+   DEADLINE: <2015-09-24 jeu.>
    Describe
-   1. [ ] the requirements for compiling, installing and using the plug-in
-   2. [ ] the location (URL) where it can be downloaded with its documentation and 3) the support (versions of Frama-C supported, plans for future support, integration into Frama-C distro, etc.)
+   1. [X] the requirements for compiling, installing and using the plug-in
+   2. [X] the location (URL) where it can be downloaded with its documentation
+   3. [X] the support (versions of Frama-C supported, plans for future support, integration into Frama-C distro, etc.)
    #+BEGIN_SRC org :tangle callers.chap6.tcs.D4.2.2.gen.org
 * Requirements and availability
-   TBC
+
+The Callers plugin has been prototyped and tested on a Debian Wheezy operating system v7.5.
+The Callers frontends are implemented in C++ as extra tools of clang v3.7.0.
+The Callers backends are developped in OCAML v4.02.2, installed through opam v1.2.2.
+
+** Installation of LLVM, clang and the clang extra tools
+
+To install and build clang, you have basically to clone in a working directory 
+several git archives like llvm, clang, clang-tools-extra and compiler-rt:
+
+# +BEGIN_SRC bash verbatim
+cd <work_dir>
+svn co http://llvm.org/svn/llvm-project/llvm/trunk llvm
+cd llvm/tools
+svn co http://llvm.org/svn/llvm-project/cfe/trunk clang
+cd ../..
+cd llvm/tools/clang/tools
+svn co http://llvm.org/svn/llvm-project/clang-tools-extra/trunk extra
+cd ../../../..
+cd llvm/projects
+svn co http://llvm.org/svn/llvm-project/compiler-rt/trunk compiler-rt
+# +END_SRC
+
+Then you can compile the whole clang/LLVM source tree in RELEASE+ASSERT mode (in-tree build is not supported):
+
+# +BEGIN_SRC bash verbatim
+cd <work_dir>
+mkdir -p build 
+cd build
+cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=/tools/exec -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release ../trunk
+make CXXFLAGS="-DKEY_WOW64_32KEY=0x0200 -D_GLIBCXX_HAVE_FENV_H"
+make install
+# +END_SRC
+
+For more information, please refer to the [Clang/LLVM online documentation].
+
+** Installation of the Callers C++ frontends
+
+The callers and callers++ frontend are distributed in form of a standalone git archive,
+named "callers.tcs.git.tgz", which is downloadable from the STANCE intranet website.
+
+We assume here that you have succeeded in building LLVM and clang from the source archive, as described above.
+
+To install the Callers plugin, you have first to uncompress and untar it in the source directory
+dedicated to the clang extra tools, namely: <work_dir>/trunk/llvm/tools/clang/tools/extra.
+
+Then you can go back to the root build directory <work_dir>/build and update the cmake build tree
+through the commands:
+
+# +BEGIN_SRC bash verbatim
+cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=/tools/exec -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release ../trunk
+make CXXFLAGS="-DKEY_WOW64_32KEY=0x0200 -D_GLIBCXX_HAVE_FENV_H"
+make install
+# +END_SRC
+
+** Installation of the Callers OCAML backends
+
+As for the Callers frontends, the Callers backends are distributed in a git archive
+named "callgraph.tcs.git.tgz" and available in the same location.
+
+To install opam, please refer to the online documentation [Install OPAM in 2 minutes].
+
+Several ocaml packages are also expected to be installed on the system, like:
+# +BEGIN_SRC text verbatim
+atd                     1.1.2  Parser for the ATD data format description langua
+atdgen                  1.6.1  Generates efficient JSON serializers, deserialize
+ocamlbuild-atdgen       0.1.0  Atdgen plugin for OCamlbuild
+ocamlfind               1.5.5  A library manager for OCaml
+ocamlgraph              1.8.6  A generic graph library for OCaml
+yojson                  1.2.1  Yojson is an optimized parsing and printing libra
+# +END_SRC
+
+To build the Callers backends, you have to uncompress and untar the archive "callgraph.tcs.git.tgz",
+for example in the working directory <work_dir>.
+Then you have simply to source the script "build_tools.sh" present in the archive
+and add the path <work_dir>/callgraph to the PATH environment variable.
+
    #+END_SRC
 ** TODO References [0/1]
    - [ ] Add some references
    #+BEGIN_SRC org :tangle callers.chap6.tcs.D4.2.2.gen.org
 * References
-  | Clang/LLVM online documentation | http://clang.llvm.org                          |
-  | Clang static analyzer           | http://clang-analyzer.llvm.org                 |
-  | scan-build                      | http://clang-analyzer.llvm.org/scan-build.html |
+  | Clang/LLVM online documentation | http://clang.llvm.org                            |
+  | Clang static analyzer           | http://clang-analyzer.llvm.org                   |
+  | opam                            | http://opam.ocamlpro.com                         |
+  | Install OPAM in 2 minutes       | https://github.com/ocaml/opam/wiki/Quick_Install |
+  | scan-build                      | http://clang-analyzer.llvm.org/scan-build.html   |
    #+END_SRC
 * Annex

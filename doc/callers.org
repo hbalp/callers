@@ -43,7 +43,6 @@ The Callers plug-in
    #+BEGIN_SRC org :tangle callers.chap6.tcs.D4.2.2.gen.org
 * Functioning and user interface
    TBC
-   
 
    Function call dependencies can be analyzed at different granularity levels (function, file, directory, libraries, application).
    #+END_SRC
@@ -1106,7 +1105,7 @@ digraph G {
   }    
     #+END_SRC
 **** function call paths from A::A() to c()
-     #+BEGIN_SRC dot :tangle A_A.c.c2c.dot
+     #+BEGIN_SRC dot :tangle A_A.c.c2c.gen.dot
 digraph G {
   "int c()";
   "void A::A()";
@@ -1116,7 +1115,7 @@ digraph G {
   }
      #+END_SRC
 **** function call paths from main() to B::b()
-     #+BEGIN_SRC dot :tangle main.B_b.c2c.dot
+     #+BEGIN_SRC dot :tangle main.B_b.c2c.gen.dot
 digraph G {
   "int c()";
   "int main()";
@@ -1300,7 +1299,7 @@ int B::b() {
 
     The resulting json files listed below are now linked the one with the other and can be 
 
-*** test.cpp.file.callers.gen.json
+**** test.cpp.file.callers.gen.json
     Thanks to 
     # +BEGIN_SRC json verbatim
 {
@@ -1342,7 +1341,7 @@ int B::b() {
   ]
 }
     # +END_SRC
-*** A.cpp.file.callers.gen.json
+**** A.cpp.file.callers.gen.json
      # +BEGIN_SRC json verbatim
 {
   "file": "A.cpp",
@@ -1388,7 +1387,7 @@ int B::b() {
   ]
 }     
      # +END_SRC
-*** B.cpp.file.callers.gen.json
+**** B.cpp.file.callers.gen.json
      # +BEGIN_SRC json verbatim
 {
   "file": "B.cpp",
@@ -1492,12 +1491,12 @@ More detailed information
     Figure [fig:printf-callers] show all the possible function call paths between TBC caller function and TBC callee function.
     #+CAPTION: From to ()
     #+NAME:   fig:
-    [[./main.B_b.c2c.dot.png]]
+    [[./main.B_b.c2c.gen.dot.png]]
 *** call paths from A::A() constructor to c() function callee
     Figure [fig:printf-callers] show all the possible function call paths between TBC caller function and TBC callee function.
     #+CAPTION: From to ()
     #+NAME:   fig:
-    [[./A_A.c.c2c.dot.png]]
+    [[./A_A.c.c2c.gen.dot.png]]
     #+END_SRC
 ** DONE Requirements and availability [3/3]
    DEADLINE: <2015-09-24 jeu.>
@@ -1518,7 +1517,7 @@ To install and build clang, you have basically to clone in a working directory
 several git archives like llvm, clang, clang-tools-extra and compiler-rt:
 
 # +BEGIN_SRC bash verbatim
-cd <work_dir>
+cd work_dir
 svn co http://llvm.org/svn/llvm-project/llvm/trunk llvm
 cd llvm/tools
 svn co http://llvm.org/svn/llvm-project/cfe/trunk clang
@@ -1533,7 +1532,7 @@ svn co http://llvm.org/svn/llvm-project/compiler-rt/trunk compiler-rt
 Then you can compile the whole clang/LLVM source tree in RELEASE+ASSERT mode (in-tree build is not supported):
 
 # +BEGIN_SRC bash verbatim
-cd <work_dir>
+cd work_dir
 mkdir -p build 
 cd build
 cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=/tools/exec -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release ../trunk
@@ -1551,9 +1550,9 @@ named "callers.tcs.git.tgz", which is downloadable from the STANCE intranet webs
 We assume here that you have succeeded in building LLVM and clang from the source archive, as described above.
 
 To install the Callers plugin, you have first to uncompress and untar it in the source directory
-dedicated to the clang extra tools, namely: <work_dir>/trunk/llvm/tools/clang/tools/extra.
+dedicated to the clang extra tools, namely: work_dir/trunk/llvm/tools/clang/tools/extra.
 
-Then you can go back to the root build directory <work_dir>/build and update the cmake build tree
+Then you can go back to the root build directory work_dir/build and update the cmake build tree
 through the commands:
 
 # +BEGIN_SRC bash verbatim
@@ -1580,9 +1579,9 @@ yojson                  1.2.1  Yojson is an optimized parsing and printing libra
 # +END_SRC
 
 To build the Callers backends, you have to uncompress and untar the archive "callgraph.tcs.git.tgz",
-for example in the working directory <work_dir>.
+for example in the working directory work_dir.
 Then you have simply to source the script "build_tools.sh" present in the archive
-and add the path <work_dir>/callgraph to the PATH environment variable.
+and add the path work_dir/callgraph to the PATH environment variable.
 
    #+END_SRC
 ** TODO References [0/1]

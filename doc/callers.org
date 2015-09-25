@@ -26,25 +26,49 @@ The Callers plug-in
 * Aim
    The main goal of the Callers plugin is to enable early security risks assessments based on the analysis of function calls dependencies.
 
-   This plugin is extensible and may be completed in the future to support other types of dependencies like:
-   - data type dependencies (inheritence, composition...)
-   - control-flow dependencies (behavioral analysis based on sequence diagram generation)
-   - use of shared variables
-   - use of vulnerable system calls (related to specific CVEs)
+   For example, if some vulnerabilities are found by source code analysis in the implementation of some particular function,
+   the generation of a callgraph of all the possible callers of this function will help the analyst to better understand
+   the usage context of this function. He will then be able to navigate through the callers and look for the conditions
+   in which the vulnerable function is called.
+
+   One example provided from the SSO use case is the presence of an infinite loop in the xmltooling library,
+   and more preciselly in the method decryptData of the class Decrypt, as identified by Search-Lab in frame of task T6.1.
+
+   The question then is to verify whether this function can really been called by the deployed software or if it is just dead code to be removed.
+   Answering this question is quite simple after a Callers analysis: you have just to check if some local or external callers are attached to the
+   decryptData() function, either directly within the related json file or through the inspection of the caller's function callgraph
+   generated for this function.
+
+   Another case is when you want to understand the concrete data range of some input arguments, when you have for example identified
+   a real case of integer overflow in the source code that can only occur when the value of the input argument exceeds or match a given value.
+
+   Ideally, the better way to answer this question is to use the Value Analysis plugin of Frama-C.
+   However this technique is not guarantied today to support fully the analysis of large-scale real-life software implemented in C++.
+
+   #+END_SRC
+** DONE Functioning and user interface [1/1]
+   - [X] Describe the main functions of the plug-in and its user interface, if any.
+   #+BEGIN_SRC org :tangle callers.chap6.tcs.D4.2.2.gen.org
+* Functioning and user interface
 
    The basic idea behind the Callers plugin is to perform some kind of global static link edition of the whole software
    in order to be able to capture all the possible execution paths of the software and the different usage contexts of each function.
 
    Based on this information, the tool can generate different instances of function callgraphs, depending on the end-user analysis focus.
    Those callgraphs can then been further exploited to enable the verification of some global security properties on the software.
-   #+END_SRC
-** TODO Functioning and user interface [0/1]
-   - [ ] Describe the main functions of the plug-in and its user interface, if any.
-   #+BEGIN_SRC org :tangle callers.chap6.tcs.D4.2.2.gen.org
-* Functioning and user interface
-   TBC
 
-   Function call dependencies can be analyzed at different granularity levels (function, file, directory, libraries, application).
+   This plugin is extensible and may be completed in the future to support other types of dependencies like:
+   - data type dependencies (inheritence, composition...)
+   - control-flow dependencies (behavioral analysis based on sequence diagram generation)
+   - use of shared variables
+   - use of vulnerable system calls (related to specific CVEs)
+   
+   In the future, it will also be possible to filter the function call dependencies according to a granularity level 
+   (function, file, directory, libraries, application), in order to help the en-user focusing of specifi parts of the software.
+   
+   To understand how the Callers plugin can be used by an end-user, you have first to know it works and how it is stuctured,
+   as explained in the Implementation section, and then how we use it on a simple example, as explained in the Example section.
+
    #+END_SRC
 ** DONE Implementation [4/4]
    Describe the internals of the plug-in
@@ -1140,7 +1164,7 @@ digraph G {
 *** documentation
     #+BEGIN_SRC org :tangle callers.chap6.tcs.D4.2.2.gen.org
 * Example
-   TBC
+  Let's suppose the example below, comprising three different C++ files.
 ** input source files
    Here we assume that the source files are all contained in a single directory named test_dir.
 *** header files
@@ -1584,8 +1608,8 @@ Then you have simply to source the script "build_tools.sh" present in the archiv
 and add the path work_dir/callgraph to the PATH environment variable.
 
    #+END_SRC
-** TODO References [0/1]
-   - [ ] Add some references
+** DONE References [1/1]
+   - [X] Add some references
    #+BEGIN_SRC org :tangle callers.chap6.tcs.D4.2.2.gen.org
 * References
   | Clang/LLVM online documentation | http://clang.llvm.org                            |

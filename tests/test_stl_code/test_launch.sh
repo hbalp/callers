@@ -1,8 +1,8 @@
 #!/bin/bash
-echo "user_dir: $PWD"
+#echo "user_dir: $PWD"
 test_dir=$(cd `dirname "${BASH_SOURCE[0]}"` && pwd)
-echo "test_dir: $test_dir"
-echo "check_pwd: $PWD"
+#echo "test_dir: $test_dir"
+#echo "check_pwd: $PWD"
 
 #build_tool="cmake"
 build_tool="scan-callers"

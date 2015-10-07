@@ -64,10 +64,10 @@ The Callers plug-in
    - use of vulnerable system calls (related to specific CVEs)
    
    In the future, it will also be possible to filter the function call dependencies according to a granularity level 
-   (function, file, directory, libraries, application), in order to help the en-user focusing of specifi parts of the software.
+   (function, file, directory, libraries, application), in order to help the en-user focusing on specific parts of the software.
    
-   To understand how the Callers plugin can be used by an end-user, you have first to know it works and how it is stuctured,
-   as explained in the Implementation section, and then how we use it on a simple example, as explained in the Example section.
+   To understand how the Callers plugin can be used by an end-user, you have first to know how it works and how it is structured,
+   as explained in the Implementation section; and then how we use it on a simple example, as explained in the Example section.
 
    #+END_SRC
 ** DONE Implementation [4/4]
@@ -428,7 +428,7 @@ label="Use of the Callers plugin with a custom build"
 "callers frontend" -> "metadata json files" [ color=blue ]
 
 // callers C++ code analysis
-"callers++ frontend" [ color=blue, label="Callers frontend\n(C++)" ]
+"callers++ frontend" [ color=blue, label="Callers++ frontend\n(C++)" ]
 "callers++ frontend" -> "clang++ frontend" [ color=blue ]
 "callers++ frontend" -> "clang AST" [ dir=back, color=blue ]
 "callers++ frontend" -> "metadata json files" [ color=blue ]
@@ -984,7 +984,7 @@ rm -f *.gen.* *.hdm.*
   
   The static link edition is composed of several steps, as presented on figure TBC:
 
-  # +CAPTION: Use of the Callers plugin with a custom build
+  # +CAPTION: Callers backends
   # +NAME:   fig:callers-backends
   [[./analysis.callers.process.gen.dot.png]]
 

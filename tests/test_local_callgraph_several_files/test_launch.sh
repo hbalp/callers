@@ -16,6 +16,7 @@ analysis_type=callers
 
 common=`which common.sh`
 bin_dir=`dirname $common`
+test_dir=$(cd `dirname "${BASH_SOURCE[0]}"` && pwd)
 launch_scan_build=`which ${bin_dir}/launch_analysis.sh`
 
 source $common
@@ -33,6 +34,24 @@ then
 if [ $analysis_type == "callers" ] || [ $analysis_type == "all" ];
 then
 
+    # list the symbols referenced by the program and defined in the standard C++ library
+
+    #includes_directories="/usr/include/c++/4.7"
+    includes_directories="/usr/include/c++/4.8"
+
+    for inc_dir in $includes_directories
+    do
+	cd $inc_dir
+	list_files_in_dirs `pwd` .file.callers.gen.json dir.callers.gen.json analysis
+
+        # List all defined symbols in file defined_symbols.json
+	list_defined_symbols defined_symbols.json `pwd` dir.callers.gen.json
+
+	source indent_jsonfiles.sh .
+    done
+
+    cd $test_dir
+
     # List generated json files
     find . -type f -name "*.gen.json.gz" -exec gunzip {} \;
     list_files_in_dirs `pwd` .file.callers.gen.json dir.callers.gen.json "analysis"
@@ -42,7 +61,7 @@ then
     # read_defined_symbols.native defined_symbols.all.gen.json file.callers.gen.json
 
     # add extcallees to json files
-    source add_extcallees.sh `pwd`
+    source add_extcallees.sh `pwd` $includes_directories
     #source add_extcallees.sh `pwd` broken_symbols.json
 
     # add extcallers to json files

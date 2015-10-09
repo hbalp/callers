@@ -1618,4 +1618,125 @@ and add the path work_dir/callgraph to the PATH environment variable.
   | Install OPAM in 2 minutes       | https://github.com/ocaml/opam/wiki/Quick_Install |
   | scan-build                      | http://clang-analyzer.llvm.org/scan-build.html   |
    #+END_SRC
-* Annex
+* Todo list
+** Support for inheritance
+*** json file extension [0/2]
+    0. [ ] add a *record* keyword extension (record=struct|class|union)
+    1. [ ] add a *virtual* keyword extension 
+    2. [ ] add an *inheritance* keyword extension
+*** extended json formats in the reference example
+
+
+*** C++ frontend [/]
+**** step 0. _to add class and (required for frontend, optional for backend)_
+***** in file A.hpp.json
+****** current json file content
+       {
+         "file": "A.hpp",
+         "path":
+         "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files/dirA",
+         "record": 
+	  {
+            "name" : "A",
+            "kind" : "class",
+            "begin" : ..,
+            "end" : ..
+            "defined": [...]
+          }
+       }
+****** extended json file content
+       {
+         "file": "A.hpp",
+         "path":
+         "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files/dirA",
+         "defined": [...] 
+       }
+     
+**** step 1. _to produce the virtual flag for each virtual method declaration_
+       for this, completes function CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {...}
+       to test whether the method is virtual or not
+       and if virtual, if it is a pure|defined or declared method.
+
+       Add a flag "virtual" to be used only in case of virtual method
+       "virtual": "pure | declared | defined"
+
+       "pure": pas de définition associée dans la classe mère
+	     => donc ne pas afficher cette méthode dans le graphe final
+
+       "declared": une définition associée dans la classe mère mais localisée dans un autre fichier
+
+       "defined": une définition associée dans la classe mère colocalisée avec sa déclaration
+
+***** in file A.hpp.json
+****** current json file content
+       {
+         "file": "A.hpp",
+         "path":
+         "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files/dirA",
+         "defined": [ { "sign": "void A::~A()", "line": 13 } ]
+       }
+****** extended json file content
+       {
+         "file": "A.hpp",
+         "path":
+         "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files/dirA",
+         "defined": [ 
+            { "sign": "void A::~A()", "line": 13 } 
+            { "sign": "int c()", "line": 17, "virtual": "pure" } 
+          ]
+       }
+
+**** step 2. _build the inheritance graph in json format_
+     complete visitInheritanceList()
+***** in file A.hpp.json
+****** current json file content
+       {
+	 "file": "D.hpp",
+	 "path":
+	 "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files/dirC",
+	 "defined": [...]
+       }
+****** extended json file content
+       {
+	 "file": "D.hpp",
+	 "path":
+	 "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files/dirC",
+         "inherits": [ 
+            { 
+              "A",
+              "decl":
+              "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files/dirA/A.hpp:9:23"
+           }
+         ]
+         "defined": [...]
+       }
+**** step 3. _to produce or not the virtual flag at the caller site, we need to_
+       move the content of method CallersAction::Visitor::VisitMemberCallExpr()
+       to CallersAction::Visitor::VisitCallExpr() by using llvm::dyn_cast
+
+***** reference example in file test.cpp.json
+****** current json file content
+         {
+           "sign": "int A::c()",
+           "decl":
+             "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files/dirA/A.hpp:17",
+           "def": "unlinkedExtCallee"
+         }
+
+****** extended json file content
+         {
+           "sign": "int A::c()",
+           "decl":
+             "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files/dirA/A.hpp:17",
+           "def": "unlinkedExtCallee"
+           "virtual":"pure|declared|defined"
+         }
+       	
+*** OCAML backends
+
+    1. link: visit all virtual method
+       browse all callers of those virtual methods and replace each original function call 
+       with a list of function call, one per derived method
+
+    2. replaces the mother class name by the child class name in methods to link the caller and callee.
+

@@ -7,7 +7,7 @@ class B
 {
 public:
   B();
-  ~B();
+  //~B() {}
   
   int b();
 };

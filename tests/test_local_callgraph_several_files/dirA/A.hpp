@@ -10,9 +10,11 @@ class A
 {
 public:
   A();
-  ~A();
+  virtual ~A() {}
   
   int a();
+
+  virtual int c() = 0;
 
   B* get_b();
 

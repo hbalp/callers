@@ -1,13 +1,16 @@
 #include "A.hpp"
 #include "B.hpp"
+#include "C.hpp"
 #include "test.hpp"
 
 int main()
 {
-  A* a = new A();
+  A* a = new C();
   a->a();
   B* b = a->get_b();
   b->b();
+  a->c();
+  delete a;
   return 0;
 }
 

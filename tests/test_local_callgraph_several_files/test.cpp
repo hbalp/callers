@@ -1,6 +1,7 @@
 #include "A.hpp"
 #include "B.hpp"
 #include "C.hpp"
+#include "D.hpp"
 #include "test.hpp"
 
 int main()
@@ -10,7 +11,10 @@ int main()
   B* b = a->get_b();
   b->b();
   a->c();
+  C* d = new D();
+  d->c();
   delete a;
+  delete d;
   return 0;
 }
 

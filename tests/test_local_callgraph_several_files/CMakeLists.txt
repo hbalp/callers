@@ -11,5 +11,6 @@ add_executable(mytest
   dirA/A.cpp
   dirB/B.cpp
   dirC/C.cpp
+  dirC/D.cpp
   test.cpp
   )

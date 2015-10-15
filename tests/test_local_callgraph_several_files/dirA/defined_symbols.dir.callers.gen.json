@@ -1,0 +1,19 @@
+{
+  "directory": "dirA",
+  "path":
+    "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/doc/test_local_callgraph_several_files",
+  "depth": 1,
+  "file_symbols": [
+    {
+      "file": "A.hpp",
+      "defined": [ { "sign": "void A::~A()", "line": 13 } ]
+    },
+    {
+      "file": "A.cpp",
+      "defined": [
+        { "sign": "int A::a()", "line": 7 },
+        { "sign": "void A::A()", "line": 5 }
+      ]
+    }
+  ]
+}

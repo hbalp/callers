@@ -1,0 +1,54 @@
+{
+  "file": "C.cpp",
+  "path":
+    "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/doc/test_local_callgraph_several_files/dirC",
+  "defined": [
+    {
+      "sign": "int C::c()",
+      "line": 9,
+      "extcallers": [
+        {
+          "sign": "int main()",
+          "decl": "unknownExtFctDecl",
+          "def":
+            "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/doc/test_local_callgraph_several_files/test.cpp:7"
+        }
+      ],
+      "extcallees": [
+        {
+          "sign": "printf",
+          "decl": "/usr/include/stdio.h:362",
+          "def": "/usr/include/stdio.h:362"
+        }
+      ]
+    },
+    {
+      "sign": "void C::C()",
+      "line": 4,
+      "locallees": [ "int C::c()" ],
+      "extcallers": [
+        {
+          "sign": "void D::D()",
+          "decl": "unknownExtFctDecl",
+          "def":
+            "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/doc/test_local_callgraph_several_files/dirC/D.hpp:7"
+        },
+        {
+          "sign": "int main()",
+          "decl": "unknownExtFctDecl",
+          "def":
+            "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/doc/test_local_callgraph_several_files/test.cpp:7"
+        }
+      ],
+      "extcallees": [
+        {
+          "sign": "void A::A()",
+          "decl":
+            "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/doc/test_local_callgraph_several_files/dirA/A.hpp:12",
+          "def":
+            "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/doc/test_local_callgraph_several_files/dirA/A.cpp:5"
+        }
+      ]
+    }
+  ]
+}

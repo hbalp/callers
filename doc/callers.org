@@ -1464,7 +1464,7 @@ int B::b() {
 
    So the main challenge is to extract from the existing database the information that is really important for helping the end-user to achieve his analysis goal, and to ignore whatever else.
 
-   This is the purpose of the "function_callers_to_dot" backend implemented in OCAML and used in step 7.
+   This is the purpose of the "function_calls_to_dot" backend implemented in OCAML and used in step 7.
 
    The basic usage of this backend is to lookup for the definition of a specific function to be analyzed, taken as input,
    and then to navigate through either all its function callers or all its function callees.
@@ -1476,10 +1476,10 @@ int B::b() {
    In case you choose the "c2c" value, it means that the generated dot graph will draw a graph of all possible function call paths between one caller function and one callee function.
 
    # +BEGIN_SRC text verbatim
-> function_callers_to_dot.native --help
+> function_calls_to_dot.native --help
 Parses function's callers and/or callees from callers's generated json files (direction=callers|callees|c2c)
 
-  function_callers_to_dot.native DIRECTION FCT1_JSON FCT1_ID FCT1_SIGN [[OTHER ...]]
+  function_calls_to_dot.native DIRECTION FCT1_JSON FCT1_ID FCT1_SIGN [[OTHER ...]]
 
 More detailed information
 === flags ===
@@ -1618,7 +1618,7 @@ and add the path work_dir/callgraph to the PATH environment variable.
   | Install OPAM in 2 minutes       | https://github.com/ocaml/opam/wiki/Quick_Install |
   | scan-build                      | http://clang-analyzer.llvm.org/scan-build.html   |
    #+END_SRC
-* Todo list
+* TODO Todo list
 ** Support for inheritance
 *** json file extension [0/2]
     0. [ ] add a *record* keyword extension (record=struct|class|union)
@@ -1626,23 +1626,23 @@ and add the path work_dir/callgraph to the PATH environment variable.
     2. [ ] add an *inheritance* keyword extension
 *** extended json formats in the reference example
 
-
 *** C++ frontend [/]
-**** step 0. _to add class and (required for frontend, optional for backend)_
+**** step 0. _to add record definition (required for frontend, optional for backend)_
 ***** in file A.hpp.json
 ****** current json file content
        {
          "file": "A.hpp",
          "path":
          "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files/dirA",
-         "record": 
-	  {
+         "records": [
+	   {
             "name" : "A",
             "kind" : "class",
             "begin" : ..,
             "end" : ..
             "defined": [...]
-          }
+           }
+          ]
        }
 ****** extended json file content
        {
@@ -1688,7 +1688,7 @@ and add the path work_dir/callgraph to the PATH environment variable.
 
 **** step 2. _build the inheritance graph in json format_
      complete visitInheritanceList()
-***** in file A.hpp.json
+***** in file D.hpp.json
 ****** current json file content
        {
 	 "file": "D.hpp",
@@ -1698,16 +1698,24 @@ and add the path work_dir/callgraph to the PATH environment variable.
        }
 ****** extended json file content
        {
-	 "file": "D.hpp",
-	 "path":
-	 "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files/dirC",
-         "inherits": [ 
-            { 
-              "A",
-              "decl":
-              "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files/dirA/A.hpp:9:23"
+         "file": "D.hpp",
+         "path":
+         "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files/dirC",
+         "records": [
+           {
+               "name" : "D",
+               "kind" : "class",
+               "begin" : 7,
+               "end" : 14,
+               "inherits": [ 
+                   { 
+                     "C",
+                     "decl":
+                     "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files/dirC/C.hpp:7:14"
+                  }
+                ]
            }
-         ]
+          ],
          "defined": [...]
        }
 **** step 3. _to produce or not the virtual flag at the caller site, we need to_
@@ -1739,4 +1747,9 @@ and add the path work_dir/callgraph to the PATH environment variable.
        with a list of function call, one per derived method
 
     2. replaces the mother class name by the child class name in methods to link the caller and callee.
+
+*** TODO [#A] Add an OCAML backend to build class inheritance graphs
+    DEADLINE: <2015-10-22 jeu.>
+**** First begin by listing all records without looking at the inheritance links
+**** Then add the inheritance links
 

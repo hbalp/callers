@@ -1,0 +1,13 @@
+{
+  "file": "B.hpp",
+  "path":
+    "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/doc/test_local_callgraph_several_files/dirB",
+  "records": [
+    {
+        "name" : "B",
+        "kind" : "class",
+        "begin" : 6,
+        "end" : 13
+    }
+   ]
+}

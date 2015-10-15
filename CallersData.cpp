@@ -271,8 +271,9 @@ void CallersData::File::add_defined_function(std::string sign, std::string filep
 {
   std::cout << "Create function \"" << sign
 	    << "\" located in file \"" << this->fullPath() << ":" << line << "\"" << std::endl;
+  //Fct *fct = new Fct(sign, filepath, line); // fuite mémoire sur la pile si pas désalloué !
   Fct fct(sign, filepath, virtuality, line);
-  defined->insert(*fct);
+  defined->insert(fct);
 }
 
 void

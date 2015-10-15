@@ -70,7 +70,7 @@ namespace CallersData
       std::string fullPath () const;
       void parse_json_file() const;
       void add_defined_function(Fct* fct) const;
-      void add_defined_function(std::string func, std::string filepath, int sign) const;
+      void add_defined_function(std::string func, std::string filepath, Fct::Virtuality virtuality, int sign) const;
       void add_function_call(FctCall* fc, Dir *context) const;
       void output_json_desc() const;
       std::set<Fct> *defined;
@@ -83,6 +83,7 @@ namespace CallersData
       //JsonFileWriter js;
   };
 
+  enum Virtuality { VNoVirtual, VVirtualDeclared, VVirtualDefined, VVirtualPure };
   /* Used to store function call before knowing if it's a local or an external call */
   class FctCall
   {
@@ -90,16 +91,19 @@ namespace CallersData
     friend void File::add_function_call(FctCall* fc, Dir* context) const;
 
     public:
-      FctCall(std::string caller_sign, std::string caller_file, int caller_line, 
-	    std::string callee_sign, std::string callee_decl_file, int callee_decl_line);
+      FctCall(std::string caller_sign, std::string caller_file, Virtuality caller_virtuality,
+	int caller_line, std::string callee_sign, Virtuality callee_virtuality,
+	std::string callee_decl_file, int callee_decl_line);
       //FctCall(const FctCall& copy_from_me);
       ~FctCall() {}
       bool is_builtin = false;
     protected:
       std::string caller_sign = "unknownCallerSign";
+      Virtuality caller_virtuality = VNoVirtual;
       std::string caller_file = "unknownCallerFile";
       int caller_line = -1;
       std::string callee_sign = "unknownCalleeSign";
+      Virtuality callee_virtuality = VNoVirtual;
       std::string callee_decl_file = "unknownCalleeDeclFile";
       int callee_decl_line = -1;
       std::string callee_def_file = "unknownCalleeDefFile";
@@ -130,8 +134,8 @@ namespace CallersData
   class Fct
   {
     public:
-      Fct(const char* sign, const char* filepath, const int line);
-      Fct(std::string sign, std::string filepath, int line);
+      Fct(const char* sign, const char* filepath, Virtuality is_virtual, const int line);
+      Fct(std::string sign, std::string filepath, Virtuality is_virtual, int line);
       Fct(const Fct& copy_from_me);
       ~Fct();
 
@@ -150,6 +154,7 @@ namespace CallersData
 
       std::string sign = "unknownFctSign";
       std::string file = "unknownFctFile";
+      Virtuality virtuality = VNoVirtual;
       int line = -1;
       std::set<std::string> *locallers;
       std::set<std::string> *locallees;

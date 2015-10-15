@@ -1658,7 +1658,7 @@ and add the path work_dir/callgraph to the PATH environment variable.
        and if virtual, if it is a pure|defined or declared method.
 
        Add a flag "virtual" to be used only in case of virtual method
-       "virtual": "pure | declared | defined"
+       "virtual": "no | pure | declared | defined"
 
        "pure": pas de définition associée dans la classe mère
 	     => donc ne pas afficher cette méthode dans le graphe final

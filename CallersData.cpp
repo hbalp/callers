@@ -222,16 +222,16 @@ void CallersData::File::parse_json_file() const
 	      std::string symbol = sign.GetString();
 	      std::string virtuality_text = virtuality_value.GetString();
 	      int pos = line.GetInt();
-	      CallersData::Fct::Virtuality virtuality
-		= ((virtuality_text == "no") ? Fct::VNoVirtual
-		: ((virtuality_text == "declared") ? Fct::VVirtualDeclared
-		: ((virtuality_text == "defined") ? Fct::VVirtualDefined
-		: ((virtuality_text == "pure") ? Fct::VPure) : Fct::VNoVirtual)));
+	      CallersData::Virtuality virtuality
+		= ((virtuality_text == "no") ? VNoVirtual
+		: ((virtuality_text == "declared") ? VVirtualDeclared
+		: (virtuality_text == "defined") ? VVirtualDefined
+		: ((virtuality_text == "pure") ? VVirtualPure : VNoVirtual)));
 	      std::ostringstream spos;
 	      spos << pos;
 	      std::string location(filepath + ":" + spos.str());
 	      //symbol_location.insert(SymbLoc::value_type(symbol, location));
-	      this->add_defined_function(symbol, this->file, virtuality, pos);
+	      this->add_defined_function(symbol, virtuality, this->file, pos);
 	      std::cout << "Parsed symbol s[" << s << "]:\"" << symbol << "\"" << std::endl;
 	    }
 	}
@@ -266,13 +266,13 @@ void CallersData::File::add_defined_function(CallersData::Fct* fct) const
   defined->insert(*fct);
 }
 
-void CallersData::File::add_defined_function(std::string sign, std::string filepath,
-    Fct::Virtuality virtuality, int line) const
+void CallersData::File::add_defined_function(std::string sign, Virtuality virtuality, 
+					     std::string filepath, int line) const
 {
   std::cout << "Create function \"" << sign
 	    << "\" located in file \"" << this->fullPath() << ":" << line << "\"" << std::endl;
   //Fct *fct = new Fct(sign, filepath, line); // fuite mémoire sur la pile si pas désalloué !
-  Fct fct(sign, filepath, virtuality, line);
+  Fct fct(sign, virtuality, filepath, line);
   defined->insert(fct);
 }
 
@@ -313,9 +313,9 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
       std::cout << "The caller function belongs to the current file" << std::endl;
 
       // adds the caller function to the defined functions of the current file
-      add_defined_function(fc->caller_sign, fc->caller_file, fc->caller_virtuality, fc->caller_line);
+      add_defined_function(fc->caller_sign, fc->caller_virtuality, fc->caller_file, fc->caller_line);
       // get a reference to the related defined function
-      CallersData::Fct caller_fct(fc->caller_sign, fc->caller_file, fc->caller_virtuality, fc->caller_line);
+      CallersData::Fct caller_fct(fc->caller_sign, fc->caller_virtuality, fc->caller_file, fc->caller_line);
       caller = defined->find(caller_fct);
       // ensure caller has really been found
       assert(caller != defined->end());
@@ -349,7 +349,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 	  // add the external callee to the local caller
 	  if(fc->is_builtin == true)
 	    {
-	      caller->add_builtin_callee(fc->callee_sign, fc->callee_decl_file, fc->callee_decl_line);
+	      caller->add_builtin_callee(fc->callee_sign, fc->callee_virtuality, fc->callee_decl_file, fc->callee_decl_line);
 	    }
 	  else
 	    {
@@ -372,7 +372,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
       std::set<CallersData::File>::iterator caller_file = files->get_file(caller_basename, caller_dirpath);
       // CallersData::File caller_file(caller_basename, caller_dirpath);
       // caller_file.parse_json_file();
-      CallersData::Fct caller_def( fc->caller_sign, fc->caller_file, fc->caller_virtuality, fc->caller_line);
+      CallersData::Fct caller_def( fc->caller_sign, fc->caller_virtuality, fc->caller_file, fc->caller_line);
       caller_file->add_defined_function(&caller_def);
       // get a reference to the related defined function
       caller = caller_file->defined->find(caller_def);
@@ -387,18 +387,18 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 	  std::cout << "The callee function belongs to the current file" << std::endl;
 
 	  // adds the callee function to the defined functions of the current file
-	  add_defined_function(fc->callee_sign, fc->callee_decl_file, fc->callee_virtuality, fc->callee_decl_line);
+	  add_defined_function(fc->callee_sign, fc->callee_virtuality, fc->callee_decl_file, fc->callee_decl_line);
 	  // get a reference to the related defined function
-	  CallersData::Fct callee_fct(fc->callee_sign, fc->callee_decl_file, fc->callee_virtuality, fc->callee_decl_line);
+	  CallersData::Fct callee_fct(fc->callee_sign, fc->callee_virtuality, fc->callee_decl_file, fc->callee_decl_line);
 	  callee = defined->find(callee_fct);
 	  // ensure callee has really been found
 	  assert(callee != defined->end());
 
 	  // add the external caller to the local callee
-	  callee->add_external_caller(fc->caller_sign, fc->caller_file);
+	  callee->add_external_caller(fc->caller_sign, fc->callee_virtuality, fc->caller_file);
 
 	  // add the local callee to the external caller
-	  caller->add_external_callee(fc->callee_sign, fc->callee_decl_file, fc->callee_decl_line);
+	  caller->add_external_callee(fc->callee_sign, fc->callee_virtuality, fc->callee_decl_file, fc->callee_decl_line);
 	}
       else
 	// the callee function is defined externally as the caller !!!
@@ -414,7 +414,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 	  std::set<CallersData::File>::iterator callee_file = files->get_file(callee_basename, callee_dirpath);
 	  //CallersData::File callee_file(callee_basename, callee_dirpath);
 	  //callee_file.parse_json_file();
-	  CallersData::Fct callee_def( fc->callee_sign, fc->callee_decl_file, fc->callee_virtuality, fc->callee_decl_line);
+	  CallersData::Fct callee_def( fc->callee_sign, fc->callee_virtuality, fc->callee_decl_file, fc->callee_decl_line);
 	  callee_file->add_defined_function(&callee_def);
 	  // get a reference to the related defined function
 	  callee = callee_file->defined->find(callee_def);
@@ -437,10 +437,10 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 	      std::cout << "The caller and callee functions are located in different files" << std::endl;
 	      
 	      // add the external caller to the external callee
-	      callee->add_external_caller(fc->caller_sign, fc->caller_file);
+	      callee->add_external_caller(fc->caller_sign, fc->callee_virtuality, fc->caller_file);
 
 	      // add the external callee to the external caller
-	      caller->add_external_callee(fc->callee_sign, fc->callee_decl_file, fc->callee_decl_line);
+	      caller->add_external_callee(fc->callee_sign, fc->callee_virtuality, fc->callee_decl_file, fc->callee_decl_line);
 	    }
 
 	  //callee_file->output_json_desc();
@@ -497,7 +497,7 @@ CallersData::Fct::~Fct()
   delete extcallees;
 }
 
-CallersData::Fct::Fct(const char* sign, const char* filepath, Virtuality is_virtual, const int line)
+CallersData::Fct::Fct(const char* sign, Virtuality is_virtual, const char* filepath, const int line)
   : sign(sign),
     file(filepath),
     virtuality(is_virtual),
@@ -506,7 +506,7 @@ CallersData::Fct::Fct(const char* sign, const char* filepath, Virtuality is_virt
   allocate();
 }
 
-CallersData::Fct::Fct(std::string sign, std::string filepath, Virtuality is_virtual, int line)
+CallersData::Fct::Fct(std::string sign, Virtuality is_virtual, std::string filepath, int line)
   : sign(sign),
     file(filepath),
     virtuality(is_virtual),
@@ -562,15 +562,16 @@ void CallersData::Fct::add_local_callee(std::string callee) const
   locallees->insert(callee);
 }
 
-void CallersData::Fct::add_external_caller(std::string caller_sign, std::string caller_decl_file_pos) const
+void CallersData::Fct::add_external_caller(std::string caller_sign, Virtuality virtuality, 
+					   std::string caller_decl_file_pos) const
 {
   std::cout << "Add external caller \"" << caller_sign << "\" to callee function \"" << sign << "\"" << std::endl;
   std::cout << "Caller function is located at: " << caller_decl_file_pos << std::endl;
-  ExtFct *extfct = new ExtFct(caller_sign, caller_decl_file_pos);
-  extcallers->insert(*extfct);
+  ExtFct extfct(caller_sign, virtuality, caller_decl_file_pos);
+  extcallers->insert(extfct);
 }
 
-void CallersData::Fct::add_external_callee(std::string callee_sign, std::string callee_decl_file, int callee_decl_line) const
+void CallersData::Fct::add_external_callee(std::string callee_sign, CallersData::Virtuality callee_virtuality, std::string callee_decl_file, int callee_decl_line) const
 {
   std::string callee_decl_location = callee_decl_file;
   std::ostringstream out;
@@ -584,11 +585,12 @@ void CallersData::Fct::add_external_callee(std::string callee_sign, std::string 
 	    << " at line: " << callee_decl_line
 	    << std::endl;
   
-  ExtFct *extfct = new ExtFct(callee_sign, callee_decl_location);
-  extcallees->insert(*extfct);
+  ExtFct extfct (callee_sign, callee_virtuality, callee_decl_location);
+  extcallees->insert(extfct);
 }
 
-void CallersData::Fct::add_builtin_callee(std::string builtin_sign, std::string builtin_decl_file, int builtin_decl_line) const
+void CallersData::Fct::add_builtin_callee(std::string builtin_sign, CallersData::Virtuality builtin_virtuality,
+					  std::string builtin_decl_file, int builtin_decl_line) const
 {
   std::string builtin_decl_location = builtin_decl_file;
   std::ostringstream out;
@@ -602,8 +604,8 @@ void CallersData::Fct::add_builtin_callee(std::string builtin_sign, std::string 
 	    << " at line: " << builtin_decl_line
 	    << std::endl;
   
-  ExtFct *extfct = new ExtFct(builtin_sign, builtin_decl_location, "builtinFunctionDef");
-  extcallees->insert(*extfct);
+  ExtFct extfct (builtin_sign, builtin_virtuality, builtin_decl_location, "builtinFunctionDef");
+  extcallees->insert(extfct);
 }
 
 void CallersData::Fct::output_local_callers(std::ofstream &js) const
@@ -713,7 +715,7 @@ void CallersData::Fct::output_json_desc(std::ofstream &js) const
        << ((virtuality == VNoVirtual) ? "no"
            : ((virtuality == VVirtualDeclared) ? "declared"
            : ((virtuality == VVirtualDefined) ? "defined"
-	   : /* virtuality == VPure */ "pure")))
+	   : /* virtuality == VVirtualPure */ "pure")))
      << "\", \"line\": " << out.str() << "";
 
   this->output_local_callers(js);
@@ -754,8 +756,11 @@ bool CallersData::operator< (const CallersData::FctCall& fc1, const CallersData:
 
 /**************************************** class ExtFct ***************************************/
 
-CallersData::ExtFct::ExtFct(std::string sign, std::string decl)
-  : sign(sign), decl(decl), def("unknownExtFctDef")
+CallersData::ExtFct::ExtFct(std::string sign, Virtuality is_virtual, std::string decl)
+  : sign(sign), 
+    virtuality(is_virtual),
+    decl(decl), 
+    def("unknownExtFctDef")
 {
   std::cout << "Create external function: "
 	    << "{\"sign\":\"" << sign
@@ -764,11 +769,18 @@ CallersData::ExtFct::ExtFct(std::string sign, std::string decl)
 	    << std::endl;
 }
 
-CallersData::ExtFct::ExtFct(std::string sign, std::string decl, std::string def)
-  : sign(sign), decl(decl), def(def)
+CallersData::ExtFct::ExtFct(std::string sign, Virtuality is_virtual, std::string decl, std::string def)
+  : sign(sign), 
+    virtuality(is_virtual),
+    decl(decl), 
+    def(def)
 {
   std::cout << "Create external function: "
 	    << "{\"sign\":\"" << sign
+	    << "\",\"virtual\":\"" << ((virtuality == CallersData::VNoVirtual) ? "no"
+				       : ((virtuality == CallersData::VVirtualDeclared) ? "declared"
+					  : ((virtuality == CallersData::VVirtualDefined) ? "defined"
+					     : "pure")))
 	    << "\",\"decl\":\"" << decl
 	    << "\",\"def\":\"" << def << "\"}"
 	    << std::endl;
@@ -777,10 +789,15 @@ CallersData::ExtFct::ExtFct(std::string sign, std::string decl, std::string def)
 CallersData::ExtFct::ExtFct(const CallersData::ExtFct& copy_from_me)
 {
   sign = copy_from_me.sign;
+  virtuality = copy_from_me.virtuality;
   decl = copy_from_me.decl;
   def = copy_from_me.def;
   std::cout << "Copy external function: "
 	    << "{\"sign\":\"" << sign
+	    << "\",\"virtual\":\"" << ((virtuality == CallersData::VNoVirtual) ? "no"
+				       : ((virtuality == CallersData::VVirtualDeclared) ? "declared"
+					  : ((virtuality == CallersData::VVirtualDefined) ? "defined"
+					     : "pure")))
 	    << "\",\"decl\":\"" << decl
 	    << "\",\"def\":\"" << def << "\"}"
 	    << std::endl;

@@ -59,7 +59,7 @@ namespace CallersData
 
   class Fct;
   class FctCall;
-
+  enum Virtuality { VNoVirtual, VVirtualDeclared, VVirtualDefined, VVirtualPure };
   class File
   {
     friend bool operator< (const CallersData::File& file1, const CallersData::File& file2);
@@ -70,7 +70,7 @@ namespace CallersData
       std::string fullPath () const;
       void parse_json_file() const;
       void add_defined_function(Fct* fct) const;
-      void add_defined_function(std::string func, std::string filepath, Fct::Virtuality virtuality, int sign) const;
+      void add_defined_function(std::string func, Virtuality virtuality, std::string filepath, int sign) const;
       void add_function_call(FctCall* fc, Dir *context) const;
       void output_json_desc() const;
       std::set<Fct> *defined;
@@ -83,7 +83,6 @@ namespace CallersData
       //JsonFileWriter js;
   };
 
-  enum Virtuality { VNoVirtual, VVirtualDeclared, VVirtualDefined, VVirtualPure };
   /* Used to store function call before knowing if it's a local or an external call */
   class FctCall
   {
@@ -91,7 +90,7 @@ namespace CallersData
     friend void File::add_function_call(FctCall* fc, Dir* context) const;
 
     public:
-      FctCall(std::string caller_sign, std::string caller_file, Virtuality caller_virtuality,
+      FctCall(std::string caller_sign, Virtuality caller_virtuality, std::string caller_file,
 	int caller_line, std::string callee_sign, Virtuality callee_virtuality,
 	std::string callee_decl_file, int callee_decl_line);
       //FctCall(const FctCall& copy_from_me);
@@ -118,13 +117,14 @@ namespace CallersData
     friend bool operator< (const CallersData::ExtFct& fct1, const CallersData::ExtFct& fct2);
 
     public:
-      ExtFct(std::string sign, std::string decl);
-      ExtFct(std::string sign, std::string decl, std::string def);
+      ExtFct(std::string sign, Virtuality is_virtual, std::string decl);
+      ExtFct(std::string sign, Virtuality is_virtual, std::string decl, std::string def);
       ExtFct(const ExtFct& copy_from_me);
       ~ExtFct() {}
       //void set_file(std::string file);
     private:
       std::string sign = "unknownExtFctSign";
+      Virtuality virtuality = VNoVirtual;
       std::string decl = "unknownExtFctDeclLoc"; 
       std::string def  = "unknownExtFctDefLoc";
   };
@@ -134,16 +134,16 @@ namespace CallersData
   class Fct
   {
     public:
-      Fct(const char* sign, const char* filepath, Virtuality is_virtual, const int line);
-      Fct(std::string sign, std::string filepath, Virtuality is_virtual, int line);
+      Fct(const char* sign, Virtuality is_virtual, const char* filepath, const int line);
+      Fct(std::string sign, Virtuality is_virtual, std::string filepath, int line);
       Fct(const Fct& copy_from_me);
       ~Fct();
 
       void add_local_caller(std::string caller) const;
       void add_local_callee(std::string callee) const;
-      void add_external_caller(std::string caller_sign, std::string caller_decl) const;
-      void add_external_callee(std::string callee_sign, std::string callee_decl_file, int callee_decl_line) const;
-      void add_builtin_callee(std::string callee_sign, std::string builtin_decl_file, int builtin_decl_line) const;
+      void add_external_caller(std::string caller_sign, Virtuality virtuality, std::string caller_decl) const;
+      void add_external_callee(std::string callee_sign, Virtuality virtuality, std::string callee_decl_file, int callee_decl_line) const;
+      void add_builtin_callee(std::string callee_sign, Virtuality builtin_virtuality, std::string builtin_decl_file, int builtin_decl_line) const;
 
       void output_local_callers(std::ofstream &js) const;
       void output_local_callees(std::ofstream &js) const;

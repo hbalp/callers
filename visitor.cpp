@@ -1006,7 +1006,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	    std::set<CallersData::File>::iterator file = otherJsonFiles.get_file(basename, dirpath);
 	    //CallersData::File file(basename, dirpath);
 	    //file.parse_json_file();
-	    CallersData::Fct fct(builtinName, headerName, CallersData::Fct::VNoVirtual, builtinPos);
+	    CallersData::Fct fct(builtinName, CallersData::VNoVirtual, headerName, builtinPos);
 	    file->add_defined_function(&fct);
 	    //file.output_json_desc();
 	    auto parentMethod = llvm::dyn_cast<clang::CXXMethodDecl>(pfdParent);
@@ -1198,7 +1198,7 @@ CallersAction::Visitor::TraverseCXXDestructorDecl(clang::CXXDestructorDecl* Decl
 bool
 CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
    bool isDefinition = Decl->isThisDeclarationADefinition();
-   auto methodDecl = llvm::dyn_cast<clang::CXXMethodDecl>(Decl)
+   auto methodDecl = llvm::dyn_cast<clang::CXXMethodDecl>(Decl);
    bool isDeclarationOfInterest = !isDefinition && methodDecl
       && (methodDecl->isVirtual() || methodDecl->isPure());
    if (isDefinition || isDeclarationOfInterest) {
@@ -1214,13 +1214,13 @@ CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
 	osOut << "visiting virtual declaration method " << writeFunction(*Decl)
 	  << " at " << fct_filepath << ':' << fct_line << '\n';
       auto methodDecl = llvm::dyn_cast<clang::CXXMethodDecl>(Decl);
-      CallersData::Fct fct(writeFunction(*Decl), fct_filepath,
+      CallersData::Fct fct(writeFunction(*Decl),
         isDefinition ? ((methodDecl &&
-	  methodDecl->isVirtual()) ? CallersData::Fct::VVirtualDefined
-	  : CallersData::Fct::VNoVirtual),
-	: (methodDecl->isPure() ? CallersData::Fct::VVirtualPure
-	  : CallersData::Fct::VVirtualDeclared),
-	fct_line);
+	  methodDecl->isVirtual()) ? CallersData::VVirtualDefined
+	  : CallersData::VNoVirtual)
+	  : (methodDecl->isPure() ? CallersData::VVirtualPure
+	  : CallersData::VVirtualDeclared),
+        fct_filepath, fct_line);
       // check whether the function is really defined in this file
       if(fct_filepath == currentJsonFile.fullPath())
 	// if true, add the function to the current json file

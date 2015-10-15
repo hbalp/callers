@@ -1689,7 +1689,7 @@ and add the path work_dir/callgraph to the PATH environment variable.
 
 **** step 2. _build the inheritance graph in json format_
      complete visitInheritanceList()
-***** in file A.hpp.json
+***** in file D.hpp.json
 ****** current json file content
        {
 	 "file": "D.hpp",
@@ -1699,16 +1699,24 @@ and add the path work_dir/callgraph to the PATH environment variable.
        }
 ****** extended json file content
        {
-	 "file": "D.hpp",
-	 "path":
-	 "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files/dirC",
-         "inherits": [ 
-            { 
-              "A",
-              "decl":
-              "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files/dirA/A.hpp:9:23"
+         "file": "D.hpp",
+         "path":
+         "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files/dirC",
+         "records": [
+           {
+               "name" : "D",
+               "kind" : "class",
+               "begin" : 7,
+               "end" : 14,
+               "inherits": [ 
+                   { 
+                     "C",
+                     "decl":
+                     "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files/dirC/C.hpp:7:14"
+                  }
+                ]
            }
-         ]
+          ],
          "defined": [...]
        }
 **** step 3. _to produce or not the virtual flag at the caller site, we need to_

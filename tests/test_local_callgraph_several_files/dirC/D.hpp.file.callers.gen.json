@@ -2,6 +2,21 @@
   "file": "D.hpp",
   "path":
     "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/doc/test_local_callgraph_several_files/dirC",
+  "records": [
+    {
+        "name" : "D",
+        "kind" : "class",
+        "begin" : 7,
+        "end" : 14,
+        "inherits": [ 
+            { 
+              "C",
+              "decl":
+              "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files/dirC/C.hpp:7:14"
+           }
+         ]
+    }
+   ],
   "defined": [
     {
       "sign": "void D::D()",

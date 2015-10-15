@@ -50,11 +50,11 @@ then
     source indent_jsonfiles.sh .
 
     # generate callee's tree from main entry point
-    source function_callers_to_dot.sh callees $canonical_pwd/test.cpp "main" "int main()" files
+    source function_calls_to_dot.sh callees $canonical_pwd/test.cpp "main" "int main()" files
 
     # generate caller's tree from main entry point
-    #source function_callers_to_dot.sh callers $canonical_pwd/dirB/B.cpp "c" "int c()" files
-    source function_callers_to_dot.sh callers $canonical_pwd/4.8/B.cpp "c" "int c()" files
+    #source function_calls_to_dot.sh callers $canonical_pwd/dirB/B.cpp "c" "int c()" files
+    source function_calls_to_dot.sh callers $canonical_pwd/4.8/B.cpp "c" "int c()" files
 
     source process_dot_files.sh . analysis/${analysis_type}
 

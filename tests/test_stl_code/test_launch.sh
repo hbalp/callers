@@ -66,16 +66,16 @@ then
     source indent_jsonfiles.sh .
 
     ## generate callee's tree from main entry point
-    #source function_callers_to_dot.sh callees `pwd`/test_std_map.cpp "std_map" "int main()" files
-    #source function_callers_to_dot.sh callees `pwd`/test_std_map0.cpp "std_map0" "int main()" files
-    source function_callers_to_dot.sh callees `pwd`/test_std_map1.cpp "std_map1" "int main()" files
-    # source function_callers_to_dot.sh callees `pwd`/test_std_map2.cpp "std_map2" "int main(int argc, char** argv)" files
-    # source function_callers_to_dot.sh callees `pwd`/test_std_map3.cpp "std_map3" "int main(int argc, char** argv)" files
-    #source function_callers_to_dot.sh callees `pwd`/test_std_set.cpp "std_set" "int main()" files
+    #source function_calls_to_dot.sh callees `pwd`/test_std_map.cpp "std_map" "int main()" files
+    #source function_calls_to_dot.sh callees `pwd`/test_std_map0.cpp "std_map0" "int main()" files
+    source function_calls_to_dot.sh callees `pwd`/test_std_map1.cpp "std_map1" "int main()" files
+    # source function_calls_to_dot.sh callees `pwd`/test_std_map2.cpp "std_map2" "int main(int argc, char** argv)" files
+    # source function_calls_to_dot.sh callees `pwd`/test_std_map3.cpp "std_map3" "int main(int argc, char** argv)" files
+    #source function_calls_to_dot.sh callees `pwd`/test_std_set.cpp "std_set" "int main()" files
 
     ## generate caller's tree from main entry point
-    source function_callers_to_dot.sh callers `pwd`/test_std_map.cpp "std_map" "int main()" files
-    #source function_callers_to_dot.sh callers `pwd`/test_std_set.cpp "std_set" "int main()" files
+    source function_calls_to_dot.sh callers `pwd`/test_std_map.cpp "std_map" "int main()" files
+    #source function_calls_to_dot.sh callers `pwd`/test_std_set.cpp "std_set" "int main()" files
 
     source process_dot_files.sh . analysis/${analysis_type}
 

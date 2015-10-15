@@ -217,10 +217,11 @@ void CallersData::File::parse_json_file() const
 	    {
 	      const rapidjson::Value& symb = defined[s];
 	      const rapidjson::Value& sign = symb["sign"];
-	      const rapidjson::Value& virtuality_value = symb["virtual"];
+	      //const rapidjson::Value& virtuality_value = symb["virtual"];
 	      const rapidjson::Value& line = symb["line"];
 	      std::string symbol = sign.GetString();
-	      std::string virtuality_text = virtuality_value.GetString();
+	      //std::string virtuality_text = virtuality_value.GetString();
+	      std::string virtuality_text = "virtuality_text_TO_BE_PARSED_BY_RAPIDJSON_IN_JSON_FILE";
 	      int pos = line.GetInt();
 	      CallersData::Virtuality virtuality
 		= ((virtuality_text == "no") ? VNoVirtual
@@ -711,7 +712,7 @@ void CallersData::Fct::output_json_desc(std::ofstream &js) const
   std::ostringstream out;
   out << line;
   js << "{\"sign\": \"" << sign
-     << "\", \"virtual\": "
+     << "\", \"virtual\": \""
        << ((virtuality == VNoVirtual) ? "no"
            : ((virtuality == VVirtualDeclared) ? "declared"
            : ((virtuality == VVirtualDefined) ? "defined"

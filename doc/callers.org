@@ -1628,21 +1628,22 @@ and add the path work_dir/callgraph to the PATH environment variable.
 
 
 *** C++ frontend [/]
-**** step 0. _to add class and (required for frontend, optional for backend)_
+**** step 0. _to add record definition (required for frontend, optional for backend)_
 ***** in file A.hpp.json
 ****** current json file content
        {
          "file": "A.hpp",
          "path":
          "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files/dirA",
-         "record": 
-	  {
+         "records": [
+	   {
             "name" : "A",
             "kind" : "class",
             "begin" : ..,
             "end" : ..
             "defined": [...]
-          }
+           }
+          ]
        }
 ****** extended json file content
        {

@@ -1,0 +1,14 @@
+{
+  "file": "A.hpp",
+  "path":
+    "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/doc/test_local_callgraph_several_files/dirA",
+  "records": [
+    {
+        "name" : "A",
+        "kind" : "class",
+        "begin" : 9,
+        "end" : 23
+    }
+   ],
+   "defined": [ { "sign": "void A::~A()", "line": 13 } ]
+}

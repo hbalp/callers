@@ -1,0 +1,20 @@
+{
+  "dir": "test_local_callgraph_several_files",
+  "files": [ "test.cpp.file.callers.gen.json" ],
+  "childrens": [
+    { "dir": "dirB", "files": [ "B.cpp.file.callers.gen.json" ] },
+    {
+      "dir": "dirA",
+      "files": [
+        "A.hpp.file.callers.gen.json", "A.cpp.file.callers.gen.json"
+      ]
+    },
+    {
+      "dir": "dirC",
+      "files": [
+        "C.cpp.file.callers.gen.json", "D.hpp.file.callers.gen.json",
+        "D.cpp.file.callers.gen.json", "C.hpp.file.callers.gen.json"
+      ]
+    }
+  ]
+}

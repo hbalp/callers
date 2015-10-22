@@ -1622,7 +1622,7 @@ and add the path work_dir/callgraph to the PATH environment variable.
 ** Support for inheritance
 *** json file extension [0/2]
     0. [ ] add a *record* keyword extension (record=struct|class|union)
-    1. [ ] add a *virtual* keyword extension 
+    1. [ ] add a *virtuality* keyword extension 
     2. [ ] add an *inheritance* keyword extension
 *** extended json formats in the reference example
 
@@ -1652,13 +1652,13 @@ and add the path work_dir/callgraph to the PATH environment variable.
          "defined": [...] 
        }
      
-**** step 1. _to produce the virtual flag for each virtual method declaration_
+**** step 1. _to produce the virtuality flag for each virtual method declaration_
        for this, completes function CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {...}
        to test whether the method is virtual or not
        and if virtual, if it is a pure|defined or declared method.
 
-       Add a flag "virtual" to be used only in case of virtual method
-       "virtual": "no | pure | declared | defined"
+       Add a flag "virtuality" to be used only in case of virtual method
+       "virtuality": "no | pure | declared | defined"
 
        "pure": pas de définition associée dans la classe mère
 	     => donc ne pas afficher cette méthode dans le graphe final
@@ -1682,7 +1682,7 @@ and add the path work_dir/callgraph to the PATH environment variable.
          "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files/dirA",
          "defined": [ 
             { "sign": "void A::~A()", "line": 13 } 
-            { "sign": "int c()", "line": 17, "virtual": "pure" } 
+            { "sign": "int c()", "line": 17, "virtuality": "pure" } 
           ]
        }
 
@@ -1705,8 +1705,8 @@ and add the path work_dir/callgraph to the PATH environment variable.
            {
                "name" : "D",
                "kind" : "class",
-               "begin" : 7,
-               "end" : 14,
+               "deb" : 7,
+               "fin" : 14,
                "inherits": [ 
                    { 
                      "C",
@@ -1737,7 +1737,7 @@ and add the path work_dir/callgraph to the PATH environment variable.
            "decl":
              "/home/hbalp/work/src/llvm/trunk/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files/dirA/A.hpp:17",
            "def": "unlinkedExtCallee"
-           "virtual":"pure|declared|defined"
+           "virtuality":"pure|declared|defined"
          }
        	
 *** OCAML backends

@@ -806,7 +806,7 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
    std::string result = name;
    result += printTemplateKind(function);
    result += printArgumentSignature(function);
-   osOut << inputFile << ": " << printParentFunction() << " -> " << result << '\n';
+   osOut << inputFile << ": " << printParentFunction() << " -1-> " << result << '\n';
    std::string callee_sign = writeFunction(function);
    std::string callee_filepath = printFilePath(function.getSourceRange());
    int callee_filepos = printLine(function.getSourceRange());
@@ -833,7 +833,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
       callee_sign += ' ';
       callee_sign += printQualifiedName(function);
       callee_sign += printArgumentSignature(function);
-      osOut << inputFile << ": " << printParentFunction() << " -> " << callee_sign << '\n';
+      osOut << inputFile << ": " << printParentFunction() << " -2-> " << callee_sign << '\n';
       std::string callee_filepath = printFilePath(function.getSourceRange());
       int callee_filepos = printLine(function.getSourceRange());
       if(callee_filepath == "unknownFilePath")
@@ -865,7 +865,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
       if (destructor) {
          std::string callee_sign = printQualifiedName(*destructor);
          callee_sign += "()";
-         osOut << inputFile << ": " << printParentFunction() << " -> " << callee_sign << '\n';
+         osOut << inputFile << ": " << printParentFunction() << " -3-> " << callee_sign << '\n';
 	 std::string callee_filepath = printFilePath(destructor->getSourceRange());
 	 int callee_filepos = printLine(destructor->getSourceRange());
 	 if(callee_filepath == "unknownFilePath")
@@ -899,7 +899,7 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
       if (newExpr->isArray())
 	callee_sign += " [] ";
       callee_sign += printArgumentSignature(operatorNew);
-      osOut << inputFile << ": " << printParentFunction() << " -> " << callee_sign << '\n';
+      osOut << inputFile << ": " << printParentFunction() << " -4-> " << callee_sign << '\n';
       std::string callee_filepath = printFilePath(operatorNew.getSourceRange());
       int callee_filepos = printLine(operatorNew.getSourceRange());
       if(callee_filepath == "unknownFilePath")
@@ -917,7 +917,7 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
     {
       std::cout << "WARNING VisitCXXNewExpr: implicit operator new, replace it by an explicit call to \"void *malloc(size_t)\"" << std::endl;
       std::string callee_sign = "void *malloc(size_t)";
-      osOut << inputFile << ": " << printParentFunction() << " -> " << callee_sign << '\n';
+      osOut << inputFile << ": " << printParentFunction() << " -5-> " << callee_sign << '\n';
       //std::string callee_filepath = "unknownFilePath";
       std::string callee_filepath = "/usr/include/malloc.h";
       //int callee_filepos = -1;
@@ -957,7 +957,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	  std::cout << "DEBUG: builtin name: \"" << builtinName << "\"" << std::endl;
 	  std::cout << "DEBUG: builtin decl location: " << builtinFile << ":" << builtinPos << std::endl;
 	  std::cout << "DEBUG: builtin def location (headerName): " << headerName << std::endl;
-	  osOut << inputFile << ":builtin: " << printParentFunction() << " -> " << builtinName << ", defined in: " << headerName << ":" << builtinPos;
+	  osOut << inputFile << ":builtin: " << printParentFunction() << " -6-> " << builtinName << ", defined in: " << headerName << ":" << builtinPos;
 	  if(headerName == "notFoundBuiltinImpl")
 	    {
 	      // std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
@@ -1027,7 +1027,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	}
       #endif
       std::string calleeName = writeFunction(*fd);
-      osOut << inputFile << ": " << printParentFunction() << " -> " << calleeName << '\n';
+      osOut << inputFile << ": " << printParentFunction() << " -7-> " << calleeName << '\n';
       std::string callee_filepath = printFilePath(fd->getSourceRange());
       int callee_filepos = printLine(fd->getSourceRange());
       if(callee_filepath == "unknownFilePath")
@@ -1073,7 +1073,7 @@ CallersAction::Visitor::VisitMemberCallExpr(const clang::CXXMemberCallExpr* call
    }
    else {
       std::string calleeName = writeFunction(*directCall);
-      osOut << "  " << printParentFunction() << " -> " << calleeName << '\n';
+      osOut << "  " << printParentFunction() << " -8-> " << calleeName << '\n';
    };
    return true;
 }
@@ -1304,6 +1304,24 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
             osOut << "    inherits from ";
             VisitInheritanceList(RD);
             osOut << '\n';
+	    
+	    CallersData::Record rec(recordName, tagKind, printLine(Decl->getSourceRange()), printLine(Decl->getSourceRange()));
+	    //currentJsonFile.add_record(&rec);
+	    
+	    // Check whether a json file is already present for the visited record
+	    // if true, parse it and add the defined record only when necessary
+	    // if false, create this json file and add the defined record
+	    {
+	      std::string rec_filepath = printFileName(Decl->getSourceRange());
+	      boost::filesystem::path p(rec_filepath);
+	      std::string basename = p.filename().string();
+	      std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+	      std::set<CallersData::File>::iterator file = otherJsonFiles.get_file(basename, dirpath);
+	      //CallersData::File file(basename, dirpath);
+	      //file.parse_json_file();
+	      file->add_record(&rec);
+	      //file.output_json_desc();
+	    }
          };
       }
    };

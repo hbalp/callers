@@ -57,9 +57,12 @@ namespace CallersData
       //JsonFileWriter js;
   };
 
+  class Record;
   class Fct;
   class FctCall;
+
   enum Virtuality { VNoVirtual, VVirtualDeclared, VVirtualDefined, VVirtualPure };
+
   class File
   {
     friend bool operator< (const CallersData::File& file1, const CallersData::File& file2);
@@ -71,9 +74,12 @@ namespace CallersData
       void parse_json_file() const;
       void add_defined_function(Fct* fct) const;
       void add_defined_function(std::string func, Virtuality virtuality, std::string filepath, int sign) const;
+      void add_record(Record* record) const;
+      void add_record(std::string name, clang::TagTypeKind kind, int deb, int fin) const;
       void add_function_call(FctCall* fc, Dir *context) const;
       void output_json_desc() const;
       std::set<Fct> *defined;
+      std::set<Record> *records;
   private:
       std::set<FctCall> *calls;
       std::string file = "unknownFileName";
@@ -82,6 +88,29 @@ namespace CallersData
       //std::list<std::string> defined;
       //JsonFileWriter js;
   };
+
+  /* Record type to store "class" or "struct" definitions */
+  class Record
+  {
+    friend std::ostream &operator<<(std::ostream &output, const Record &rec);
+    friend bool operator< (const CallersData::Record& rec1, const CallersData::Record& rec2);
+
+    public:
+      Record(const char* name, clang::TagTypeKind kind, const int deb, const int fin);
+      Record(std::string name, clang::TagTypeKind kind, int deb);
+      Record(std::string name, clang::TagTypeKind kind, int deb, int fin);
+      Record(const Record& copy_from_me);
+      ~Record() {}
+      void output_json_desc(std::ofstream &js) const;
+      std::string name = "unknownRecordName";
+      clang::TagTypeKind kind = clang::TTK_Struct;
+      int deb = -1;
+      int fin = -1;
+    private:
+      inline void print_cout(std::string name, clang::TagTypeKind kind, int deb, int fin);
+  };
+
+  bool operator< (const Record& record1, const Record& record2);
 
   /* Used to store function call before knowing if it's a local or an external call */
   class FctCall
@@ -123,6 +152,7 @@ namespace CallersData
       ~ExtFct() {}
       //void set_file(std::string file);
     private:
+      inline void print_cout(std::string sign, Virtuality is_virtual, std::string decl, std::string def);
       std::string sign = "unknownExtFctSign";
       Virtuality virtuality = VNoVirtual;
       std::string decl = "unknownExtFctDeclLoc"; 
@@ -149,7 +179,6 @@ namespace CallersData
       void output_local_callees(std::ofstream &js) const;
       void output_external_callers(std::ofstream &js) const;
       void output_external_callees(std::ofstream &js) const;
-
       void output_json_desc(std::ofstream &js) const;
 
       std::string sign = "unknownFctSign";
@@ -162,6 +191,7 @@ namespace CallersData
       std::set<ExtFct> *extcallees;
 
     private:
+      inline void print_cout(std::string sign, Virtuality is_virtual, std::string file, int line);
       void allocate();
   };
 

@@ -19,6 +19,7 @@
 #include <boost/filesystem.hpp>
 #endif
 
+#include "clang/AST/Decl.h"
 #include "CallersData.hpp"
 
 extern std::string getCanonicalAbsolutePath(const std::string& path);
@@ -171,6 +172,7 @@ CallersData::File::File(std::string file, std::string path)
     jsonfilename(path + "/" + file + ".file.callers.gen.json")
 {
   defined = new std::set<CallersData::Fct>;
+  records = new std::set<CallersData::Record>;
   calls = new std::set<CallersData::FctCall>;
 }
 
@@ -216,18 +218,27 @@ void CallersData::File::parse_json_file() const
 	  for (rapidjson::SizeType s = 0; s < defined.Size(); s++)
 	    {
 	      const rapidjson::Value& symb = defined[s];
-	      const rapidjson::Value& sign = symb["sign"];
-	      //const rapidjson::Value& virtuality_value = symb["virtual"];
+	      const rapidjson::Value& sign = symb["sign"];	      
 	      const rapidjson::Value& line = symb["line"];
 	      std::string symbol = sign.GetString();
-	      //std::string virtuality_text = virtuality_value.GetString();
-	      std::string virtuality_text = "virtuality_text_TO_BE_PARSED_BY_RAPIDJSON_IN_JSON_FILE";
+
+	      CallersData::Virtuality virtuality;
+	      if(symb.HasMember("virtuality"))
+		{
+		  const rapidjson::Value& virtuality_value = symb["virtuality"];
+		  //std::string virtuality_text = "virtuality_text_TO_BE_PARSED_BY_RAPIDJSON_IN_JSON_FILE";
+		  std::string virtuality_text = virtuality_value.GetString();
+		  virtuality = 
+		    ((virtuality_text == "declared") ? VVirtualDeclared
+		     : (virtuality_text == "defined") ? VVirtualDefined
+		     : ((virtuality_text == "pure") ? VVirtualPure : VNoVirtual));
+		}
+	      else
+		{
+		  virtuality = VNoVirtual;
+		}
+
 	      int pos = line.GetInt();
-	      CallersData::Virtuality virtuality
-		= ((virtuality_text == "no") ? VNoVirtual
-		: ((virtuality_text == "declared") ? VVirtualDeclared
-		: (virtuality_text == "defined") ? VVirtualDefined
-		: ((virtuality_text == "pure") ? VVirtualPure : VNoVirtual)));
 	      std::ostringstream spos;
 	      spos << pos;
 	      std::string location(filepath + ":" + spos.str());
@@ -275,6 +286,27 @@ void CallersData::File::add_defined_function(std::string sign, Virtuality virtua
   //Fct *fct = new Fct(sign, filepath, line); // fuite mémoire sur la pile si pas désalloué !
   Fct fct(sign, virtuality, filepath, line);
   defined->insert(fct);
+}
+
+void CallersData::File::add_record(CallersData::Record* rec) const
+{
+  std::string kind = ((rec->kind == clang::TTK_Struct) ? "struct"
+		      : ((rec->kind == clang::TTK_Class) ? "class"
+			 : "anonym"));
+  std::cout << "Register " << kind << " record \"" << rec->name
+	    << "\" defined in file \"" << this->fullPath() << ":" 
+	    << rec->deb << ":" << rec->fin << "\"" << std::endl;
+  records->insert(*rec);
+}
+
+void CallersData::File::add_record(std::string name, clang::TagTypeKind kind, int deb, int fin) const
+{
+  std::cout << "Create " << kind << " record \"" << name
+	    << "\" located in file \"" << this->fullPath()
+	    << ":" << deb << ":" << fin << "\"" << std::endl;
+  //Record *rec = new Record(name, kind, deb, fin); // fuite mémoire sur la pile si pas désalloué !
+  Record rec(name, kind, deb, fin);
+  records->insert(rec);
 }
 
 void
@@ -455,13 +487,32 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 void CallersData::File::output_json_desc() const
 {
   CallersData::JsonFileWriter js(this->jsonfilename);
-  js.out << "{\"file\":\"" << file << "\",\"path\":\"" << path << "\",\"defined\":[";
-  
-  std::set<Fct>::const_iterator i, last;
-  last = defined->empty() ? defined->end() : --defined->end();
+
+  js.out << "{\"file\":\"" << file
+	 << "\",\"path\":\"" << path;
+
+  js.out << "\",\"records\":[";
+  std::set<Record>::const_iterator r, last_rec;
+  last_rec = records->empty() ? records->end() : --records->end();
+  for(r=records->begin(); r!=records->end(); ++r)
+    {
+      if(r != last_rec)
+	{
+	  r->output_json_desc(js.out);
+	  js.out << ",";
+	}
+      else
+	{
+	  r->output_json_desc(js.out);
+	}
+    }
+
+  js.out << "],\"defined\":[";
+  std::set<Fct>::const_iterator i, last_fct;
+  last_fct = defined->empty() ? defined->end() : --defined->end();
   for(i=defined->begin(); i!=defined->end(); ++i)
     {
-      if(i != last)
+      if(i != last_fct)
 	{
 	  i->output_json_desc(js.out);
 	  js.out << ",";
@@ -471,13 +522,80 @@ void CallersData::File::output_json_desc() const
 	  i->output_json_desc(js.out);
 	}
     }
-
   js.out << "]}" << std::endl;
 }
 
 bool CallersData::operator< (const CallersData::File& file1, const CallersData::File& file2)
 {
   return file1.fullPath() < file2.fullPath();
+}
+
+/***************************************** class Record ****************************************/
+
+CallersData::Record::Record(const char* name, clang::TagTypeKind kind, const int deb, const int fin)
+  : name(name),
+    kind(kind),
+    deb(deb),
+    fin(fin)
+{
+  std::cout << "Create record: " << std::endl;
+  this->print_cout(name, kind, deb, fin);
+}
+
+CallersData::Record::Record(std::string name, clang::TagTypeKind kind, int deb, int fin)
+  : name(name),
+    kind(kind),
+    deb(deb),
+    fin(fin)
+{
+  std::cout << "Create record: " << std::endl;
+  this->print_cout(name, kind, deb, fin);
+}
+
+CallersData::Record::Record(const CallersData::Record& copy_from_me)
+{
+  std::cout << "Record copy constructor" << std::endl;
+  name = copy_from_me.name;
+  kind = copy_from_me.kind;
+  deb = copy_from_me.deb;
+  fin = copy_from_me.fin;
+}
+
+inline void CallersData::Record::print_cout(std::string name, clang::TagTypeKind kind, int deb, int fin)
+{
+  std::ostringstream start; 
+  std::ostringstream stop;
+  start << deb;
+  stop << fin;
+  std::cout << "{\"name\":\"" << name
+	    << "\",\"kind\":\"" << ((kind == clang::TTK_Struct) ? "struct"
+				    : ((kind == clang::TTK_Class) ? "class"
+				       : "anonym"))
+	    << "\",\"deb\":\"" << start.str()
+	    << "\",\"fin\":\"" << stop.str() << "\"}"
+	    << std::endl;
+}
+
+void CallersData::Record::output_json_desc(std::ofstream &js) const
+{
+  std::ostringstream start;
+  start << deb;
+  std::ostringstream stop;
+  stop << deb;
+  
+  js << "{\"name\": \"" << name
+     << "\",\"kind\":\"" << ((kind == clang::TTK_Struct) ? "struct"
+			     : ((kind == clang::TTK_Class) ? "class"
+				: "anonym"))
+     << "\",\"deb\":\"" << start.str()
+     << "\",\"fin\":\"" << stop.str() << "\""
+     << std::endl
+     << "}";
+}
+
+bool CallersData::operator< (const CallersData::Record& record1, const CallersData::Record& record2)
+{
+  return record1.name < record2.name;
 }
 
 /***************************************** class Fct ****************************************/
@@ -505,6 +623,8 @@ CallersData::Fct::Fct(const char* sign, Virtuality is_virtual, const char* filep
     line(line)
 {
   allocate();
+  std::cout << "Create function: " << std::endl;
+  this->print_cout(sign, is_virtual, file, line);
 }
 
 CallersData::Fct::Fct(std::string sign, Virtuality is_virtual, std::string filepath, int line)
@@ -514,6 +634,8 @@ CallersData::Fct::Fct(std::string sign, Virtuality is_virtual, std::string filep
     line(line)
 {
   allocate();
+  std::cout << "Create function: " << std::endl;
+  this->print_cout(sign, is_virtual, file, line);
 }
 
 CallersData::Fct::Fct(const CallersData::Fct& copy_from_me)
@@ -612,99 +734,99 @@ void CallersData::Fct::add_builtin_callee(std::string builtin_sign, CallersData:
 void CallersData::Fct::output_local_callers(std::ofstream &js) const
 {
   if (not locallers->empty())
-	   {
-	     js << ", \"locallers\": [";
-	     std::set<std::string>::const_iterator i, last;
-	     //last = std::prev(locallers.end(); // requires C++ 11
-	     last = --locallers->end();
-	     for( i=locallers->begin(); i!=locallers->end(); ++i )
-	       {
-		 if(i != last)
-		   {
-		     js << "\"" << *i << "\", ";
-		   }
-		 else
-		   {
-		     js << "\"" << *i << "\"";
-		   }
-	       };
+    {
+      js << ", \"locallers\": [";
+      std::set<std::string>::const_iterator i, last;
+      //last = std::prev(locallers.end(); // requires C++ 11
+      last = --locallers->end();
+      for( i=locallers->begin(); i!=locallers->end(); ++i )
+	{
+	  if(i != last)
+	    {
+	      js << "\"" << *i << "\", ";
+	    }
+	  else
+	    {
+	      js << "\"" << *i << "\"";
+	    }
+	};
 
-	     js << "]";
-	   }
+      js << "]";
+    }
 }
 
 void CallersData::Fct::output_local_callees(std::ofstream &js) const
 {
   if (not locallees->empty())
-	   {
-	     js << ", \"locallees\": [";
-	     std::set<std::string>::const_iterator i, last;
-	     //last = std::prev(locallees.end(); // requires C++ 11
-	     last = --locallees->end();
-	     for( i=locallees->begin(); i!=locallees->end(); ++i )
-	       {
-		 if(i != last)
-		   {
-		     js << "\"" << *i << "\", ";
-		   }
-		 else
-		   {
-		     js << "\"" << *i << "\"";
-		   }
-	       };
+    {
+      js << ", \"locallees\": [";
+      std::set<std::string>::const_iterator i, last;
+      //last = std::prev(locallees.end(); // requires C++ 11
+      last = --locallees->end();
+      for( i=locallees->begin(); i!=locallees->end(); ++i )
+	{
+	  if(i != last)
+	    {
+	      js << "\"" << *i << "\", ";
+	    }
+	  else
+	    {
+	      js << "\"" << *i << "\"";
+	    }
+	};
 
-	     js << "]";
+      js << "]";
 
-	   }
+    }
 }
 
 void CallersData::Fct::output_external_callers(std::ofstream &js) const
 {
   if( not extcallers->empty())
-	   {
-	     js << ", \"extcallers\": [";
+    {
+      js << ", \"extcallers\": [";
 
-	     std::set<ExtFct>::const_iterator x, extlast;
-	     //last = std::prev(extcallers.end(); // requires C++ 11
-	     extlast = extcallers->empty() ? extcallers->end() : --extcallers->end();
-	     for( x=extcallers->begin(); x!=extcallers->end(); ++x )
-	       {
-		 if(x != extlast)
-		   {
-		     js << *x << ", ";
-		   }
-		 else
-		   {
-		     js << *x;
-		   }
-	       };
-	     js << "]";
-	   }
+      std::set<ExtFct>::const_iterator x, extlast;
+      //last = std::prev(extcallers.end(); // requires C++ 11
+      extlast = extcallers->empty() ? extcallers->end() : --extcallers->end();
+      for( x=extcallers->begin(); x!=extcallers->end(); ++x )
+	{
+	  if(x != extlast)
+	    {
+	      js << *x << ", ";
+	    }
+	  else
+	    {
+	      js << *x;
+	    }
+	};
+      js << "]";
+    }
 }
 
 void CallersData::Fct::output_external_callees(std::ofstream &js) const
 {
   if(not extcallees->empty())
-	   {
-	     js << ", \"extcallees\": [";
+    {
+      js << ", \"extcallees\": [";
 
-	     std::set<ExtFct>::const_iterator x, extlast;
-	     //last = std::prev(extcallees.end(); // requires C++ 11
-	     extlast = extcallees->empty() ? extcallees->end() : --extcallees->end();
-	     for( x=extcallees->begin(); x!=extcallees->end(); ++x )
-	       {
-		 if(x != extlast)
-		   {
-		     js << *x << ", ";
-		   }
-		 else
-		   {
-		     js << *x;
-		   }
-	       };
-	     js << "]";
+      std::set<ExtFct>::const_iterator x, extlast;
+      //last = std::prev(extcallees.end(); // requires C++ 11
+      extlast = extcallees->empty() ? extcallees->end() : --extcallees->end();
+      for( x=extcallees->begin(); x!=extcallees->end(); ++x )
+	{
+	  if(x != extlast)
+	    {
+	      js << *x << ", ";
+	    }
+	  else
+	    {
+	      js << *x;
+	    }
+	};
+      js << "]";
 
-	   }
+    }
 }
 
 void CallersData::Fct::output_json_desc(std::ofstream &js) const
@@ -712,23 +834,39 @@ void CallersData::Fct::output_json_desc(std::ofstream &js) const
   std::ostringstream out;
   out << line;
   js << "{\"sign\": \"" << sign
-     << "\", \"virtual\": \""
-       << ((virtuality == VNoVirtual) ? "no"
-           : ((virtuality == VVirtualDeclared) ? "declared"
-           : ((virtuality == VVirtualDefined) ? "defined"
-	   : /* virtuality == VVirtualPure */ "pure")))
+     << "\", \"virtuality\": \""
+     << ((virtuality == VNoVirtual) ? "no"
+	 : ((virtuality == VVirtualDeclared) ? "declared"
+	    : ((virtuality == VVirtualDefined) ? "defined"
+	       : /* virtuality == VVirtualPure */ "pure")))
      << "\", \"line\": " << out.str() << "";
 
   this->output_local_callers(js);
-
   this->output_local_callees(js);
-
   this->output_external_callers(js);
-
   this->output_external_callees(js);
   
   js << "}";
 }
+
+/* private functions */
+
+inline void CallersData::Fct::print_cout(std::string sign, Virtuality virtuality, std::string file, int line)
+{
+  std::ostringstream loc;
+  loc << line;
+
+  std::cout << "{\"sign\":\"" << sign
+	    << "\",\"virtuality\":\"" << ((virtuality == CallersData::VNoVirtual) ? "no"
+				       : ((virtuality == CallersData::VVirtualDeclared) ? "declared"
+					  : ((virtuality == CallersData::VVirtualDefined) ? "defined"
+					     : "pure")))
+	    << "\",\"file\":\"" << file
+	    << "\",\"line\":\"" << loc.str() << "\"}"
+	    << std::endl;
+}
+
+/* public functions */
 
 bool CallersData::operator< (const CallersData::Fct& fct1, const CallersData::Fct& fct2)
 {
@@ -757,17 +895,26 @@ bool CallersData::operator< (const CallersData::FctCall& fc1, const CallersData:
 
 /**************************************** class ExtFct ***************************************/
 
+inline void CallersData::ExtFct::print_cout(std::string sign, Virtuality virtuality, std::string decl, std::string def)
+{
+  std::cout << "{\"sign\":\"" << sign
+	    << "\",\"virtuality\":\"" << ((virtuality == CallersData::VNoVirtual) ? "no"
+					  : ((virtuality == CallersData::VVirtualDeclared) ? "declared"
+					     : ((virtuality == CallersData::VVirtualDefined) ? "defined"
+						: "pure")))
+	    << "\",\"decl\":\"" << decl
+	    << "\",\"def\":\"" << def << "\"}"
+	    << std::endl;
+}
+
 CallersData::ExtFct::ExtFct(std::string sign, Virtuality is_virtual, std::string decl)
   : sign(sign), 
     virtuality(is_virtual),
     decl(decl), 
     def("unknownExtFctDef")
 {
-  std::cout << "Create external function: "
-	    << "{\"sign\":\"" << sign
-	    << "\",\"decl\":\"" << decl
-	    << "\",\"def\":\"" << def << "\"}"
-	    << std::endl;
+  std::cout << "Create external function: " << std::endl;
+  this->print_cout(sign, is_virtual, decl, "unknown");
 }
 
 CallersData::ExtFct::ExtFct(std::string sign, Virtuality is_virtual, std::string decl, std::string def)
@@ -776,15 +923,8 @@ CallersData::ExtFct::ExtFct(std::string sign, Virtuality is_virtual, std::string
     decl(decl), 
     def(def)
 {
-  std::cout << "Create external function: "
-	    << "{\"sign\":\"" << sign
-	    << "\",\"virtual\":\"" << ((virtuality == CallersData::VNoVirtual) ? "no"
-				       : ((virtuality == CallersData::VVirtualDeclared) ? "declared"
-					  : ((virtuality == CallersData::VVirtualDefined) ? "defined"
-					     : "pure")))
-	    << "\",\"decl\":\"" << decl
-	    << "\",\"def\":\"" << def << "\"}"
-	    << std::endl;
+  std::cout << "Create external function: " << std::endl;
+  this->print_cout(sign, is_virtual, decl, def);
 }
 
 CallersData::ExtFct::ExtFct(const CallersData::ExtFct& copy_from_me)
@@ -793,15 +933,8 @@ CallersData::ExtFct::ExtFct(const CallersData::ExtFct& copy_from_me)
   virtuality = copy_from_me.virtuality;
   decl = copy_from_me.decl;
   def = copy_from_me.def;
-  std::cout << "Copy external function: "
-	    << "{\"sign\":\"" << sign
-	    << "\",\"virtual\":\"" << ((virtuality == CallersData::VNoVirtual) ? "no"
-				       : ((virtuality == CallersData::VVirtualDeclared) ? "declared"
-					  : ((virtuality == CallersData::VVirtualDefined) ? "defined"
-					     : "pure")))
-	    << "\",\"decl\":\"" << decl
-	    << "\",\"def\":\"" << def << "\"}"
-	    << std::endl;
+  std::cout << "Copy external function: " << std::endl;
+  this->print_cout(sign, virtuality, decl, def);
 }
 
 std::ostream &CallersData::operator<<(std::ostream &output, const ExtFct &fct)

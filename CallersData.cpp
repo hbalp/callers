@@ -295,17 +295,17 @@ void CallersData::File::add_record(CallersData::Record* rec) const
 			 : "anonym"));
   std::cout << "Register " << kind << " record \"" << rec->name
 	    << "\" defined in file \"" << this->fullPath() << ":" 
-	    << rec->deb << ":" << rec->fin << "\"" << std::endl;
+	    << rec->loc << "\"" << std::endl;
   records->insert(*rec);
 }
 
-void CallersData::File::add_record(std::string name, clang::TagTypeKind kind, int deb, int fin) const
+void CallersData::File::add_record(std::string name, clang::TagTypeKind kind, int loc) const
 {
   std::cout << "Create " << kind << " record \"" << name
 	    << "\" located in file \"" << this->fullPath()
-	    << ":" << deb << ":" << fin << "\"" << std::endl;
+	    << ":" << loc << "\"" << std::endl;
   //Record *rec = new Record(name, kind, deb, fin); // fuite mémoire sur la pile si pas désalloué !
-  Record rec(name, kind, deb, fin);
+  Record rec(name, kind, loc);
   records->insert(rec);
 }
 
@@ -532,24 +532,22 @@ bool CallersData::operator< (const CallersData::File& file1, const CallersData::
 
 /***************************************** class Record ****************************************/
 
-CallersData::Record::Record(const char* name, clang::TagTypeKind kind, const int deb, const int fin)
+CallersData::Record::Record(const char* name, clang::TagTypeKind kind, const int loc)
   : name(name),
     kind(kind),
-    deb(deb),
-    fin(fin)
+    loc(loc)
 {
   std::cout << "Create record: " << std::endl;
-  this->print_cout(name, kind, deb, fin);
+  this->print_cout(name, kind, loc);
 }
 
-CallersData::Record::Record(std::string name, clang::TagTypeKind kind, int deb, int fin)
+CallersData::Record::Record(std::string name, clang::TagTypeKind kind, int loc)
   : name(name),
     kind(kind),
-    deb(deb),
-    fin(fin)
+    loc(loc)
 {
   std::cout << "Create record: " << std::endl;
-  this->print_cout(name, kind, deb, fin);
+  this->print_cout(name, kind, loc);
 }
 
 CallersData::Record::Record(const CallersData::Record& copy_from_me)
@@ -557,38 +555,31 @@ CallersData::Record::Record(const CallersData::Record& copy_from_me)
   std::cout << "Record copy constructor" << std::endl;
   name = copy_from_me.name;
   kind = copy_from_me.kind;
-  deb = copy_from_me.deb;
-  fin = copy_from_me.fin;
+  loc = copy_from_me.loc;
 }
 
-inline void CallersData::Record::print_cout(std::string name, clang::TagTypeKind kind, int deb, int fin)
+inline void CallersData::Record::print_cout(std::string name, clang::TagTypeKind kind, int loc)
 {
   std::ostringstream start; 
-  std::ostringstream stop;
-  start << deb;
-  stop << fin;
+  start << loc;
   std::cout << "{\"name\":\"" << name
 	    << "\",\"kind\":\"" << ((kind == clang::TTK_Struct) ? "struct"
 				    : ((kind == clang::TTK_Class) ? "class"
 				       : "anonym"))
-	    << "\",\"deb\":\"" << start.str()
-	    << "\",\"fin\":\"" << stop.str() << "\"}"
+	    << "\",\"loc\":\"" << start.str() << "\"}"
 	    << std::endl;
 }
 
 void CallersData::Record::output_json_desc(std::ofstream &js) const
 {
   std::ostringstream start;
-  start << deb;
-  std::ostringstream stop;
-  stop << deb;
+  start << loc;
   
   js << "{\"name\": \"" << name
      << "\",\"kind\":\"" << ((kind == clang::TTK_Struct) ? "struct"
 			     : ((kind == clang::TTK_Class) ? "class"
 				: "anonym"))
-     << "\",\"deb\":\"" << start.str()
-     << "\",\"fin\":\"" << stop.str() << "\""
+     << "\",\"loc\":\"" << start.str() << "\""
      << std::endl
      << "}";
 }

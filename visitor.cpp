@@ -1305,7 +1305,7 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
             VisitInheritanceList(RD);
             osOut << '\n';
 	    
-	    CallersData::Record rec(recordName, tagKind, printLine(Decl->getSourceRange()), printLine(Decl->getSourceRange()));
+	    CallersData::Record rec(recordName, tagKind, printLine(Decl->getSourceRange()));
 	    //currentJsonFile.add_record(&rec);
 	    
 	    // Check whether a json file is already present for the visited record

@@ -75,7 +75,7 @@ namespace CallersData
       void add_defined_function(Fct* fct) const;
       void add_defined_function(std::string func, Virtuality virtuality, std::string filepath, int sign) const;
       void add_record(Record* record) const;
-      void add_record(std::string name, clang::TagTypeKind kind, int deb, int fin) const;
+      void add_record(std::string name, clang::TagTypeKind kind, int loc) const;
       void add_function_call(FctCall* fc, Dir *context) const;
       void output_json_desc() const;
       std::set<Fct> *defined;
@@ -96,18 +96,16 @@ namespace CallersData
     friend bool operator< (const CallersData::Record& rec1, const CallersData::Record& rec2);
 
     public:
-      Record(const char* name, clang::TagTypeKind kind, const int deb, const int fin);
-      Record(std::string name, clang::TagTypeKind kind, int deb);
-      Record(std::string name, clang::TagTypeKind kind, int deb, int fin);
+    Record(const char* name, clang::TagTypeKind kind, const int loc);
+      Record(std::string name, clang::TagTypeKind kind, int loc);
       Record(const Record& copy_from_me);
       ~Record() {}
       void output_json_desc(std::ofstream &js) const;
       std::string name = "unknownRecordName";
       clang::TagTypeKind kind = clang::TTK_Struct;
-      int deb = -1;
-      int fin = -1;
+      int loc = -1;
     private:
-      inline void print_cout(std::string name, clang::TagTypeKind kind, int deb, int fin);
+      inline void print_cout(std::string name, clang::TagTypeKind kind, int loc);
   };
 
   bool operator< (const Record& record1, const Record& record2);

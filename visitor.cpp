@@ -1262,7 +1262,9 @@ CallersAction::Visitor::TraverseCXXRecordDecl(clang::CXXRecordDecl* Decl) {
 }
 
 void
-CallersAction::Visitor::VisitInheritanceList(clang::CXXRecordDecl* cxxDecl) {
+CallersAction::Visitor::VisitInheritanceList(clang::CXXRecordDecl* cxxDecl, 
+					     CallersData::Record* rec)
+{
    clang::CXXRecordDecl::base_class_iterator endBase = cxxDecl->bases_end();
    bool isFirst = true;
    for (clang::CXXRecordDecl::base_class_iterator
@@ -1276,11 +1278,14 @@ CallersAction::Visitor::VisitInheritanceList(clang::CXXRecordDecl* cxxDecl) {
          //       << "\nAborting\n";
          // exit(2);
       };
+      std::string basename = printQualifiedName(*base);
+      std::string baseloc = printLocation(base->getSourceRange());
+      rec->add_inheritance(basename, baseloc);
       if (!isFirst)
          osOut << ",\n                  ";
       else
          isFirst = false;
-      osOut << printQualifiedName(*base);
+      osOut << basename;
       osOut << printTemplateKind(*base);
    };
 }
@@ -1298,16 +1303,17 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
          bool isAnonymousRecord = false;
          std::string recordName = printQualifiedName(*Decl, &isAnonymousRecord);
          recordName += printTemplateKind(*Decl);
-         if (!isAnonymousRecord) {
-            osOut << "visiting record " << recordName
-                  << " at " << printLocation(Decl->getSourceRange()) << '\n';
-            osOut << "    inherits from ";
-            VisitInheritanceList(RD);
-            osOut << '\n';
-	    
+         if (!isAnonymousRecord) 
+	   {
 	    CallersData::Record rec(recordName, tagKind, printLine(Decl->getSourceRange()));
 	    //currentJsonFile.add_record(&rec);
 	    
+            osOut << "visiting record " << recordName
+                  << " at " << printLocation(Decl->getSourceRange()) << '\n';
+            osOut << "    inherits from ";
+            VisitInheritanceList(RD, &rec);
+            osOut << '\n';
+
 	    // Check whether a json file is already present for the visited record
 	    // if true, parse it and add the defined record only when necessary
 	    // if false, create this json file and add the defined record
@@ -1319,7 +1325,7 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
 	      std::set<CallersData::File>::iterator file = otherJsonFiles.get_file(basename, dirpath);
 	      //CallersData::File file(basename, dirpath);
 	      //file.parse_json_file();
-	      file->add_record(&rec);
+	      file->add_record(rec);
 	      //file.output_json_desc();
 	    }
          };

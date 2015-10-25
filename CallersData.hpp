@@ -74,7 +74,7 @@ namespace CallersData
       void parse_json_file() const;
       void add_defined_function(Fct* fct) const;
       void add_defined_function(std::string func, Virtuality virtuality, std::string filepath, int sign) const;
-      void add_record(Record* record) const;
+      void add_record(Record record) const;
       void add_record(std::string name, clang::TagTypeKind kind, int loc) const;
       void add_function_call(FctCall* fc, Dir *context) const;
       void output_json_desc() const;
@@ -89,23 +89,45 @@ namespace CallersData
       //JsonFileWriter js;
   };
 
-  /* Record type to store "class" or "struct" definitions */
+  /* Inheritance class to reference base classes*/
+  class Inheritance
+  {
+    friend bool operator< (const CallersData::Inheritance& inheritance1, const CallersData::Inheritance& inheritance2);
+
+  public:
+    Inheritance(const char* name, const char* decl);
+    Inheritance(std::string name, std::string decl);
+    Inheritance(const CallersData::Inheritance& copy_from_me);
+    ~Inheritance() {}
+    void allocate();
+    void output_json_desc(std::ofstream &js) const;
+    inline void print_cout() const;
+    std::string name = "unknownBaseClass";
+    std::string decl = "unknownBaseClassLocation";
+  private:
+  };
+
+  /* Record class to store "class" or "struct" definitions */
   class Record
   {
     friend std::ostream &operator<<(std::ostream &output, const Record &rec);
     friend bool operator< (const CallersData::Record& rec1, const CallersData::Record& rec2);
 
     public:
-    Record(const char* name, clang::TagTypeKind kind, const int loc);
+      Record(const char* name, clang::TagTypeKind kind, const int loc);
       Record(std::string name, clang::TagTypeKind kind, int loc);
       Record(const Record& copy_from_me);
-      ~Record() {}
+      ~Record();
+      void allocate();
+      void add_inheritance(Inheritance inheritance) const;
+      void add_inheritance(std::string name, std::string decl) const;
       void output_json_desc(std::ofstream &js) const;
+      void print_cout() const;
       std::string name = "unknownRecordName";
       clang::TagTypeKind kind = clang::TTK_Struct;
       int loc = -1;
+      std::set<Inheritance> *inherits;
     private:
-      inline void print_cout(std::string name, clang::TagTypeKind kind, int loc);
   };
 
   bool operator< (const Record& record1, const Record& record2);

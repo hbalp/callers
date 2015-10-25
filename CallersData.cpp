@@ -288,25 +288,29 @@ void CallersData::File::add_defined_function(std::string sign, Virtuality virtua
   defined->insert(fct);
 }
 
-void CallersData::File::add_record(CallersData::Record* rec) const
+void CallersData::File::add_record(CallersData::Record rec) const
 {
-  std::string kind = ((rec->kind == clang::TTK_Struct) ? "struct"
-		      : ((rec->kind == clang::TTK_Class) ? "class"
+  std::string kind = ((rec.kind == clang::TTK_Struct) ? "struct"
+		      : ((rec.kind == clang::TTK_Class) ? "class"
 			 : "anonym"));
-  std::cout << "Register " << kind << " record \"" << rec->name
-	    << "\" defined in file \"" << this->fullPath() << ":" 
-	    << rec->loc << "\"" << std::endl;
-  records->insert(*rec);
+  int nb_base_classes = rec.inherits->size();
+  std::cout << "Register " << kind << " record \"" << rec.name
+	    << "\" with " << nb_base_classes << " base classes, "
+	    << "defined in file \"" << this->fullPath() << ":" 
+	    << rec.loc << "\"" << std::endl;
+  records->insert(rec);
 }
 
 void CallersData::File::add_record(std::string name, clang::TagTypeKind kind, int loc) const
 {
-  std::cout << "Create " << kind << " record \"" << name
-	    << "\" located in file \"" << this->fullPath()
-	    << ":" << loc << "\"" << std::endl;
   //Record *rec = new Record(name, kind, deb, fin); // fuite mémoire sur la pile si pas désalloué !
   Record rec(name, kind, loc);
   records->insert(rec);
+  int nb_base_classes = rec.inherits->size();
+  std::cout << "Create " << kind << " record \"" << name
+	    << "\" with " << nb_base_classes << " base classes, "
+	    << "located in file \"" << this->fullPath()
+	    << ":" << loc << "\"" << std::endl;
 }
 
 void
@@ -530,15 +534,65 @@ bool CallersData::operator< (const CallersData::File& file1, const CallersData::
   return file1.fullPath() < file2.fullPath();
 }
 
+/***************************************** class Inheritance ****************************************/
+
+CallersData::Inheritance::Inheritance(const char* name, const char* decl)
+  : name(name),
+    decl(decl)
+{
+  std::cout << "Create Inheritance: " << std::endl;
+  this->print_cout();
+}
+
+CallersData::Inheritance::Inheritance(std::string name, std::string decl)
+  : name(name),
+    decl(decl)
+{
+  std::cout << "Create Inheritance: " << std::endl;
+  this->print_cout();
+}
+
+CallersData::Inheritance::Inheritance(const CallersData::Inheritance& copy_from_me)
+{
+  std::cout << "Inheritance copy constructor" << std::endl;
+  name = copy_from_me.name;
+  decl = copy_from_me.decl;
+}
+
+void CallersData::Inheritance::print_cout() const
+{
+  std::cout << "{\"name\":\"" << name
+	    << "\",\"decl\":\"" << decl
+	    << std::endl;
+}
+
+void CallersData::Inheritance::output_json_desc(std::ofstream &js) const
+{
+  js << "{\"name\": \"" << name
+     << "\",\"decl\":\"" << decl << "\"}";
+}
+
+bool CallersData::operator< (const CallersData::Inheritance& inheritance1, 
+			     const CallersData::Inheritance& inheritance2)
+{
+  return inheritance1.name < inheritance2.name;
+}
+
 /***************************************** class Record ****************************************/
+
+void CallersData::Record::allocate()
+{
+  inherits = new std::set<CallersData::Inheritance>;
+}
 
 CallersData::Record::Record(const char* name, clang::TagTypeKind kind, const int loc)
   : name(name),
     kind(kind),
     loc(loc)
 {
+  allocate();
   std::cout << "Create record: " << std::endl;
-  this->print_cout(name, kind, loc);
+  this->print_cout();
 }
 
 CallersData::Record::Record(std::string name, clang::TagTypeKind kind, int loc)
@@ -546,28 +600,79 @@ CallersData::Record::Record(std::string name, clang::TagTypeKind kind, int loc)
     kind(kind),
     loc(loc)
 {
+  allocate();
   std::cout << "Create record: " << std::endl;
-  this->print_cout(name, kind, loc);
+  this->print_cout();
 }
 
 CallersData::Record::Record(const CallersData::Record& copy_from_me)
 {
+  allocate();
   std::cout << "Record copy constructor" << std::endl;
   name = copy_from_me.name;
   kind = copy_from_me.kind;
   loc = copy_from_me.loc;
+  std::set<Inheritance>::const_iterator b;
+  for(b=copy_from_me.inherits->begin(); b!=copy_from_me.inherits->end(); ++b)
+    {
+      inherits->insert(*b);
+    }
 }
 
-inline void CallersData::Record::print_cout(std::string name, clang::TagTypeKind kind, int loc)
+CallersData::Record::~Record()
+{
+  delete inherits;
+}
+
+void CallersData::Record::add_inheritance(CallersData::Inheritance bclass) const
+{
+  inherits->insert(bclass);
+  std::cout << "Register inheritance \"" << bclass.name
+	    << "\" defined in file \"" << bclass.decl << "\"" 
+	    << " in record " << name
+	    << ", nb_inherits=" << inherits->size()
+	    << std::endl;
+}
+
+void CallersData::Record::add_inheritance(std::string name, std::string decl) const
+{
+  //Inheritance *bclass = new Inheritance(name, kind, deb, fin); // fuite mémoire sur la pile si pas désalloué !
+  Inheritance bclass(name, decl);
+  inherits->insert(bclass);
+  std::cout << "Create inheritance \"" << name
+	    << "\" located in file \"" << decl << "\"" 
+	    << " in record " << this->name
+	    << ", nb_inherits=" << inherits->size()
+	    << std::endl;
+}
+
+void CallersData::Record::print_cout() const
 {
   std::ostringstream start; 
   start << loc;
   std::cout << "{\"name\":\"" << name
-	    << "\",\"kind\":\"" << ((kind == clang::TTK_Struct) ? "struct"
-				    : ((kind == clang::TTK_Class) ? "class"
-				       : "anonym"))
-	    << "\",\"loc\":\"" << start.str() << "\"}"
-	    << std::endl;
+            << "\",\"kind\":\"" << ((kind == clang::TTK_Struct) ? "struct"
+                                   : ((kind == clang::TTK_Class) ? "class"
+                                   : "anonym"))
+            << "\",\"loc\":\"" << start.str()
+	    << "\",\"inherits\":[";
+
+  std::set<Inheritance>::const_iterator b, last_bc;
+  last_bc = inherits->empty() ? inherits->end() : --inherits->end();
+  for(b=inherits->begin(); b!=inherits->end(); ++b)
+    {
+      if(b != last_bc)
+	{
+	  b->print_cout();
+	  std::cout << ",";
+	}
+      else
+	{
+	  b->print_cout();
+	}
+    }
+
+  std::cout << "]}";
 }
 
 void CallersData::Record::output_json_desc(std::ofstream &js) const
@@ -577,11 +682,27 @@ void CallersData::Record::output_json_desc(std::ofstream &js) const
   
   js << "{\"name\": \"" << name
      << "\",\"kind\":\"" << ((kind == clang::TTK_Struct) ? "struct"
-			     : ((kind == clang::TTK_Class) ? "class"
-				: "anonym"))
-     << "\",\"loc\":\"" << start.str() << "\""
-     << std::endl
-     << "}";
+                            : ((kind == clang::TTK_Class) ? "class"
+                            : "anonym"))
+     << "\",\"loc\":\"" << start.str() 
+     << "\",\"inherits\":[";
+
+  std::set<Inheritance>::const_iterator b, last_bc;
+  last_bc = inherits->empty() ? inherits->end() : --inherits->end();
+  for(b=inherits->begin(); b!=inherits->end(); ++b)
+    {
+      if(b != last_bc)
+	{
+	  b->output_json_desc(js);
+	  js << ",";
+	}
+      else
+	{
+	  b->output_json_desc(js);
+	}
+    }
+
+  js << "]}";
 }
 
 bool CallersData::operator< (const CallersData::Record& record1, const CallersData::Record& record2)
@@ -842,7 +963,7 @@ void CallersData::Fct::output_json_desc(std::ofstream &js) const
 
 /* private functions */
 
-inline void CallersData::Fct::print_cout(std::string sign, Virtuality virtuality, std::string file, int line)
+void CallersData::Fct::print_cout(std::string sign, Virtuality virtuality, std::string file, int line)
 {
   std::ostringstream loc;
   loc << line;
@@ -886,7 +1007,7 @@ bool CallersData::operator< (const CallersData::FctCall& fc1, const CallersData:
 
 /**************************************** class ExtFct ***************************************/
 
-inline void CallersData::ExtFct::print_cout(std::string sign, Virtuality virtuality, std::string decl, std::string def)
+void CallersData::ExtFct::print_cout(std::string sign, Virtuality virtuality, std::string decl, std::string def)
 {
   std::cout << "{\"sign\":\"" << sign
 	    << "\",\"virtuality\":\"" << ((virtuality == CallersData::VNoVirtual) ? "no"

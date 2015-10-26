@@ -561,14 +561,14 @@ CallersData::Inheritance::Inheritance(const CallersData::Inheritance& copy_from_
 
 void CallersData::Inheritance::print_cout() const
 {
-  std::cout << "{\"name\":\"" << name
+  std::cout << "{\"record\":\"" << name
 	    << "\",\"decl\":\"" << decl
 	    << std::endl;
 }
 
 void CallersData::Inheritance::output_json_desc(std::ofstream &js) const
 {
-  js << "{\"name\": \"" << name
+  js << "{\"record\": \"" << name
      << "\",\"decl\":\"" << decl << "\"}";
 }
 

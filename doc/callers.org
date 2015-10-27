@@ -1751,6 +1751,8 @@ and add the path work_dir/callgraph to the PATH environment variable.
 *** TODO [#A] Add an OCAML backend to build class inheritance graphs
     DEADLINE: <2015-10-22 jeu.>
 **** DONE First begin by listing all records without looking at the inheritance links
-**** DONE Then add the inheritance links
-**** Add the OCAML backend to generate class diagrams
+**** DONE Then add the *inheritance* links
+**** TODO Add the *add_inherited* OCAML backend to complete declared base classes with their list of children's classes
+**** TODO Add an *class_diagram* OCAML backend to generate class diagrams
+
 

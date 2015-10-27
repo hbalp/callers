@@ -43,7 +43,7 @@ namespace CallersData
       std::string fullPath ();
       void add_children(std::string dir);
       void add_file(std::string file);
-      void add_file(File *file);
+      void add_file(File file);
       std::set<File>::iterator get_file(std::string filename, std::string dirpath);
       void output_json_files();
       void output_json_dir();

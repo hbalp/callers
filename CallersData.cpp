@@ -99,10 +99,10 @@ void CallersData::Dir::add_file(std::string file)
   filenames.push_back(file);
 }
 
-void CallersData::Dir::add_file(File *file)
+void CallersData::Dir::add_file(File file)
 {
-  std::cout << "Register file path \"" << file->fullPath() << "\"" << std::endl;
-  files.insert(*file);
+  std::cout << "Register file path \"" << file.fullPath() << "\"" << std::endl;
+  files.insert(file);
 }
 
 std::set<CallersData::File>::iterator CallersData::Dir::get_file(std::string filename, std::string dirpath)
@@ -120,8 +120,8 @@ std::set<CallersData::File>::iterator CallersData::Dir::get_file(std::string fil
     {
       //std::cout << "The file \"" << filepath << "\" is not yet opened." << std::endl;      
       std::cout << "Tries to open and parse the file \"" << filepath << "\"..." << std::endl;
-      CallersData::File *file = new CallersData::File(filename, dirpath);
-      file->parse_json_file();
+      CallersData::File file(filename, dirpath);
+      file.parse_json_file();
       this->add_file(file);
       search_result = files.find(searched_file);
       if(search_result != files.end())
@@ -534,8 +534,6 @@ void CallersData::File::output_json_desc() const
 
   js.out << "{\"file\":\"" << file
 	 << "\",\"path\":\"" << path;
-
-  std::cerr << "HBDBG13: file=" << file << ", nb_records=" << records->size() << std::endl;
 
   js.out << "\",\"records\":[";
   std::set<Record>::const_iterator r, last_rec;

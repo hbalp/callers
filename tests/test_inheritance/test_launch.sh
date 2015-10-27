@@ -55,6 +55,10 @@ then
     source add_inherited.sh .
     source indent_jsonfiles.sh .
 
+    # generate class inheritance tree from A base class
+    source classes_to_dot.sh child `pwd`/test_dummy.cpp "A"
+    source classes_to_dot.sh base `pwd`/test_dummy.cpp "B"
+    
     source process_dot_files.sh . analysis/${analysis_type}
 
     inkscape analysis/${analysis_type}/svg/main.fct.callees.gen.dot.svg

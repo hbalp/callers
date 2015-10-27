@@ -60,7 +60,8 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   typedef clang::RecursiveASTVisitor<Visitor> Parent;
   std::string inputFile;
   std::ostream& osOut;
-  CallersData::File currentJsonFile;
+  //CallersData::File currentJsonFile;
+  std::set<CallersData::File>::iterator currentJsonFile;
   CallersData::Dir otherJsonFiles;
   clang::CompilerInstance& ciCompilerInstance;
   const clang::FunctionDecl* pfdParent;
@@ -128,16 +129,16 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
 	 std::ostream& sout, 
 	 clang::CompilerInstance& compilerInstance)
    : inputFile(in), osOut(sout), 
-    currentJsonFile(file, path),
     otherJsonFiles(),
     ciCompilerInstance(compilerInstance), 
     pfdParent(nullptr), psSources(nullptr)
-  {}
+  {
+    currentJsonFile = otherJsonFiles.create_or_get_file(file, path);
+  }
 
   ~Visitor()
     {
       otherJsonFiles.output_json_files();
-      currentJsonFile.output_json_desc();
     }
 
   virtual bool VisitCXXConstructExpr(const clang::CXXConstructExpr* constructor);

@@ -820,7 +820,7 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
 	(parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
 	printParentFunctionFilePath(), printParentFunctionLine(), 
 	callee_sign, CallersData::VNoVirtual, callee_filepath, callee_filepos);
-   currentJsonFile.add_function_call(&fc, &otherJsonFiles);
+   currentJsonFile->add_function_call(&fc, &otherJsonFiles);
    return true;
 }
 
@@ -851,7 +851,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
 	  : (calleeMethod->isPure() ? CallersData::VVirtualPure
 	  : (calleeMethod->isThisDeclarationADefinition() ? CallersData::VVirtualDefined : CallersData::VVirtualDeclared)),
 	callee_filepath, callee_filepos);
-      currentJsonFile.add_function_call(&fc, &otherJsonFiles);
+      currentJsonFile->add_function_call(&fc, &otherJsonFiles);
       return true;
    };
    const auto* recordDecl = deleteExpr->getType()->getPointeeCXXRecordDecl();
@@ -881,7 +881,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
 	     : (calleeMethod->isPure() ? CallersData::VVirtualPure
 	     : (calleeMethod->isThisDeclarationADefinition() ? CallersData::VVirtualDefined : CallersData::VVirtualDeclared)),
 	   callee_filepath, callee_filepos);
-	 currentJsonFile.add_function_call(&fc, &otherJsonFiles);
+	 currentJsonFile->add_function_call(&fc, &otherJsonFiles);
       };
    };
    return true;
@@ -911,7 +911,7 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
 	(parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
 	printParentFunctionFilePath(), printParentFunctionLine(), 
 	callee_sign, CallersData::VNoVirtual, callee_filepath, callee_filepos);
-      currentJsonFile.add_function_call(&fc, &otherJsonFiles);
+      currentJsonFile->add_function_call(&fc, &otherJsonFiles);
     }
   else
     {
@@ -926,7 +926,7 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
 	(parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
 	printParentFunctionFilePath(), printParentFunctionLine(), 
 	callee_sign, CallersData::VNoVirtual, callee_filepath, callee_filepos);
-      currentJsonFile.add_function_call(&fc, &otherJsonFiles);
+      currentJsonFile->add_function_call(&fc, &otherJsonFiles);
     }
    return true;
 }
@@ -970,7 +970,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	      // CallersData::FctCall fc = CallersData::FctCall(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
 	      // 						     builtinName, printFilePath(fd->getSourceRange()), builtinPos);
 	      // fc.is_builtin = true;
-	      // currentJsonFile.add_function_call(&fc, &otherJsonFiles);
+	      // currentJsonFile->add_function_call(&fc, &otherJsonFiles);
 	      //exit(5);
 	    }
 	  else
@@ -1003,7 +1003,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	    boost::filesystem::path p(headerName);
 	    std::string basename = p.filename().string();
 	    std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-	    std::set<CallersData::File>::iterator file = otherJsonFiles.get_file(basename, dirpath);
+	    std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
 	    //CallersData::File file(basename, dirpath);
 	    //file.parse_json_file();
 	    CallersData::Fct fct(builtinName, CallersData::VNoVirtual, headerName, builtinPos);
@@ -1015,7 +1015,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 		printParentFunctionFilePath(), printParentFunctionLine(), 
 		builtinName, CallersData::VNoVirtual, headerName, builtinPos);
 	    fc.is_builtin = true;
-	    currentJsonFile.add_function_call(&fc, &otherJsonFiles);
+	    currentJsonFile->add_function_call(&fc, &otherJsonFiles);
 	  }
 #endif
 	  return true;
@@ -1044,7 +1044,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	  : (calleeMethod->isPure() ? CallersData::VVirtualPure
 	  : (calleeMethod->isThisDeclarationADefinition() ? CallersData::VVirtualDefined : CallersData::VVirtualDeclared)),
 	callee_filepath, callee_filepos);
-      currentJsonFile.add_function_call(&fc, &otherJsonFiles);
+      currentJsonFile->add_function_call(&fc, &otherJsonFiles);
       return true;
    }
 
@@ -1222,10 +1222,10 @@ CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
 	  : CallersData::VVirtualDeclared),
         fct_filepath, fct_line);
       // check whether the function is really defined in this file
-      if(fct_filepath == currentJsonFile.fullPath())
+      if(fct_filepath == currentJsonFile->fullPath())
 	// if true, add the function to the current json file
 	{
-	  currentJsonFile.add_defined_function(&fct);
+	  currentJsonFile->add_defined_function(&fct);
 	}
       else
 	// otherwise, check whether a json file is already present for the visited function
@@ -1235,7 +1235,7 @@ CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
 	  boost::filesystem::path p(fct_filepath);
 	  std::string basename = p.filename().string();
 	  std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-	  std::set<CallersData::File>::iterator file = otherJsonFiles.get_file(basename, dirpath);
+	  std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
 	  //CallersData::File file(basename, dirpath);
 	  //file.parse_json_file();
 	  file->add_defined_function(&fct);
@@ -1306,7 +1306,7 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
          if (!isAnonymousRecord) 
 	   {
 	    CallersData::Record rec(recordName, tagKind, printLine(Decl->getSourceRange()));
-	    //currentJsonFile.add_record(&rec);
+	    //currentJsonFile->add_record(&rec);
 	    
             osOut << "visiting record " << recordName
                   << " at " << printLocation(Decl->getSourceRange()) << '\n';
@@ -1322,7 +1322,7 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
 	      boost::filesystem::path p(rec_filepath);
 	      std::string basename = p.filename().string();
 	      std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-	      std::set<CallersData::File>::iterator file = otherJsonFiles.get_file(basename, dirpath);
+	      std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
 	      //CallersData::File file(basename, dirpath);
 	      //file.parse_json_file();
 	      file->add_record(rec);

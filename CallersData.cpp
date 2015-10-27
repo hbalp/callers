@@ -105,7 +105,7 @@ void CallersData::Dir::add_file(File file)
   files.insert(file);
 }
 
-std::set<CallersData::File>::iterator CallersData::Dir::get_file(std::string filename, std::string dirpath)
+std::set<CallersData::File>::iterator CallersData::Dir::create_or_get_file(std::string filename, std::string dirpath)
 {
   std::string filepath = dirpath + "/" + filename;
   //std::cout << "Check whether the file \"" << filepath << "\" is already opened or not..." << std::endl;
@@ -446,7 +446,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
       boost::filesystem::path p(fc->caller_file);
       std::string caller_basename = p.filename().string();
       std::string caller_dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-      std::set<CallersData::File>::iterator caller_file = files->get_file(caller_basename, caller_dirpath);
+      std::set<CallersData::File>::iterator caller_file = files->create_or_get_file(caller_basename, caller_dirpath);
       // CallersData::File caller_file(caller_basename, caller_dirpath);
       // caller_file.parse_json_file();
       CallersData::Fct caller_def( fc->caller_sign, fc->caller_virtuality, fc->caller_file, fc->caller_line);
@@ -488,7 +488,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 	  boost::filesystem::path p(fc->callee_decl_file);
 	  std::string callee_basename = p.filename().string();
 	  std::string callee_dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-	  std::set<CallersData::File>::iterator callee_file = files->get_file(callee_basename, callee_dirpath);
+	  std::set<CallersData::File>::iterator callee_file = files->create_or_get_file(callee_basename, callee_dirpath);
 	  //CallersData::File callee_file(callee_basename, callee_dirpath);
 	  //callee_file.parse_json_file();
 	  CallersData::Fct callee_def( fc->callee_sign, fc->callee_virtuality, fc->callee_decl_file, fc->callee_decl_line);

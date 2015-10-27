@@ -15,6 +15,7 @@
 #include <iostream>
 #include <sstream>
 #include <unistd.h>
+#include <stdlib.h>
 #ifndef NOT_USE_BOOST_FILESYSTEM
 #include <boost/filesystem.hpp>
 #endif
@@ -176,6 +177,52 @@ CallersData::File::File(std::string file, std::string path)
   calls = new std::set<CallersData::FctCall>;
 }
 
+CallersData::File::~File()
+{
+  //this->output_json_desc();
+  delete defined;
+  delete records;
+  delete calls;
+}
+
+CallersData::File::File(const CallersData::File& copy_from_me)
+{
+  file = copy_from_me.file;
+  path = copy_from_me.path;
+  jsonfilename = copy_from_me.jsonfilename;
+
+  defined = new std::set<CallersData::Fct>;
+  records = new std::set<CallersData::Record>;
+  calls = new std::set<CallersData::FctCall>;
+
+  std::cout << "File Copy Constructor of file \"" << file
+	    << "\" defining " << copy_from_me.records->size()
+	    << " classes, " << copy_from_me.defined->size() << " functions" 
+	    << " and " << copy_from_me.calls->size() << " function calls" 
+	    << std::endl;
+  
+  // copy records definitions
+  std::set<Record>::const_iterator r;
+  for(r=copy_from_me.records->begin(); r!=copy_from_me.records->end(); ++r)
+    {
+      records->insert(*r);
+    }
+  
+  // copy function definitions
+  std::set<Fct>::const_iterator f;
+  for(f=copy_from_me.defined->begin(); f!=copy_from_me.defined->end(); ++f)
+    {
+      defined->insert(*f);
+    }
+
+  // copy function calls definitions
+  std::set<FctCall>::const_iterator c;
+  for(c=copy_from_me.calls->begin(); c!=copy_from_me.calls->end(); ++c)
+    {
+      calls->insert(*c);
+    }
+}
+
 void CallersData::File::parse_json_file() const
 {
   /* Check whether the related json file does already exists or not. */
@@ -255,13 +302,6 @@ void CallersData::File::parse_json_file() const
 	  exit(3);
 	}
     }
-}
-
-CallersData::File::~File()
-{
-  //this->output_json_desc();
-  delete defined;
-  delete calls;
 }
 
 std::string CallersData::File::fullPath() const
@@ -494,6 +534,8 @@ void CallersData::File::output_json_desc() const
 
   js.out << "{\"file\":\"" << file
 	 << "\",\"path\":\"" << path;
+
+  std::cerr << "HBDBG13: file=" << file << ", nb_records=" << records->size() << std::endl;
 
   js.out << "\",\"records\":[";
   std::set<Record>::const_iterator r, last_rec;

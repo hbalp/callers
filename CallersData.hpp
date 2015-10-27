@@ -69,6 +69,7 @@ namespace CallersData
 
     public:
       File(std::string file, std::string path);
+      File(const CallersData::File& copy_from_me);
       ~File();
       std::string fullPath () const;
       void parse_json_file() const;

@@ -66,13 +66,21 @@ then
 
     # add extcallers to json files
     source add_extcallers.sh .
-    source indent_jsonfiles.sh .
+    #source indent_jsonfiles.sh .
 
     # generate callee's tree from main entry point
     source function_calls_to_dot.sh callees $canonical_pwd/test.cpp "main" "int main()" files
 
     # generate caller's tree from main entry point
     source function_calls_to_dot.sh callers $canonical_pwd/dirB/B.cpp "c" "int c()" files
+
+    # add inherited to json files
+    source add_inherited.sh .
+    source indent_jsonfiles.sh .
+
+    # generate classes tree from base class A
+    source classes_to_dot.sh child $canonical_pwd/dirA/A.hpp "A"
+    source classes_to_dot.sh base $canonical_pwd/dirC/D.hpp ":0:Newly:1:Added:3:D"
 
     source process_dot_files.sh . analysis/${analysis_type}
 

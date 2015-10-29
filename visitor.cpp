@@ -733,9 +733,9 @@ std::string CallersAction::Visitor::parseQualification(const clang::DeclContext*
 
     if (kind == clang::Decl::Namespace) {
       const clang::NamespaceDecl* nspc = static_cast<const clang::NamespaceDecl*>(context);
-      std::set<CallersData::Namespace>::iterator namespc = (*file)->create_or_get_namespace(qualifiers, *nspc);
-      //CallersData::Namespace c_namespace(qualifiers, *nspc);
-      //(*file)->add_namespace(c_namespace);
+      //std::set<CallersData::Namespace>::iterator namespc = (*file)->create_or_get_namespace(qualifiers, *nspc);
+      CallersData::Namespace c_namespace(qualifiers, *nspc);
+      (*file)->add_namespace(c_namespace);
       if (result.length() > 0) {
 	//std::cerr << "nspc: " << c_namespace.name << ", qualifiers: " << qualifiers << std::endl;
 	result += "::";

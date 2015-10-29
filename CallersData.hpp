@@ -114,8 +114,8 @@ namespace CallersData
       void print_cout() const;
       std::string get_qualifier() const;
       std::string name = "unknownNamespaceName";
-      std::set<Namespace> *namespaces;
-      std::set<Record> *records;
+      // std::set<Namespace> *namespaces;
+      // std::set<Record> *records;
       std::string qualifier;
     private:
   };

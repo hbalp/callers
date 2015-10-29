@@ -642,8 +642,8 @@ bool CallersData::operator< (const CallersData::File& file1, const CallersData::
 
 void CallersData::Namespace::allocate()
 {
-  namespaces = new std::set<CallersData::Namespace>;
-  records = new std::set<CallersData::Record>;
+  // namespaces = new std::set<CallersData::Namespace>;
+  // records = new std::set<CallersData::Record>;
 }
 
 CallersData::Namespace::Namespace(std::string qualifier)
@@ -674,23 +674,23 @@ CallersData::Namespace::Namespace(const CallersData::Namespace& copy_from_me)
   name = copy_from_me.name;
   qualifier = copy_from_me.qualifier;
 
-  std::set<Namespace>::const_iterator n;
-  for(n=copy_from_me.namespaces->begin(); n!=copy_from_me.namespaces->end(); ++n)
-    {
-      namespaces->insert(*n);
-    }
+  // std::set<Namespace>::const_iterator n;
+  // for(n=copy_from_me.namespaces->begin(); n!=copy_from_me.namespaces->end(); ++n)
+  //   {
+  //     namespaces->insert(*n);
+  //   }
 
-  std::set<Record>::const_iterator b;
-  for(b=copy_from_me.records->begin(); b!=copy_from_me.records->end(); ++b)
-    {
-      records->insert(*b);
-    }
+  // std::set<Record>::const_iterator b;
+  // for(b=copy_from_me.records->begin(); b!=copy_from_me.records->end(); ++b)
+  //   {
+  //     records->insert(*b);
+  //   }
 }
 
 CallersData::Namespace::~Namespace()
 {
-  delete namespaces;
-  delete records;
+  // delete namespaces;
+  // delete records;
 }
 
 std::string
@@ -699,14 +699,14 @@ CallersData::Namespace::get_qualifier() const
   return qualifier;
 }
 
-void CallersData::Namespace::add_namespace(CallersData::Namespace nspc) const
-{
-  namespaces->insert(nspc);
-  std::cout << "Register nested namespace \"" << nspc.name
-	    << " in namespace " << name
-	    << ", nb_namespaces=" << namespaces->size()
-	    << std::endl;
-}
+// void CallersData::Namespace::add_namespace(CallersData::Namespace nspc) const
+// {
+//   namespaces->insert(nspc);
+//   std::cout << "Register nested namespace \"" << nspc.name
+// 	    << " in namespace " << name
+// 	    << ", nb_namespaces=" << namespaces->size()
+// 	    << std::endl;
+// }
 
 // void CallersData::Namespace::add_namespace(std::string qualifier, const clang::NamespaceDecl& namespc) const
 // {
@@ -719,101 +719,105 @@ void CallersData::Namespace::add_namespace(CallersData::Namespace nspc) const
 // 	    << std::endl;
 // }
 
-void CallersData::Namespace::add_record(CallersData::Record record) const
-{
-  records->insert(record);
-  std::cout << "Register record \"" << record.name
-	    << " in namespace " << name
-	    << ", nb_records=" << records->size()
-	    << std::endl;
-}
+// void CallersData::Namespace::add_record(CallersData::Record record) const
+// {
+//   records->insert(record);
+//   std::cout << "Register record \"" << record.name
+// 	    << " in namespace " << name
+// 	    << ", nb_records=" << records->size()
+// 	    << std::endl;
+// }
 
-void CallersData::Namespace::add_record(std::string name, clang::TagTypeKind kind, int loc) const
-{
-  //Record *record = new Record(name, kind, deb, fin); // fuite mémoire sur la pile si pas désalloué !
-  Record record(name, kind, loc);
-  records->insert(record);
-  std::cout << "Create record \"" << name
-	    << " in namespace " << this->name
-	    << ", nb_records=" << records->size()
-	    << std::endl;
-}
+// void CallersData::Namespace::add_record(std::string name, clang::TagTypeKind kind, int loc) const
+// {
+//   //Record *record = new Record(name, kind, deb, fin); // fuite mémoire sur la pile si pas désalloué !
+//   Record record(name, kind, loc);
+//   records->insert(record);
+//   std::cout << "Create record \"" << name
+// 	    << " in namespace " << this->name
+// 	    << ", nb_records=" << records->size()
+// 	    << std::endl;
+// }
 
 void CallersData::Namespace::print_cout() const
 {
-  std::cout << "{\"name\": \"" << name << "\",";
+  std::cout << "{\"name\": \"" << name
+	    << "\",\"qualifier\": \"" << qualifier << "\"";
   
-  std::cout << "\"namespaces\":[";
-  std::set<Namespace>::const_iterator n, last_nspc;
-  last_nspc = namespaces->empty() ? namespaces->end() : --namespaces->end();
-  for(n=namespaces->begin(); n!=namespaces->end(); ++n)
-    {
-      if(n != last_nspc)
-	{
-	  n->print_cout();
-	  std::cout << ",";
-	}
-      else
-	{
-	  n->print_cout();
-	}
-    }
+  // std::cout << ",\"namespaces\":[";
+  // std::set<Namespace>::const_iterator n, last_nspc;
+  // last_nspc = namespaces->empty() ? namespaces->end() : --namespaces->end();
+  // for(n=namespaces->begin(); n!=namespaces->end(); ++n)
+  //   {
+  //     if(n != last_nspc)
+  // 	{
+  // 	  n->print_cout();
+  // 	  std::cout << ",";
+  // 	}
+  //     else
+  // 	{
+  // 	  n->print_cout();
+  // 	}
+  //   }
 
-  std::cout << "],\"records\":[";
-  std::set<Record>::const_iterator b, last_bc;
-  last_bc = records->empty() ? records->end() : --records->end();
-  for(b=records->begin(); b!=records->end(); ++b)
-    {
-      if(b != last_bc)
-	{
-	  b->print_cout();
-	  std::cout << ",";
-	}
-      else
-	{
-	  b->print_cout();
-	}
-    }
-  std::cout << "]}";
+  // std::cout << "],\"records\":[";
+  // std::set<Record>::const_iterator b, last_bc;
+  // last_bc = records->empty() ? records->end() : --records->end();
+  // for(b=records->begin(); b!=records->end(); ++b)
+  //   {
+  //     if(b != last_bc)
+  // 	{
+  // 	  b->print_cout();
+  // 	  std::cout << ",";
+  // 	}
+  //     else
+  // 	{
+  // 	  b->print_cout();
+  // 	}
+  //   }
+  // std::cout << "]";
+
+  std::cout << "}";
 }
 
 void CallersData::Namespace::output_json_desc(std::ofstream &js) const
 {
-  js << "{\"name\": \"" << name << "\",";
+  js << "{\"name\": \"" << name
+     << "\",\"qualifier\": \"" << qualifier << "\"}";
 
-  js << "\"namespaces\":[";
-  std::set<Namespace>::const_iterator n, last_nspc;
-  last_nspc = namespaces->empty() ? namespaces->end() : --namespaces->end();
-  for(n=namespaces->begin(); n!=namespaces->end(); ++n)
-    {
-      if(n != last_nspc)
-	{
-	  n->output_json_desc(js);
-	  js << ",";
-	}
-      else
-	{
-	  n->output_json_desc(js);
-	}
-    }
-  js << "]";
+  // js << "\"namespaces\":[";
+  // std::set<Namespace>::const_iterator n, last_nspc;
+  // last_nspc = namespaces->empty() ? namespaces->end() : --namespaces->end();
+  // for(n=namespaces->begin(); n!=namespaces->end(); ++n)
+  //   {
+  //     if(n != last_nspc)
+  // 	{
+  // 	  n->output_json_desc(js);
+  // 	  js << ",";
+  // 	}
+  //     else
+  // 	{
+  // 	  n->output_json_desc(js);
+  // 	}
+  //   }
+  // js << "]";
 
-  js << ",\"records\":[";
-  std::set<Record>::const_iterator b, last_bc;
-  last_bc = records->empty() ? records->end() : --records->end();
-  for(b=records->begin(); b!=records->end(); ++b)
-    {
-      if(b != last_bc)
-	{
-	  b->output_json_desc(js);
-	  js << ",";
-	}
-      else
-	{
-	  b->output_json_desc(js);
-	}
-    }
-  js << "]}";
+  // js << ",\"records\":[";
+  // std::set<Record>::const_iterator b, last_bc;
+  // last_bc = records->empty() ? records->end() : --records->end();
+  // for(b=records->begin(); b!=records->end(); ++b)
+  //   {
+  //     if(b != last_bc)
+  // 	{
+  // 	  b->output_json_desc(js);
+  // 	  js << ",";
+  // 	}
+  //     else
+  // 	{
+  // 	  b->output_json_desc(js);
+  // 	}
+  //   }
+  // js << "]}";
 }
 
 bool CallersData::operator< (const CallersData::Namespace& nspc1, const CallersData::Namespace& nspc2)

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "D.hpp"
 
-int D::c()
+int ::Newly::Added::D::c()
 {
   printf("D::c()\n");
   return 0;

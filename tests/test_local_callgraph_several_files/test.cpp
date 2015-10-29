@@ -11,7 +11,7 @@ int main()
   B* b = a->get_b();
   b->b();
   a->c();
-  C* d = new D();
+  C* d = new ::Newly::Added::D();
   d->c();
   delete a;
   delete d;

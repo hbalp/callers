@@ -90,6 +90,9 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   std::string printArgumentSignature(const clang::FunctionDecl& function) const;
   std::string printResultSignature(const clang::FunctionDecl& function) const;
   std::string printQualification(const clang::DeclContext* context) const;
+  //void parseNamespaces(const clang::DeclContext* context, std::set<CallersData::File>::iterator *file) const;
+  std::string parseQualification(const clang::DeclContext* context, std::set<CallersData::File>::iterator *file);
+  std::string parseQualifiedName(const clang::NamedDecl& namedDecl, bool* isEmpty=nullptr);
   std::string printQualifiedName(const clang::NamedDecl& namedDecl, bool* isEmpty=nullptr) const;
 
   const std::string& printParentFunction() const

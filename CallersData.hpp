@@ -57,6 +57,7 @@ namespace CallersData
       //JsonFileWriter js;
   };
 
+  class Namespace;
   class Record;
   class Fct;
   class FctCall;
@@ -73,12 +74,15 @@ namespace CallersData
       ~File();
       std::string fullPath () const;
       void parse_json_file() const;
+      std::set<CallersData::Namespace>::iterator create_or_get_namespace(std::string qualifiers, const clang::NamespaceDecl* nspc);
       void add_defined_function(Fct* fct) const;
       void add_defined_function(std::string func, Virtuality virtuality, std::string filepath, int sign) const;
+      void add_namespace(Namespace nspc) const;
       void add_record(Record record) const;
       void add_record(std::string name, clang::TagTypeKind kind, int loc) const;
       void add_function_call(FctCall* fc, Dir *context) const;
       void output_json_desc() const;
+      std::set<Namespace> *namespaces;
       std::set<Fct> *defined;
       std::set<Record> *records;
   private:
@@ -89,6 +93,34 @@ namespace CallersData
       //std::list<std::string> defined;
       //JsonFileWriter js;
   };
+
+  /* Namespace class */
+  class Namespace
+  {
+    friend std::ostream &operator<<(std::ostream &output, const Namespace &nspc);
+    friend bool operator< (const CallersData::Namespace& nspc1, const CallersData::Namespace& nspc2);
+
+    public:
+      Namespace(std::string qualifier);
+      Namespace(std::string qualifier, const clang::NamespaceDecl& nspc);
+      Namespace(const Namespace& copy_from_me);
+      ~Namespace();
+      void allocate();
+      void add_namespace(Namespace nspc) const;
+      //void add_namespace(std::string qualifier, const clang::NamespaceDecl& namespc) const;
+      void add_record(Record record) const;
+      void add_record(std::string name, clang::TagTypeKind kind, int loc) const;
+      void output_json_desc(std::ofstream &js) const;
+      void print_cout() const;
+      std::string get_qualifier() const;
+      std::string name = "unknownNamespaceName";
+      std::set<Namespace> *namespaces;
+      std::set<Record> *records;
+      std::string qualifier;
+    private:
+  };
+
+  bool operator< (const Namespace& nspc1, const Namespace& nspc2);
 
   /* Inheritance class to reference base classes*/
   class Inheritance

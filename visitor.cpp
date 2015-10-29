@@ -10,7 +10,7 @@
 //
 
 //#define NOT_USE_BOOST_FILESYSTEM
-#define NOT_USE_BOOST_REGEX
+//#define NOT_USE_BOOST_REGEX
 
 //#include <stdlib.h> // abort()
 
@@ -20,6 +20,10 @@
 #endif
 #ifndef NOT_USE_BOOST_REGEX
 #include <boost/regex.hpp>
+#include <boost/algorithm/string/regex.hpp>
+#endif
+#ifndef NOT_USE_BOOST_STRING
+#include <boost/algorithm/string.hpp>
 #endif
 #include <cstddef>
 #include <fstream>
@@ -53,14 +57,14 @@
 #define CLANG_VERSION_GREATER_OR_EQUAL_3_3_5
 #endif
 
-#ifndef NOT_USE_BOOST_REGEX
-#ifndef NOT_USE_BOOST
-void boost::throw_exception(std::exception const&)
-{
-  std::cerr << "HBDBG EXCEPTION TBC" << std::endl;
-}
-#endif
-#endif
+// #ifndef NOT_USE_BOOST_REGEX
+// #ifndef NOT_USE_BOOST
+// void boost::throw_exception(std::exception const&)
+// {
+//   std::cerr << "HBDBG EXCEPTION TBC" << std::endl;
+// }
+// #endif
+// #endif
 
 std::string
 getCanonicalAbsolutePath(const std::string& path)
@@ -572,7 +576,6 @@ CallersAction::Visitor::printPlainType(clang::QualType const& qt) const {
     */
 #endif //3_3_4
 #endif //3_3_5
-
       case clang::Type::Paren:
          {  assert(llvm::dyn_cast<const clang::ParenType>(type));
             const auto* parentype = static_cast<clang::ParenType const*>(type);
@@ -695,7 +698,6 @@ CallersAction::Visitor::printArgumentSignature(const clang::FunctionDecl& functi
         paramIterEnd = function.arg_end();
 #endif
    bool isFirst = true;
-
    for (; paramIter != paramIterEnd; ++paramIter) {
       if (!isFirst)
          result += ", ";
@@ -722,31 +724,93 @@ CallersAction::Visitor::printResultSignature(const clang::FunctionDecl& function
 #endif
 }
 
+std::string CallersAction::Visitor::parseQualification(const clang::DeclContext* context,
+						       std::set<CallersData::File>::iterator *file) {
+  if (context) {
+    std::string qualifiers = parseQualification(context->getParent(), file);
+    std::string result = qualifiers;
+    const clang::Decl::Kind kind = context->getDeclKind();
+
+    if (kind == clang::Decl::Namespace) {
+      const clang::NamespaceDecl* nspc = static_cast<const clang::NamespaceDecl*>(context);
+      std::set<CallersData::Namespace>::iterator namespc = (*file)->create_or_get_namespace(qualifiers, *nspc);
+      //CallersData::Namespace c_namespace(qualifiers, *nspc);
+      //(*file)->add_namespace(c_namespace);
+      if (result.length() > 0) {
+	//std::cerr << "nspc: " << c_namespace.name << ", qualifiers: " << qualifiers << std::endl;
+	result += "::";
+      }
+      else {
+	//result += "::";
+      }
+      //result += static_cast<const clang::NamespaceDecl*>(context)->getName().str();
+      result += nspc->getName().str();
+    }
+    else if (kind >= clang::Decl::firstTag && kind <= clang::Decl::lastTag) {
+      if (result.length() > 0)
+	result += "::";
+      result += static_cast<const clang::TagDecl*>(context)->getName().str();
+      if (kind >= clang::Decl::firstCXXRecord && kind <= clang::Decl::lastCXXRecord)
+	result += printTemplateKind(*static_cast<const clang::CXXRecordDecl*>(context));
+    };
+    return result;
+  };
+  return "";
+}
+
 std::string
 CallersAction::Visitor::printQualification(const clang::DeclContext* context) const {
-   if (context) {
-      std::string result = printQualification(context->getParent());
-      const clang::Decl::Kind kind = context->getDeclKind();
-      if (kind == clang::Decl::Namespace) {
-         if (result.length() > 0)
-            result += "::";
-         result += static_cast<const clang::NamespaceDecl*>(context)->getName().str();
+  if (context) {
+    std::string result = printQualification(context->getParent());
+    const clang::Decl::Kind kind = context->getDeclKind();
+    if (kind == clang::Decl::Namespace) 
+      {
+	if (result.length() > 0)
+	  result += "::";
+	else
+	  result += "::";
+	  
+	result += static_cast<const clang::NamespaceDecl*>(context)->getName().str();
       }
-      else if (kind >= clang::Decl::firstTag && kind <= clang::Decl::lastTag) {
-         if (result.length() > 0)
-            result += "::";
-         result += static_cast<const clang::TagDecl*>(context)->getName().str();
-         if (kind >= clang::Decl::firstCXXRecord && kind <= clang::Decl::lastCXXRecord)
-            result += printTemplateKind(*static_cast<const clang::CXXRecordDecl*>(context));
-      };
-      return result;
-   };
-   return "";
+    else if (kind >= clang::Decl::firstTag && kind <= clang::Decl::lastTag) {
+      if (result.length() > 0)
+	result += "::";
+      result += static_cast<const clang::TagDecl*>(context)->getName().str();
+      if (kind >= clang::Decl::firstCXXRecord && kind <= clang::Decl::lastCXXRecord)
+	result += printTemplateKind(*static_cast<const clang::CXXRecordDecl*>(context));
+    };
+    return result;
+  };
+  return "";
+}
+
+std::string
+CallersAction::Visitor::parseQualifiedName(const clang::NamedDecl& namedDecl, bool* isEmpty) {
+
+  const clang::DeclContext *context = namedDecl.getDeclContext();
+
+  std::string filepath = printFilePath(namedDecl.getSourceRange());
+  boost::filesystem::path p(filepath);
+  std::string basename = p.filename().string();
+  std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+  std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
+
+  std::string result = parseQualification(context, &file);
+
+   if (result.length() > 0)
+      result += "::";
+   std::string pureName = namedDecl.getNameAsString();
+   if (isEmpty)
+      *isEmpty = pureName.length() == 0;
+   result += pureName;
+   return result;
 }
 
 std::string
 CallersAction::Visitor::printQualifiedName(const clang::NamedDecl& namedDecl, bool* isEmpty) const {
-   std::string result = printQualification(namedDecl.getDeclContext());
+
+  const clang::DeclContext *context = namedDecl.getDeclContext();
+  std::string result = printQualification(context);
    if (result.length() > 0)
       result += "::";
    std::string pureName = namedDecl.getNameAsString();
@@ -1301,6 +1365,7 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
       auto tagKind = Decl->getTagKind();
       if (tagKind == clang::TTK_Struct || tagKind == clang::TTK_Class) { // avoid unions
          bool isAnonymousRecord = false;
+         std::string recordName1 = parseQualifiedName(*Decl, &isAnonymousRecord);
          std::string recordName = printQualifiedName(*Decl, &isAnonymousRecord);
          recordName += printTemplateKind(*Decl);
          if (!isAnonymousRecord) 

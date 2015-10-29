@@ -4,13 +4,19 @@
 #include <stdio.h>
 #include "C.hpp"
 
-class D : public C
-{
-public:
-  //  D();
-//~D();
+namespace Newly {
+
+  namespace Added {
+
+    class D : public C
+    {
+    public:
+      //  D();
+      //~D();
   
-  virtual int c();
+      virtual int c();
+    };
+  };
 };
 
 #endif

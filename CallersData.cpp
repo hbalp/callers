@@ -19,6 +19,13 @@
 #ifndef NOT_USE_BOOST_FILESYSTEM
 #include <boost/filesystem.hpp>
 #endif
+#ifndef NOT_USE_BOOST_REGEX
+#include <boost/regex.hpp>
+#include <boost/algorithm/string/regex.hpp>
+#endif
+#ifndef NOT_USE_BOOST_STRING
+#include <boost/algorithm/string.hpp>
+#endif
 
 #include "clang/AST/Decl.h"
 #include "CallersData.hpp"
@@ -172,6 +179,7 @@ CallersData::File::File(std::string file, std::string path)
     path(path),
     jsonfilename(path + "/" + file + ".file.callers.gen.json")
 {
+  namespaces = new std::set<CallersData::Namespace>;
   defined = new std::set<CallersData::Fct>;
   records = new std::set<CallersData::Record>;
   calls = new std::set<CallersData::FctCall>;
@@ -180,6 +188,7 @@ CallersData::File::File(std::string file, std::string path)
 CallersData::File::~File()
 {
   //this->output_json_desc();
+  delete namespaces;
   delete defined;
   delete records;
   delete calls;
@@ -191,6 +200,7 @@ CallersData::File::File(const CallersData::File& copy_from_me)
   path = copy_from_me.path;
   jsonfilename = copy_from_me.jsonfilename;
 
+  namespaces = new std::set<CallersData::Namespace>;
   defined = new std::set<CallersData::Fct>;
   records = new std::set<CallersData::Record>;
   calls = new std::set<CallersData::FctCall>;
@@ -200,6 +210,13 @@ CallersData::File::File(const CallersData::File& copy_from_me)
 	    << " classes, " << copy_from_me.defined->size() << " functions" 
 	    << " and " << copy_from_me.calls->size() << " function calls" 
 	    << std::endl;
+  
+  // copy namespaces definitions
+  std::set<Namespace>::const_iterator n;
+  for(n=copy_from_me.namespaces->begin(); n!=copy_from_me.namespaces->end(); ++n)
+    {
+      namespaces->insert(*n);
+    }
   
   // copy records definitions
   std::set<Record>::const_iterator r;
@@ -310,6 +327,30 @@ std::string CallersData::File::fullPath() const
   return fullPath;
 }
 
+std::set<CallersData::Namespace>::iterator 
+CallersData::File::create_or_get_namespace(std::string qualifiers, const clang::NamespaceDecl* nspc)
+{
+  std::cerr << "Check whether the namespace \"" << qualifiers << "\" is already created or not..." << std::endl;
+  std::set<CallersData::Namespace>::iterator search_result;
+  CallersData::Namespace searched_nspc(qualifiers);
+  search_result = namespaces->find(searched_nspc);
+  if(search_result != namespaces->end())
+    {
+      std::cout << "The namespace \"" << qualifiers << "\" is already present." << std::endl;
+    }
+  else
+    {
+      CallersData::Namespace c_namespace(qualifiers, *nspc);
+      this->add_namespace(c_namespace);
+      search_result = namespaces->find(searched_nspc);
+      if(search_result != namespaces->end())
+	{
+	  std::cout << "The namespace \"" << qualifiers << "\" is well present now !" << std::endl;
+	}
+    }
+  return search_result;
+}
+
 void CallersData::File::add_defined_function(CallersData::Fct* fct) const
 {
   std::cout << "Register function \"" << fct->sign
@@ -326,6 +367,13 @@ void CallersData::File::add_defined_function(std::string sign, Virtuality virtua
   //Fct *fct = new Fct(sign, filepath, line); // fuite mémoire sur la pile si pas désalloué !
   Fct fct(sign, virtuality, filepath, line);
   defined->insert(fct);
+}
+
+void CallersData::File::add_namespace(CallersData::Namespace nspc) const
+{
+  std::cout << "Register namespace \"" << nspc.name
+	    << "\" defined in file \"" << this->fullPath() << std::endl;
+  namespaces->insert(nspc);
 }
 
 void CallersData::File::add_record(CallersData::Record rec) const
@@ -535,7 +583,23 @@ void CallersData::File::output_json_desc() const
   js.out << "{\"file\":\"" << file
 	 << "\",\"path\":\"" << path;
 
-  js.out << "\",\"records\":[";
+  js.out << "\",\"namespaces\":[";
+  std::set<Namespace>::const_iterator n, last_nspc;
+  last_nspc = namespaces->empty() ? namespaces->end() : --namespaces->end();
+  for(n=namespaces->begin(); n!=namespaces->end(); ++n)
+    {
+      if(n != last_nspc)
+	{
+	  n->output_json_desc(js.out);
+	  js.out << ",";
+	}
+      else
+	{
+	  n->output_json_desc(js.out);
+	}
+    }
+
+  js.out << "],\"records\":[";
   std::set<Record>::const_iterator r, last_rec;
   last_rec = records->empty() ? records->end() : --records->end();
   for(r=records->begin(); r!=records->end(); ++r)
@@ -572,6 +636,189 @@ void CallersData::File::output_json_desc() const
 bool CallersData::operator< (const CallersData::File& file1, const CallersData::File& file2)
 {
   return file1.fullPath() < file2.fullPath();
+}
+
+/***************************************** class Namespace ****************************************/
+
+void CallersData::Namespace::allocate()
+{
+  namespaces = new std::set<CallersData::Namespace>;
+  records = new std::set<CallersData::Record>;
+}
+
+CallersData::Namespace::Namespace(std::string qualifier)
+  : qualifier(qualifier)
+{
+  allocate();
+  std::cout << "Create namespace: " << std::endl;
+  std::vector<std::string> namespaces;
+  boost::algorithm::split_regex(namespaces, qualifier, boost::regex("::"));
+  std::vector<std::string>::iterator nspc = namespaces.end(); 
+  name = *nspc;
+  this->print_cout();
+}
+
+CallersData::Namespace::Namespace(std::string qualifier, const clang::NamespaceDecl& nspc)
+  : qualifier(qualifier)
+{
+  allocate();
+  std::cout << "Create namespace: " << std::endl;
+  name = nspc.getNameAsString();
+  this->print_cout();
+}
+
+CallersData::Namespace::Namespace(const CallersData::Namespace& copy_from_me)
+{
+  allocate();
+  std::cout << "Namespace copy constructor" << std::endl;
+  name = copy_from_me.name;
+  qualifier = copy_from_me.qualifier;
+
+  std::set<Namespace>::const_iterator n;
+  for(n=copy_from_me.namespaces->begin(); n!=copy_from_me.namespaces->end(); ++n)
+    {
+      namespaces->insert(*n);
+    }
+
+  std::set<Record>::const_iterator b;
+  for(b=copy_from_me.records->begin(); b!=copy_from_me.records->end(); ++b)
+    {
+      records->insert(*b);
+    }
+}
+
+CallersData::Namespace::~Namespace()
+{
+  delete namespaces;
+  delete records;
+}
+
+std::string
+CallersData::Namespace::get_qualifier() const
+{
+  return qualifier;
+}
+
+void CallersData::Namespace::add_namespace(CallersData::Namespace nspc) const
+{
+  namespaces->insert(nspc);
+  std::cout << "Register nested namespace \"" << nspc.name
+	    << " in namespace " << name
+	    << ", nb_namespaces=" << namespaces->size()
+	    << std::endl;
+}
+
+// void CallersData::Namespace::add_namespace(std::string qualifier, const clang::NamespaceDecl& namespc) const
+// {
+//   //Namespace *namespace = new Namespace(name, kind, deb, fin); // fuite mémoire sur la pile si pas désalloué !
+//   Namespace nspc(qualifier, namespc);
+//   namespaces->insert(nspc);
+//   std::cout << "Create nested namespace \"" << namespc.getNameAsString()
+// 	    << " in namespace " << this->name
+// 	    << ", nb_namespaces=" << namespaces->size()
+// 	    << std::endl;
+// }
+
+void CallersData::Namespace::add_record(CallersData::Record record) const
+{
+  records->insert(record);
+  std::cout << "Register record \"" << record.name
+	    << " in namespace " << name
+	    << ", nb_records=" << records->size()
+	    << std::endl;
+}
+
+void CallersData::Namespace::add_record(std::string name, clang::TagTypeKind kind, int loc) const
+{
+  //Record *record = new Record(name, kind, deb, fin); // fuite mémoire sur la pile si pas désalloué !
+  Record record(name, kind, loc);
+  records->insert(record);
+  std::cout << "Create record \"" << name
+	    << " in namespace " << this->name
+	    << ", nb_records=" << records->size()
+	    << std::endl;
+}
+
+void CallersData::Namespace::print_cout() const
+{
+  std::cout << "{\"name\": \"" << name << "\",";
+  
+  std::cout << "\"namespaces\":[";
+  std::set<Namespace>::const_iterator n, last_nspc;
+  last_nspc = namespaces->empty() ? namespaces->end() : --namespaces->end();
+  for(n=namespaces->begin(); n!=namespaces->end(); ++n)
+    {
+      if(n != last_nspc)
+	{
+	  n->print_cout();
+	  std::cout << ",";
+	}
+      else
+	{
+	  n->print_cout();
+	}
+    }
+
+  std::cout << "],\"records\":[";
+  std::set<Record>::const_iterator b, last_bc;
+  last_bc = records->empty() ? records->end() : --records->end();
+  for(b=records->begin(); b!=records->end(); ++b)
+    {
+      if(b != last_bc)
+	{
+	  b->print_cout();
+	  std::cout << ",";
+	}
+      else
+	{
+	  b->print_cout();
+	}
+    }
+  std::cout << "]}";
+}
+
+void CallersData::Namespace::output_json_desc(std::ofstream &js) const
+{
+  js << "{\"name\": \"" << name << "\",";
+
+  js << "\"namespaces\":[";
+  std::set<Namespace>::const_iterator n, last_nspc;
+  last_nspc = namespaces->empty() ? namespaces->end() : --namespaces->end();
+  for(n=namespaces->begin(); n!=namespaces->end(); ++n)
+    {
+      if(n != last_nspc)
+	{
+	  n->output_json_desc(js);
+	  js << ",";
+	}
+      else
+	{
+	  n->output_json_desc(js);
+	}
+    }
+  js << "]";
+
+  js << ",\"records\":[";
+  std::set<Record>::const_iterator b, last_bc;
+  last_bc = records->empty() ? records->end() : --records->end();
+  for(b=records->begin(); b!=records->end(); ++b)
+    {
+      if(b != last_bc)
+	{
+	  b->output_json_desc(js);
+	  js << ",";
+	}
+      else
+	{
+	  b->output_json_desc(js);
+	}
+    }
+  js << "]}";
+}
+
+bool CallersData::operator< (const CallersData::Namespace& nspc1, const CallersData::Namespace& nspc2)
+{
+  return nspc1.qualifier < nspc2.qualifier;
 }
 
 /***************************************** class Inheritance ****************************************/
@@ -690,7 +937,7 @@ void CallersData::Record::print_cout() const
 {
   std::ostringstream start; 
   start << loc;
-  std::cout << "{\"name\":\"" << name
+  std::cout << "{\"fullname\":\"" << name
             << "\",\"kind\":\"" << ((kind == clang::TTK_Struct) ? "struct"
                                    : ((kind == clang::TTK_Class) ? "class"
                                    : "anonym"))
@@ -720,7 +967,7 @@ void CallersData::Record::output_json_desc(std::ofstream &js) const
   std::ostringstream start;
   start << loc;
   
-  js << "{\"name\": \"" << name
+  js << "{\"fullname\": \"" << name
      << "\",\"kind\":\"" << ((kind == clang::TTK_Struct) ? "struct"
                             : ((kind == clang::TTK_Class) ? "class"
                             : "anonym"))

@@ -6,14 +6,16 @@
 
 int main()
 {
-  A* a = new C();
-  a->a();
-  B* b = a->get_b();
-  b->b();
-  a->c();
+  //A* a = new C();
+  //a->a();
+  //B* b = a->get_b();
+  //b->b();
+  //a->c();
+  //C* d = new C();
+  //::Newly::Added::D* d = new ::Newly::Added::D();
   C* d = new ::Newly::Added::D();
   d->c();
-  delete a;
+  //delete a;
   delete d;
   return 0;
 }

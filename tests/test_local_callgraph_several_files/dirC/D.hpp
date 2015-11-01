@@ -8,12 +8,11 @@ namespace Newly {
 
   namespace Added {
 
-    class D : public C
-    {
+    class D : public C {
+
     public:
-      //  D();
+      //D();
       //~D();
-  
       virtual int c();
     };
   };

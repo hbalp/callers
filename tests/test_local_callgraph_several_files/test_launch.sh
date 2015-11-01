@@ -78,6 +78,9 @@ then
     source add_inherited.sh .
     source indent_jsonfiles.sh .
 
+    # add virtual function calls to json files
+    source add_virtual_function_calls.sh `pwd`
+
     # generate classes tree from base class A
     source classes_to_dot.sh child $canonical_pwd/dirA/A.hpp "A"
     source classes_to_dot.sh base $canonical_pwd/dirC/D.hpp ":0:Newly:1:Added:3:D"

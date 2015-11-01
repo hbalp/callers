@@ -1619,15 +1619,14 @@ and add the path work_dir/callgraph to the PATH environment variable.
   | scan-build                      | http://clang-analyzer.llvm.org/scan-build.html   |
    #+END_SRC
 * TODO Todo list
-** Support for inheritance
-*** json file extension [0/2]
-    0. [ ] add a *record* keyword extension (record=struct|class|union)
-    1. [ ] add a *virtuality* keyword extension 
-    2. [ ] add an *inheritance* keyword extension
+** Support for inheritance and virtualization [2/3]
+*** json file extension [3/3]
+    1. [X] add a *record* type (record=struct|class|union)
+    2. [X] add a *virtuality* type 
+    3. [X] add an *inheritance* type
 *** extended json formats in the reference example
-
-*** C++ frontend [/]
-**** step 0. _to add record definition (required for frontend, optional for backend)_
+*** TODO evolutions of the C++ frontend [3/4]
+**** DONE step 0. _to add record definition (required for frontend, optional for backend)_
 ***** in file A.hpp.json
 ****** current json file content
        {
@@ -1652,7 +1651,7 @@ and add the path work_dir/callgraph to the PATH environment variable.
          "defined": [...] 
        }
      
-**** step 1. _to produce the virtuality flag for each virtual method declaration_
+**** DONE step 1. _to produce the virtuality flag for each virtual method declaration_
        for this, completes function CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {...}
        to test whether the method is virtual or not
        and if virtual, if it is a pure|defined or declared method.
@@ -1686,7 +1685,7 @@ and add the path work_dir/callgraph to the PATH environment variable.
           ]
        }
 
-**** step 2. _build the inheritance graph in json format_
+**** DONE step 2. _build the inheritance graph in json format_
      complete visitInheritanceList()
 ***** in file D.hpp.json
 ****** current json file content
@@ -1718,7 +1717,7 @@ and add the path work_dir/callgraph to the PATH environment variable.
           ],
          "defined": [...]
        }
-**** step 3. _to produce or not the virtual flag at the caller site, we need to_
+**** TODO step 3. _to produce or not the virtual flag at the caller site, we need to_
        move the content of method CallersAction::Visitor::VisitMemberCallExpr()
        to CallersAction::Visitor::VisitCallExpr() by using llvm::dyn_cast
 
@@ -1740,19 +1739,18 @@ and add the path work_dir/callgraph to the PATH environment variable.
            "virtuality":"pure|declared|defined"
          }
        	
-*** OCAML backends
+*** DONE Add the *add_virtual_function_calls* OCAML backend [1/1]
 
-    1. link: visit all virtual method
-       browse all callers of those virtual methods and replace each original function call 
-       with a list of function call, one per derived method
+    1. [X] link: visits all virtual methods
+       - [X] for each virtual method, add extcallees for each derived method
+             +browse all callers of those virtual methods and replace each original function call with a list of function call, one per derived method+
+             +replaces the mother class name by the child class name in methods to link the caller and callee.+
 
-    2. replaces the mother class name by the child class name in methods to link the caller and callee.
-
-*** TODO [#A] Add an OCAML backend to build class inheritance graphs
+*** DONE [#A] Add an OCAML backend to build class inheritance graphs
     DEADLINE: <2015-10-22 jeu.>
 **** DONE First begin by listing all records without looking at the inheritance links
 **** DONE Then add the *inheritance* links
-**** TODO Add the *add_inherited* OCAML backend to complete declared base classes with their list of children's classes
-**** TODO Add an *class_diagram* OCAML backend to generate class diagrams
+**** DONE Add the *add_inherited* OCAML backend to complete declared base classes with their list of children's classes
+**** DONE Add an *classes_to_dot* OCAML backend to generate class diagrams
 
 

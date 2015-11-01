@@ -59,7 +59,8 @@ namespace CallersData
 
   class Namespace;
   class Record;
-  class Fct;
+  class FctDecl;
+  class FctDef;
   class FctCall;
 
   enum Virtuality { VNoVirtual, VVirtualDeclared, VVirtualDefined, VVirtualPure };
@@ -75,7 +76,7 @@ namespace CallersData
       std::string fullPath () const;
       void parse_json_file() const;
       std::set<CallersData::Namespace>::iterator create_or_get_namespace(std::string qualifiers, const clang::NamespaceDecl* nspc);
-      void add_defined_function(Fct* fct) const;
+      void add_defined_function(FctDef* fct) const;
       void add_defined_function(std::string func, Virtuality virtuality, std::string filepath, int sign) const;
       void add_namespace(Namespace nspc) const;
       void add_record(Record record) const;
@@ -83,8 +84,9 @@ namespace CallersData
       void add_function_call(FctCall* fc, Dir *context) const;
       void output_json_desc() const;
       std::set<Namespace> *namespaces;
-      std::set<Fct> *defined;
-      std::set<Record> *records;
+      std::set<Record>  *records;
+      std::set<FctDecl> *declared;
+      std::set<FctDef>  *defined;
   private:
       std::set<FctCall> *calls;
       std::string file = "unknownFileName";
@@ -214,13 +216,48 @@ namespace CallersData
 
   std::ostream &operator<<(std::ostream &output, const ExtFct &fct);
 
-  class Fct
+  class FctDecl
   {
     public:
-      Fct(const char* sign, Virtuality is_virtual, const char* filepath, const int line);
-      Fct(std::string sign, Virtuality is_virtual, std::string filepath, int line);
-      Fct(const Fct& copy_from_me);
-      ~Fct();
+      FctDecl(const char* sign, Virtuality is_virtual, const char* filepath, const int line);
+      FctDecl(std::string sign, Virtuality is_virtual, std::string filepath, int line);
+      FctDecl(const FctDecl& copy_from_me);
+      ~FctDecl();
+
+      void add_local_caller(std::string caller) const;
+      void add_external_caller(std::string caller_sign, Virtuality virtuality, std::string caller_decl) const;
+      void add_definition(std::string fct_sign, std::string def_sign, Virtuality def_virtuality, std::string def_file_pos) const;
+      void add_redefinition(std::string fct_sign, Virtuality redef_virtuality, std::string redef_file, int redef_line) const;
+
+      void output_local_callers(std::ofstream &js) const;
+      void output_external_callers(std::ofstream &js) const;
+      void output_definitions(std::ofstream &js) const;
+      void output_redefinitions(std::ofstream &js) const;
+      void output_json_desc(std::ofstream &js) const;
+
+      std::string sign = "unknownFctDeclSign";
+      std::string file = "unknownFctDeclFile";
+      Virtuality virtuality = VNoVirtual;
+      int line = -1;
+      std::set<ExtFct> *definitions;
+      std::set<ExtFct> *redefinitions;
+      std::set<std::string> *locallers;
+      std::set<ExtFct> *extcallers;
+
+    private:
+      inline void print_cout(std::string sign, Virtuality is_virtual, std::string file, int line);
+      void allocate();
+  };
+
+  bool operator< (const FctDecl& fct1, const FctDecl& fct2);
+
+  class FctDef
+  {
+    public:
+      FctDef(const char* sign, Virtuality is_virtual, const char* filepath, const int line);
+      FctDef(std::string sign, Virtuality is_virtual, std::string filepath, int line);
+      FctDef(const FctDef& copy_from_me);
+      ~FctDef();
 
       void add_local_caller(std::string caller) const;
       void add_local_callee(std::string callee) const;
@@ -248,5 +285,5 @@ namespace CallersData
       void allocate();
   };
 
-  bool operator< (const Fct& fct1, const Fct& fct2);
+  bool operator< (const FctDef& fct1, const FctDef& fct2);
 }

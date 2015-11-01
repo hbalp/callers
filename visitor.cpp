@@ -1070,7 +1070,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	    std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
 	    //CallersData::File file(basename, dirpath);
 	    //file.parse_json_file();
-	    CallersData::Fct fct(builtinName, CallersData::VNoVirtual, headerName, builtinPos);
+	    CallersData::FctDef fct(builtinName, CallersData::VNoVirtual, headerName, builtinPos);
 	    file->add_defined_function(&fct);
 	    //file.output_json_desc();
 	    auto parentMethod = llvm::dyn_cast<clang::CXXMethodDecl>(pfdParent);
@@ -1278,7 +1278,7 @@ CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
 	osOut << "visiting virtual declaration method " << writeFunction(*Decl)
 	  << " at " << fct_filepath << ':' << fct_line << '\n';
       auto methodDecl = llvm::dyn_cast<clang::CXXMethodDecl>(Decl);
-      CallersData::Fct fct(writeFunction(*Decl),
+      CallersData::FctDef fct(writeFunction(*Decl),
         isDefinition ? ((methodDecl &&
 	  methodDecl->isVirtual()) ? CallersData::VVirtualDefined
 	  : CallersData::VNoVirtual)

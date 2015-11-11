@@ -1050,6 +1050,7 @@ bool CallersData::operator< (const CallersData::Record& record1, const CallersDa
 
 void CallersData::FctDecl::allocate() 
 {
+  redeclarations = new std::set<ExtFct>;
   definitions = new std::set<ExtFct>;
   redefinitions = new std::set<ExtFct>;
   locallers = new std::set<std::string>;
@@ -1058,6 +1059,7 @@ void CallersData::FctDecl::allocate()
 
 CallersData::FctDecl::~FctDecl() 
 {
+  delete redeclarations;
   delete definitions;
   delete redefinitions;
   delete locallers;
@@ -1101,8 +1103,14 @@ CallersData::FctDecl::FctDecl(const CallersData::FctDecl& copy_from_me)
       locallers->insert(*l);
     };
 
-  // copy definitions
+  // copy redeclarations
   std::set<ExtFct>::const_iterator x;
+  for( x=copy_from_me.redeclarations->begin(); x!=copy_from_me.redeclarations->end(); ++x )
+    {
+      redeclarations->insert(*x);
+    };
+
+  // copy definitions
   for(x=copy_from_me.definitions->begin(); x!=copy_from_me.definitions->end(); ++x)
     {
       definitions->insert(*x);
@@ -1125,6 +1133,24 @@ void CallersData::FctDecl::add_local_caller(std::string caller) const
 {
   std::cout << "Add local caller \"" << caller << "\" to callee function declaration \"" << sign << "\"" << std::endl;
   locallers->insert(caller);
+}
+
+void CallersData::FctDecl::add_redeclaration(std::string redef_sign, CallersData::Virtuality redef_virtuality, std::string redef_decl_file, int redef_decl_line) const
+{
+  std::string redef_decl_location = redef_decl_file;
+  std::ostringstream out;
+  out << redef_decl_line;
+  redef_decl_location += ":";
+  redef_decl_location += out.str();
+  
+  std::cout << "Add redeclaration \"" << redef_sign
+	    << "\" to function \"" << sign << "\". " 
+	    << "Function is redefined in file: " << redef_decl_file
+	    << " at line: " << redef_decl_line
+	    << std::endl;
+  
+  ExtFct extfct (redef_sign, redef_virtuality, redef_decl_location);
+  redeclarations->insert(extfct);
 }
 
 void CallersData::FctDecl::add_definition(std::string fct_sign, std::string def_sign, 
@@ -1185,6 +1211,31 @@ void CallersData::FctDecl::output_local_callers(std::ofstream &js) const
 	};
 
       js << "]";
+    }
+}
+
+void CallersData::FctDecl::output_redeclarations(std::ofstream &js) const
+{
+  if(not redeclarations->empty())
+    {
+      js << ", \"redeclarations\": [";
+
+      std::set<ExtFct>::const_iterator x, extlast;
+      //last = std::prev(redeclarations.end(); // requires C++ 11
+      extlast = redeclarations->empty() ? redeclarations->end() : --redeclarations->end();
+      for( x=redeclarations->begin(); x!=redeclarations->end(); ++x )
+	{
+	  if(x != extlast)
+	    {
+	      js << *x << ", ";
+	    }
+	  else
+	    {
+	      js << *x;
+	    }
+	};
+      js << "]";
+
     }
 }
 
@@ -1274,6 +1325,7 @@ void CallersData::FctDecl::output_json_desc(std::ofstream &js) const
 	       : /* virtuality == VVirtualPure */ "pure")))
      << "\", \"line\": " << out.str() << "";
 
+  this->output_redeclarations(js);
   this->output_definitions(js);
   this->output_redefinitions(js);
   this->output_local_callers(js);

@@ -68,12 +68,6 @@ then
     source add_extcallers.sh .
     #source indent_jsonfiles.sh .
 
-    # generate callee's tree from main entry point
-    source function_calls_to_dot.sh callees $canonical_pwd/test.cpp "main" "int main()" files
-
-    # generate caller's tree from main entry point
-    source function_calls_to_dot.sh callers $canonical_pwd/dirB/B.cpp "c" "int c()" files
-
     # add inherited to json files
     source add_inherited.sh .
 
@@ -81,6 +75,12 @@ then
     source add_virtual_function_calls.sh `pwd`
 
     source indent_jsonfiles.sh .
+
+    # generate callee's tree from main entry point
+    source function_calls_to_dot.sh callees $canonical_pwd/test.cpp "main" "int main()" files
+
+    # generate caller's tree from main entry point
+    source function_calls_to_dot.sh callers $canonical_pwd/dirB/B.cpp "c" "int c()" files
 
     # generate classes tree from base class A
     source classes_to_dot.sh child $canonical_pwd/dirA/A.hpp "A"

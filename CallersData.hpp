@@ -228,11 +228,13 @@ namespace CallersData
 
       void add_local_caller(std::string caller) const;
       void add_external_caller(std::string caller_sign, Virtuality virtuality, std::string caller_decl) const;
+      void add_redeclaration(std::string fct_sign, Virtuality redecl_virtuality, std::string redecl_file, int redecl_line) const;
       void add_definition(std::string fct_sign, std::string def_sign, Virtuality def_virtuality, std::string def_file_pos) const;
       void add_redefinition(std::string fct_sign, Virtuality redef_virtuality, std::string redef_file, int redef_line) const;
 
       void output_local_callers(std::ofstream &js) const;
       void output_external_callers(std::ofstream &js) const;
+      void output_redeclarations(std::ofstream &js) const;
       void output_definitions(std::ofstream &js) const;
       void output_redefinitions(std::ofstream &js) const;
       void output_json_desc(std::ofstream &js) const;
@@ -241,6 +243,7 @@ namespace CallersData
       std::string file = "unknownFctDeclFile";
       Virtuality virtuality = VNoVirtual;
       int line = -1;
+      std::set<ExtFct> *redeclarations;
       std::set<ExtFct> *definitions;
       std::set<ExtFct> *redefinitions;
       std::set<std::string> *locallers;

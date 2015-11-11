@@ -2,6 +2,7 @@
 set -x
 
 rm -f *.gen.dot
+find . -name "*.debug.json" -exec rm {} \;
 find . -name "*.gen.json" -exec rm {} \;
 find . -name "*.gen.json.gz" -exec rm {} \;
 rm -rf analysis

@@ -362,9 +362,27 @@ CallersData::File::create_or_get_namespace(std::string qualifiers, const clang::
   return search_result;
 }
 
+void CallersData::File::add_declared_function(CallersData::FctDecl* fct) const
+{
+  std::cout << "Register function declaration \"" << fct->sign
+	    << "\" declared in file \"" << this->fullPath() << ":" 
+	    << fct->line << "\"" << std::endl;
+  declared->insert(*fct);
+}
+
+// void CallersData::File::add_declared_function(std::string sign, Virtuality virtuality, 
+// 					      std::string filepath, int line) const
+// {
+//   std::cout << "Create function declaration \"" << sign
+// 	    << "\" located in file \"" << this->fullPath() << ":" << line << "\"" << std::endl;
+//   //FctDef *fct = new FctDef(sign, filepath, line); // fuite mémoire sur la pile si pas désalloué !
+//   FctDecl fct(sign, virtuality, filepath, line);
+//   declared->insert(fct);
+// }
+
 void CallersData::File::add_defined_function(CallersData::FctDef* fct) const
 {
-  std::cout << "Register function \"" << fct->sign
+  std::cout << "Register function definition \"" << fct->sign
 	    << "\" defined in file \"" << this->fullPath() << ":" 
 	    << fct->line << "\"" << std::endl;
   defined->insert(*fct);
@@ -373,7 +391,7 @@ void CallersData::File::add_defined_function(CallersData::FctDef* fct) const
 void CallersData::File::add_defined_function(std::string sign, Virtuality virtuality, 
 					     std::string filepath, int line) const
 {
-  std::cout << "Create function \"" << sign
+  std::cout << "Create function definition \"" << sign
 	    << "\" located in file \"" << this->fullPath() << ":" << line << "\"" << std::endl;
   //FctDef *fct = new FctDef(sign, filepath, line); // fuite mémoire sur la pile si pas désalloué !
   FctDef fct(sign, virtuality, filepath, line);

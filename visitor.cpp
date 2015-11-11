@@ -1260,35 +1260,79 @@ CallersAction::Visitor::TraverseCXXDestructorDecl(clang::CXXDestructorDecl* Decl
 
 // add the function to the current json file only if it is really defined in this file
 bool
-CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
-   bool isDefinition = Decl->isThisDeclarationADefinition();
+CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* Decl) {
+
+  std::string fct_filepath = printFilePath(Decl->getSourceRange());
+  int fct_line = printLine(Decl->getSourceRange());
+
+  pfdParent = Decl;
+  sParent = writeFunction(*Decl);
+  osOut << "visiting defined function " << sParent
+	<< " at " << fct_filepath << ':' << fct_line << '\n';
+
+  auto methodDecl = llvm::dyn_cast<clang::CXXMethodDecl>(Decl);
+  CallersData::FctDef fct(writeFunction(*Decl),
+			  ((methodDecl &&
+			    methodDecl->isVirtual()) ? CallersData::VVirtualDefined
+			   : CallersData::VNoVirtual),
+			  fct_filepath, fct_line);
+  
+  // check whether the function is really defined in this file
+  if(fct_filepath == currentJsonFile->fullPath())
+    // if true, add the function to the current json file
+    {
+      currentJsonFile->add_defined_function(&fct);
+    }
+  else
+    // otherwise, check whether a json file is already present for the visited function
+    // if true, parse it and add the defined function only when necessary
+    // if false, create this json file and add the defined function
+    {
+      boost::filesystem::path p(fct_filepath);
+      std::string basename = p.filename().string();
+      std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+      std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
+      //CallersData::File file(basename, dirpath);
+      //file.parse_json_file();
+      file->add_defined_function(&fct);
+      //file.output_json_desc();
+    }
+   return true;
+}
+
+bool
+CallersAction::Visitor::VisitFunctionDeclaration(clang::FunctionDecl* Decl) {
+
    auto methodDecl = llvm::dyn_cast<clang::CXXMethodDecl>(Decl);
-   bool isDeclarationOfInterest = !isDefinition && methodDecl
+   bool isDeclarationOfInterest = methodDecl
       && (methodDecl->isVirtual() || methodDecl->isPure());
-   if (isDefinition || isDeclarationOfInterest) {
+
+   if (isDeclarationOfInterest) {
+
       std::string fct_filepath = printFilePath(Decl->getSourceRange());
       int fct_line = printLine(Decl->getSourceRange());
-      if (isDefinition) {
-	pfdParent = Decl;
-	sParent = writeFunction(*Decl);
-	osOut << "visiting function " << sParent
+      std::string fct_sign = writeFunction(*Decl);
+      //pfdParent = Decl;
+      if (methodDecl->isVirtual()) {
+	osOut << "visiting virtual declared method " << fct_sign
 	      << " at " << fct_filepath << ':' << fct_line << '\n';
       }
-      else
-	osOut << "visiting virtual declaration method " << writeFunction(*Decl)
-	  << " at " << fct_filepath << ':' << fct_line << '\n';
-      auto methodDecl = llvm::dyn_cast<clang::CXXMethodDecl>(Decl);
+      else if (methodDecl->isPure()) {
+	osOut << "visiting virtual pure method " << fct_sign
+	      << " at " << fct_filepath << ':' << fct_line << '\n';
+      }
+
       CallersData::FctDef fct(writeFunction(*Decl),
-        isDefinition ? ((methodDecl &&
-	  methodDecl->isVirtual()) ? CallersData::VVirtualDefined
-	  : CallersData::VNoVirtual)
-	  : (methodDecl->isPure() ? CallersData::VVirtualPure
-	  : CallersData::VVirtualDeclared),
-        fct_filepath, fct_line);
+      //CallersData::FctDecl fct(writeFunction(*Decl),
+			       (methodDecl->isPure() ? CallersData::VVirtualPure
+				: CallersData::VVirtualDeclared),
+			       fct_filepath, fct_line);
+
       // check whether the function is really defined in this file
       if(fct_filepath == currentJsonFile->fullPath())
 	// if true, add the function to the current json file
 	{
+	  //currentJsonFile->add_declared_function(&fct);
 	  currentJsonFile->add_defined_function(&fct);
 	}
       else
@@ -1302,10 +1346,31 @@ CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
 	  std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
 	  //CallersData::File file(basename, dirpath);
 	  //file.parse_json_file();
+	  //file->add_declared_function(&fct);
 	  file->add_defined_function(&fct);
 	  //file.output_json_desc();
 	}
    }
+   return true;
+}
+
+bool
+CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
+
+   bool isDefinition = Decl->isThisDeclarationADefinition();
+   auto methodDecl = llvm::dyn_cast<clang::CXXMethodDecl>(Decl);
+   bool isDeclarationOfInterest = !isDefinition && methodDecl
+      && (methodDecl->isVirtual() || methodDecl->isPure());
+
+   if (isDefinition) {
+
+     this->VisitFunctionDefinition(Decl);
+   }
+   else if (isDeclarationOfInterest) {
+
+     this->VisitFunctionDeclaration(Decl);
+   }
+
    return true;
 }
 

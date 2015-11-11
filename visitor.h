@@ -159,6 +159,8 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   virtual bool TraverseCXXConversionDecl(clang::CXXConversionDecl* Decl);
   virtual bool TraverseCXXDestructorDecl(clang::CXXDestructorDecl* Decl);
   virtual bool VisitFunctionDecl(clang::FunctionDecl* Decl);
+  virtual bool VisitFunctionDeclaration(clang::FunctionDecl* Decl);
+  virtual bool VisitFunctionDefinition(clang::FunctionDecl* Decl);
   virtual bool VisitRecordDecl(clang::RecordDecl* Decl);
 
   virtual bool shouldVisitTemplateInstantiations() const { return true; }

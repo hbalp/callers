@@ -76,6 +76,8 @@ namespace CallersData
       std::string fullPath () const;
       void parse_json_file() const;
       std::set<CallersData::Namespace>::iterator create_or_get_namespace(std::string qualifiers, const clang::NamespaceDecl* nspc);
+      void add_declared_function(FctDecl* fct) const;
+      //void add_declared_function(std::string func, Virtuality virtuality, std::string filepath, int sign) const;
       void add_defined_function(FctDef* fct) const;
       void add_defined_function(std::string func, Virtuality virtuality, std::string filepath, int sign) const;
       void add_namespace(Namespace nspc) const;

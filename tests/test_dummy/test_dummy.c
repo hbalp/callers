@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "test_dummy.h"
 
 int f() { return 0; }
 

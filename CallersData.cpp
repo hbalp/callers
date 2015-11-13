@@ -275,9 +275,10 @@ void CallersData::File::parse_json_file() const
 	// Document is a JSON value that represents the root of DOM. Root can be either an object or array.
 	{
 	  assert(file.HasMember("file"));
-	  assert(file.HasMember("path"));
-	  assert(file.HasMember("declared"));
-	  assert(file.HasMember("defined"));
+	  // WARNING: assert below are not always true because the related ATD member are optional and not mandatory
+	  // assert(file.HasMember("path"));
+	  // assert(file.HasMember("declared"));
+	  // assert(file.HasMember("defined"));
 
 	  std::string filename(file["file"].GetString());
 	  std::string dirpath(file["path"].GetString());

@@ -8,8 +8,8 @@ class B
 public:
   B();
   //~B() {}
-  
   int b();
+  int coucou2();
 };
 
 #endif

@@ -1021,7 +1021,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	  std::cout << "DEBUG: builtin name: \"" << builtinName << "\"" << std::endl;
 	  std::cout << "DEBUG: builtin decl location: " << builtinFile << ":" << builtinPos << std::endl;
 	  std::cout << "DEBUG: builtin def location (headerName): " << headerName << std::endl;
-	  osOut << inputFile << ":builtin: " << printParentFunction() << " -6-> " << builtinName << ", defined in: " << headerName << ":" << builtinPos;
+	  osOut << inputFile << ":builtin: " << printParentFunction() << " -6-> " << builtinName << ", defined in: " << headerName << ":" << builtinPos << std::endl;
 	  if(headerName == "notFoundBuiltinImpl")
 	    {
 	      // std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
@@ -1267,10 +1267,52 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* Decl) {
 
   pfdParent = Decl;
   sParent = writeFunction(*Decl);
-  osOut << "visiting defined function " << sParent
-	<< " at " << fct_filepath << ':' << fct_line << '\n';
+  osOut << "visiting function " << sParent
+	<< " defined at " << fct_filepath << ':' << fct_line;
 
   auto methodDecl = llvm::dyn_cast<clang::CXXMethodDecl>(Decl);
+
+  if (sParent == "int B::coucou2()" )
+    {
+      osOut << "à déboguer " << std::endl;
+    }
+
+  // CallersData::FctDecl fct_decl(writeFunction(*Decl),
+  // 				((methodDecl &&
+  // 				  methodDecl->isPure()) ? CallersData::VVirtualPure
+  // 				  : CallersData::VVirtualDeclared),
+  // 				 fct_filepath, fct_line);
+
+  // Lookup for the prototype declaration in order to complete the related 
+  // json file with a new "defined" entry
+
+  //auto *D = Decl->getPreviousDecl();
+  auto *D = Decl->getMostRecentDecl();
+  // if(D == NULL)
+  //   {
+  //     osOut << "Debug: the previous decl is null, so we get the most recent decl." << std::endl;
+  //   }
+  if(D == Decl)
+    {
+      std::string fct_decl_filepath = printFilePath(D->getSourceRange());
+      int fct_decl_line = printLine(D->getSourceRange());
+
+      osOut << "Debug: the decl is the function def itself: " << sParent
+	    << " " << fct_decl_filepath << ':' << fct_decl_line << '\n';
+    }
+  for (; D != Decl;
+       D = D->getPreviousDecl()) {
+
+    if (!D->isThisDeclarationADefinition()) {
+
+      std::string fct_decl_filepath = printFilePath(D->getSourceRange());
+      int fct_decl_line = printLine(D->getSourceRange());
+      
+      osOut << "this function " << sParent
+	    << " is also declared at " << fct_decl_filepath << ':' << fct_decl_line << '\n';
+    }
+  }
+
   CallersData::FctDef fct(writeFunction(*Decl),
 			  ((methodDecl &&
 			    methodDecl->isVirtual()) ? CallersData::VVirtualDefined
@@ -1284,7 +1326,7 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* Decl) {
       currentJsonFile->add_defined_function(&fct);
     }
   else
-    // otherwise, check whether a json file is already present for the visited function
+    // otherwise, check whether a json file is already present for the visited defined function
     // if true, parse it and add the defined function only when necessary
     // if false, create this json file and add the defined function
     {
@@ -1304,10 +1346,10 @@ bool
 CallersAction::Visitor::VisitFunctionDeclaration(clang::FunctionDecl* Decl) {
 
    auto methodDecl = llvm::dyn_cast<clang::CXXMethodDecl>(Decl);
-   bool isDeclarationOfInterest = methodDecl
-      && (methodDecl->isVirtual() || methodDecl->isPure());
+   // bool isDeclarationOfInterest = methodDecl
+   //    && (methodDecl->isVirtual() || methodDecl->isPure());
 
-   if (isDeclarationOfInterest) {
+   // if (isDeclarationOfInterest) {
 
       std::string fct_filepath = printFilePath(Decl->getSourceRange());
       int fct_line = printLine(Decl->getSourceRange());
@@ -1318,7 +1360,11 @@ CallersAction::Visitor::VisitFunctionDeclaration(clang::FunctionDecl* Decl) {
 	      << " at " << fct_filepath << ':' << fct_line << '\n';
       }
       else if (methodDecl->isPure()) {
-	osOut << "visiting virtual pure method " << fct_sign
+	osOut << "visiting virtual pure declared method " << fct_sign
+	      << " at " << fct_filepath << ':' << fct_line << '\n';
+      }
+      else {
+	osOut << "visiting non-virtual declared method " << fct_sign
 	      << " at " << fct_filepath << ':' << fct_line << '\n';
       }
 
@@ -1352,7 +1398,7 @@ CallersAction::Visitor::VisitFunctionDeclaration(clang::FunctionDecl* Decl) {
 	  file->add_defined_function(&fct_def);
 	  //file.output_json_desc();
 	}
-   }
+   // }
    return true;
 }
 
@@ -1361,18 +1407,23 @@ CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
 
    bool isDefinition = Decl->isThisDeclarationADefinition();
    auto methodDecl = llvm::dyn_cast<clang::CXXMethodDecl>(Decl);
-   bool isDeclarationOfInterest = !isDefinition && methodDecl
-      && (methodDecl->isVirtual() || methodDecl->isPure());
+   bool isDeclarationOfInterest = !isDefinition && methodDecl;
+   // && (methodDecl->isVirtual() || methodDecl->isPure());
 
    if (isDefinition) {
 
      this->VisitFunctionDefinition(Decl);
    }
    else if (isDeclarationOfInterest) {
-
+   //else {
      this->VisitFunctionDeclaration(Decl);
    }
-
+   else
+     {
+       osOut << "HBDBG: other unsupported case for ... " << std::endl;
+       std::string fct_sign = writeFunction(*Decl);
+       osOut << "... fct_decl: " << fct_sign << std::endl;
+     }
    return true;
 }
 

@@ -22,6 +22,12 @@ int B::b()
   return 0;
 }
 
+int B::coucou2()
+{
+  printf("coucou2()\n");
+  return 0;
+}
+
 /* Local Variables: */
 /* compile-command: "clang++ -g  -I /c/ProgramFiles/MinGW/include -o test_local_callgraph_cpp test_local_callgraph.cpp" */
 /* End: */

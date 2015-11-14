@@ -64,6 +64,10 @@ then
     source add_declarations.sh `pwd` $includes_directories
     #source indent_jsonfiles.sh .
 
+    # add definitions to json files
+    source add_definitions.sh `pwd` $includes_directories
+    # source indent_jsonfiles.sh .
+
     # add extcallees to json files
     source add_extcallees.sh `pwd` $includes_directories
     #source add_extcallees.sh `pwd` broken_symbols.json

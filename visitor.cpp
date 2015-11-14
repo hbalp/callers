@@ -1,5 +1,5 @@
 /****
-     Copyright (C) 2015 Commissariat à l'Energie Atomique, Thales Communication
+     Copyright (C) 2015 Commissariat à l'Energie Atomique, Thales Communication & Security
        - All Rights Reserved
      coded by Franck Vedrine, Hugues Balp
 ****/
@@ -996,100 +996,97 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
 }
 
 bool
+CallersAction::Visitor::VisitBuiltinFunction(const clang::FunctionDecl* fd) {
+
+  unsigned builtinID = fd->getBuiltinID();
+  std::string builtinName, headerName = "notFoundBuiltinImpl";
+#define BUILTIN(ID, TYPE, ATTRS) case clang::Builtin::BI##ID: builtinName = #ID; break;
+  // TODO: tries to get the header file absolute path. This doesn't work with the getCanonicalAbsolutePath() function
+  // which concatenates the input path or filename with the current working path; and not the path to the system repository
+  // where the file is really located
+  //#define LIBBUILTIN(ID, TYPE, ATTRS, HEADER, BUILTIN_LANG) case clang::Builtin::BI##ID: builtinName = #ID; headerName = ::getCanonicalAbsolutePath(HEADER); break;
+#define LIBBUILTIN(ID, TYPE, ATTRS, HEADER, BUILTIN_LANG) case clang::Builtin::BI##ID: builtinName = #ID; headerName = HEADER; break;
+  switch( builtinID) {
+#include "clang/Basic/Builtins.def"
+  };
+
+  std::string builtinFile = printFilePath(fd->getSourceRange());
+  int builtinPos = printLine(fd->getSourceRange());
+  std::cout << "DEBUG: builtin name: \"" << builtinName << "\"" << std::endl;
+  std::cout << "DEBUG: builtin decl location: " << builtinFile << ":" << builtinPos << std::endl;
+  std::cout << "DEBUG: builtin def location (headerName): " << headerName << std::endl;
+  osOut << inputFile << ":builtin: " << printParentFunction() << " -6-> " << builtinName << ", defined in: " << headerName << ":" << builtinPos << std::endl;
+  if(headerName == "notFoundBuiltinImpl")
+    {
+      // std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+      // std::cerr << "ERROR: visitor.cpp : not found implem of builtin: \"" << builtinName << "\", headerName: \"" << headerName << "\"" << std::endl;
+      // std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
+      //std::cout << "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" << std::endl;
+      std::cout << "WARNING: visitor.cpp : not found implementation of builtin: \"" << builtinName << "\", headerName: \"" << headerName << "\"" << std::endl;
+      //std::cout << "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" << std::endl;
+      headerName = builtinFile;
+      // CallersData::FctCall fc = CallersData::FctCall(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
+      // 						     builtinName, printFilePath(fd->getSourceRange()), builtinPos);
+      // fc.is_builtin = true;
+      // currentJsonFile->add_function_call(&fc, &otherJsonFiles);
+      //exit(5);
+    }
+  else
+    {
+      // Tries to get the full path of the builtin implementation file
+      //if(headerName.length() > 0) 
+
+      clang::SourceLocation FilenameLoc;
+      llvm::StringRef Filename(headerName);
+      bool isAngled = true;
+      const clang::DirectoryLookup * FromDir = NULL;
+      const clang::FileID FromFileID = ciCompilerInstance.getSourceManager().getMainFileID();
+      const clang::FileEntry * FromFile = ciCompilerInstance.getSourceManager().getFileEntryForID(FromFileID);
+      const clang::DirectoryLookup * CurDir = NULL;
+      llvm::SmallVectorImpl<char>* SearchPath = NULL;
+      llvm::SmallVectorImpl<char>* RelativePath = NULL;
+      clang::ModuleMap::KnownHeader *SuggestedModule = NULL;
+      bool skipPath = false;
+      const clang::FileEntry * result = ciCompilerInstance.getPreprocessor().LookupFile(FilenameLoc, Filename, isAngled, FromDir, FromFile, CurDir, SearchPath, RelativePath, SuggestedModule, skipPath);
+      if(result)
+	headerName = result->getName();
+    }
+
+  std::cout << "DEBUG: builtin location (headerName): " << headerName << std::endl;
+ 
+  // check whether a json file is already present for the builtin function
+  // if true, parse it and add the defined function only when necessary
+  // if false, create this json file and add the defined function
+  {
+    boost::filesystem::path p(headerName);
+    std::string basename = p.filename().string();
+    std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+    std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
+    //CallersData::File file(basename, dirpath);
+    //file.parse_json_file();
+    CallersData::FctDef fct(builtinName, CallersData::VNoVirtual, headerName, builtinPos);
+    file->add_defined_function(&fct);
+    //file.output_json_desc();
+    auto parentMethod = llvm::dyn_cast<clang::CXXMethodDecl>(pfdParent);
+    CallersData::FctCall fc = CallersData::FctCall(printParentFunction(),
+						   (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
+						   printParentFunctionFilePath(), printParentFunctionLine(), 
+						   builtinName, CallersData::VNoVirtual, headerName, builtinPos);
+    fc.is_builtin = true;
+    currentJsonFile->add_function_call(&fc, &otherJsonFiles);
+  }
+  return true;
+}
+
+bool
 CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
    const clang::FunctionDecl* fd = callExpr->getDirectCallee();
    if (fd) {
-
-      unsigned builtinID = fd->getBuiltinID();
-      #if 1
-      if (builtinID > 0)
-	{
-#if 1
-	  std::string builtinName, headerName = "notFoundBuiltinImpl";
-#define BUILTIN(ID, TYPE, ATTRS) case clang::Builtin::BI##ID: builtinName = #ID; break;
-	  // TODO: tries to get the header file absolute path. This doesn't work with the getCanonicalAbsolutePath() function
-	  // which concatenates the input path or filename with the current working path; and not the path to the system repository
-	  // where the file is really located
-	  //#define LIBBUILTIN(ID, TYPE, ATTRS, HEADER, BUILTIN_LANG) case clang::Builtin::BI##ID: builtinName = #ID; headerName = ::getCanonicalAbsolutePath(HEADER); break;
-#define LIBBUILTIN(ID, TYPE, ATTRS, HEADER, BUILTIN_LANG) case clang::Builtin::BI##ID: builtinName = #ID; headerName = HEADER; break;
-	  switch( builtinID) {
-#include "clang/Basic/Builtins.def"
-	  };
-
-	  std::string builtinFile = printFilePath(fd->getSourceRange());
-	  int builtinPos = printLine(fd->getSourceRange());
-	  std::cout << "DEBUG: builtin name: \"" << builtinName << "\"" << std::endl;
-	  std::cout << "DEBUG: builtin decl location: " << builtinFile << ":" << builtinPos << std::endl;
-	  std::cout << "DEBUG: builtin def location (headerName): " << headerName << std::endl;
-	  osOut << inputFile << ":builtin: " << printParentFunction() << " -6-> " << builtinName << ", defined in: " << headerName << ":" << builtinPos << std::endl;
-	  if(headerName == "notFoundBuiltinImpl")
-	    {
-	      // std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
-	      // std::cerr << "ERROR: visitor.cpp : not found implem of builtin: \"" << builtinName << "\", headerName: \"" << headerName << "\"" << std::endl;
-	      // std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
-	      //std::cout << "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" << std::endl;
-	      std::cout << "WARNING: visitor.cpp : not found implementation of builtin: \"" << builtinName << "\", headerName: \"" << headerName << "\"" << std::endl;
-	      //std::cout << "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" << std::endl;
-	      headerName = builtinFile;
-	      // CallersData::FctCall fc = CallersData::FctCall(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
-	      // 						     builtinName, printFilePath(fd->getSourceRange()), builtinPos);
-	      // fc.is_builtin = true;
-	      // currentJsonFile->add_function_call(&fc, &otherJsonFiles);
-	      //exit(5);
-	    }
-	  else
-            {
-              // Tries to get the full path of the builtin implementation file
-              //if(headerName.length() > 0) 
-
-	      clang::SourceLocation FilenameLoc;
-	      llvm::StringRef Filename(headerName);
-	      bool isAngled = true;
-	      const clang::DirectoryLookup * FromDir = NULL;
-	      const clang::FileID FromFileID = ciCompilerInstance.getSourceManager().getMainFileID();
-	      const clang::FileEntry * FromFile = ciCompilerInstance.getSourceManager().getFileEntryForID(FromFileID);
-	      const clang::DirectoryLookup * CurDir = NULL;
-	      llvm::SmallVectorImpl<char>* SearchPath = NULL;
-	      llvm::SmallVectorImpl<char>* RelativePath = NULL;
-	      clang::ModuleMap::KnownHeader *SuggestedModule = NULL;
-	      bool skipPath = false;
-	      const clang::FileEntry * result = ciCompilerInstance.getPreprocessor().LookupFile(FilenameLoc, Filename, isAngled, FromDir, FromFile, CurDir, SearchPath, RelativePath, SuggestedModule, skipPath);
-	      if(result)
-		headerName = result->getName();
-	    }
-
-	  std::cout << "DEBUG: builtin location (headerName): " << headerName << std::endl;
- 
-	  // check whether a json file is already present for the builtin function
-	  // if true, parse it and add the defined function only when necessary
-	  // if false, create this json file and add the defined function
-	  {
-	    boost::filesystem::path p(headerName);
-	    std::string basename = p.filename().string();
-	    std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-	    std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
-	    //CallersData::File file(basename, dirpath);
-	    //file.parse_json_file();
-	    CallersData::FctDef fct(builtinName, CallersData::VNoVirtual, headerName, builtinPos);
-	    file->add_defined_function(&fct);
-	    //file.output_json_desc();
-	    auto parentMethod = llvm::dyn_cast<clang::CXXMethodDecl>(pfdParent);
-	    CallersData::FctCall fc = CallersData::FctCall(printParentFunction(),
-		(parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
-		printParentFunctionFilePath(), printParentFunctionLine(), 
-		builtinName, CallersData::VNoVirtual, headerName, builtinPos);
-	    fc.is_builtin = true;
-	    currentJsonFile->add_function_call(&fc, &otherJsonFiles);
-	  }
-#endif
+     if (fd->getBuiltinID() > 0)
+       {
+	  this->VisitBuiltinFunction(fd);
 	  return true;
 	}
-      #else
-      if (builtinID > 0)
-	{
-	  return true;
-	}
-      #endif
       std::string calleeName = writeFunction(*fd);
       osOut << inputFile << ": " << printParentFunction() << " -7-> " << calleeName << '\n';
       std::string callee_filepath = printFilePath(fd->getSourceRange());

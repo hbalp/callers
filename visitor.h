@@ -147,6 +147,7 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   virtual bool VisitCXXConstructExpr(const clang::CXXConstructExpr* constructor);
   virtual bool VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExpr);
   virtual bool VisitCXXNewExpr(const clang::CXXNewExpr* newExpr);
+  virtual bool VisitBuiltinFunction(const clang::FunctionDecl* fd);
   virtual bool VisitCallExpr(const clang::CallExpr* callExpr);
   virtual bool VisitMemberCallExpr(const clang::CXXMemberCallExpr* callExpr);
   

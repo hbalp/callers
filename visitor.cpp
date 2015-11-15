@@ -979,17 +979,34 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
     }
   else
     {
-      std::cout << "WARNING VisitCXXNewExpr: implicit operator new, replace it by an explicit call to \"void *malloc(size_t)\"" << std::endl;
-      std::string callee_sign = "void *malloc(size_t)";
-      osOut << inputFile << ": " << printParentFunction() << " -5-> " << callee_sign << '\n';
-      //std::string callee_filepath = "unknownFilePath";
-      std::string callee_filepath = "/usr/include/malloc.h";
-      //int callee_filepos = -1;
-      int callee_filepos = 51;
+      std::string malloc_sign = "malloc";
+      //std::string malloc_sign = "void *malloc(size_t)";
+      std::cout << "WARNING VisitCXXNewExpr: implicit operator new, replace it by an explicit call to \"" << malloc_sign << "\"" << std::endl;
+      osOut << inputFile << ": " << printParentFunction() << " -5-> " << malloc_sign << '\n';
+      std::string malloc_filepath = "/usr/include/malloc.h";
+      //int malloc_filepos = -1; //unknown_position
+      int malloc_filepos = 38; //line position on my ubuntu
+      //int callee_filepos = 51;
+
+      // this bloc is inspired from function CallersAction::Visitor::VisitBuiltinFunction
+      // It checks whether a json file is already present for the malloc builtin function
+      // if true, parse it and add the defined function only when necessary
+      // if false, create this json file and add the defined function
+      {
+	boost::filesystem::path p(malloc_filepath);
+	std::string basename = p.filename().string();
+	std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+	std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
+	//CallersData::FctDef fct(malloc_sign, CallersData::VNoVirtual, malloc_filepath, malloc_filepos);
+	//file->add_defined_function(&fct);
+	CallersData::FctDecl fct(malloc_sign, CallersData::VNoVirtual, malloc_filepath, malloc_filepos);
+	file->add_declared_function(&fct);
+      }
+
       CallersData::FctCall fc(printParentFunction(),
 	(parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
 	printParentFunctionFilePath(), printParentFunctionLine(), 
-	callee_sign, CallersData::VNoVirtual, callee_filepath, callee_filepos);
+	malloc_sign, CallersData::VNoVirtual, malloc_filepath, malloc_filepos);
       currentJsonFile->add_function_call(&fc, &otherJsonFiles);
     }
    return true;

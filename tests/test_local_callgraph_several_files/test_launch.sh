@@ -62,11 +62,9 @@ then
 
     # add declarations to json files
     source add_declarations.sh `pwd` $includes_directories
-    #source indent_jsonfiles.sh .
 
     # add definitions to json files
     source add_definitions.sh `pwd` $includes_directories
-    # source indent_jsonfiles.sh .
 
     # add extcallees to json files
     source add_extcallees.sh `pwd` $includes_directories
@@ -74,7 +72,6 @@ then
 
     # add extcallers to json files
     source add_extcallers.sh .
-    #source indent_jsonfiles.sh .
 
     # add inherited to json files
     source add_inherited.sh .
@@ -89,6 +86,7 @@ then
 
     # generate caller's tree from main entry point
     source function_calls_to_dot.sh callers $canonical_pwd/dirB/B.cpp "c" "int c()" files
+    source function_calls_to_dot.sh callers /usr/include/stdio.h "printf" "printf" files
 
     # generate classes tree from base class A
     source classes_to_dot.sh child $canonical_pwd/dirA/A.hpp "A"

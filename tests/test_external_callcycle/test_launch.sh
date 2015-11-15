@@ -35,15 +35,28 @@ then
     list_defined_symbols defined_symbols.json `pwd` dir.callers.gen.json
     #read_defined_symbols.native defined_symbols.json file.callers.gen.json
 
+    # add declarations to json files
+    source add_declarations.sh `pwd` $includes_directories
+
+    # add definitions to json files
+    source add_definitions.sh `pwd` $includes_directories
+
     # add extcallees to json files
     source add_extcallees.sh `pwd`
 
     # add extcallers to json files
     source add_extcallers.sh .
+
+    # add inherited to json files
+    source add_inherited.sh .
+
+    # add virtual function calls to json files
+    source add_virtual_function_calls.sh `pwd`
+
     source indent_jsonfiles.sh .
 
     # generate callee's tree from main entry point
-    function_calls_to_dot.native callees `pwd`/test.cpp "main" "int main()" files
+    source function_calls_to_dot.sh callees `pwd`/test.cpp "main" "int main()" files
     #source function_calls_to_dot.sh callees "main" "int main()" `pwd`/test.cpp files
 
     # generate caller's tree from main entry point
@@ -59,4 +72,7 @@ then
     #inkscape analysis/${analysis_type}/svg/main.fct.callers.gen.dot.svg
     #inkscape analysis/${analysis_type}/svg/A_a.c.c2c.gen.dot.svg
 fi
+else
+    find . -type f -name "*.gen.json.gz" -exec gunzip {} \;
+    source indent_jsonfiles.sh .
 fi

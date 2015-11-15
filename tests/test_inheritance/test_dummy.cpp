@@ -3,24 +3,29 @@
 class A
 {
 public:
-  int f() { return 0; }
+  virtual int f() { return 0; }
 };
 
 class B : public A
 {
-  
+public:
+  int f() { return 1; }  
 };
 
 int main()
 {
   printf("dummy test\n");
-  B b;
-  b.f();
-  int zero = 0;
 
+  // division by zero
   // div by zero fault injection
-  int div = 20/zero;
-  return div;
+  //A b; 
+  //A* b = new A();
+  // no division by zero
+  //B b; 
+  //int denom = b.f();
+  A* b = new B();
 
-  //return 0;
+  int denom = b->f();
+  int div = 20/denom;
+  return div;
 }

@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 
+int c();
+
 class B
 {
 public:

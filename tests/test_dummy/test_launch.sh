@@ -36,22 +36,39 @@ then
     list_defined_symbols defined_symbols.json `pwd` dir.callers.gen.json
     #read_defined_symbols defined_symbols.json file.callers.gen.json
 
-    # # add extcallees to json files
-    # source add_extcallees.sh `pwd` defined_symbols.json
+    # add declarations to json files
+    source add_declarations.sh `pwd` $includes_directories
 
-    # # add extcallers to json files
-    # source add_extcallers.sh .
+    # add definitions to json files
+    source add_definitions.sh `pwd` $includes_directories
+
+    # add extcallees to json files
+    source add_extcallees.sh `pwd` defined_symbols.json
+
+    # add extcallers to json files
+    source add_extcallers.sh .
+
+    # add inherited to json files
+    source add_inherited.sh .
+
+    # add virtual function calls to json files
+    source add_virtual_function_calls.sh `pwd`
+
     source indent_jsonfiles.sh .
 
-    # ## generate callee's tree from main entry point
-    # source function_calls_to_dot.sh callees `pwd`/test_dummy.c "main" "int main()" files
+    ## generate callee's tree from main entry point
+    source function_calls_to_dot.sh callees `pwd`/test_dummy.c "main" "int main()" files
 
-    # ## generate caller's tree from main entry point
-    # source function_calls_to_dot.sh callers `pwd`/test_dummy.c "main" "int main()" files
+    ## generate caller's tree from main entry point
+    source function_calls_to_dot.sh callers `pwd`/test_dummy.c "f" "int f()" files
 
-    # source process_dot_files.sh . analysis/${analysis_type}
+    source process_dot_files.sh . analysis/${analysis_type}
 
-    # inkscape analysis/${analysis_type}/svg/main.fct.callees.gen.dot.svg
-    # #inkscape analysis/${analysis_type}/svg/main.fct.callers.gen.dot.svg
+    inkscape analysis/${analysis_type}/svg/main.fct.callees.gen.dot.svg
+    #inkscape analysis/${analysis_type}/svg/main.fct.callers.gen.dot.svg
 fi
+else
+    find . -type f -name "*.gen.json.gz" -exec gunzip {} \;
+    source indent_jsonfiles.sh .
 fi
+

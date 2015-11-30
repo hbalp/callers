@@ -57,10 +57,10 @@ then
     source indent_jsonfiles.sh .
 
     ## generate callee's tree from main entry point
-    source function_calls_to_dot.sh callees `pwd`/test_dummy.c "main" "int main()" files
+    source function_callgraph.sh callees `pwd`/test_dummy.c "main" "int main()" files
 
     ## generate caller's tree from main entry point
-    source function_calls_to_dot.sh callers `pwd`/test_dummy.c "f" "int f()" files
+    source function_callgraph.sh callers `pwd`/test_dummy.c "f" "int f()" files
 
     source process_dot_files.sh . analysis/${analysis_type}
 

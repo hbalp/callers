@@ -82,15 +82,15 @@ then
     source indent_jsonfiles.sh .
 
     # generate callee's tree from main entry point
-    source function_calls_to_dot.sh callees $canonical_pwd/test.cpp "main" "int main()" files
+    source function_callgraph.sh callees $canonical_pwd/test.cpp "main" "int main()" files
 
     # generate caller's tree from main entry point
-    source function_calls_to_dot.sh callers $canonical_pwd/dirB/B.cpp "c" "int c()" files
-    source function_calls_to_dot.sh callers /usr/include/stdio.h "printf" "printf" files
+    source function_callgraph.sh callers $canonical_pwd/dirB/B.cpp "c" "int c()" files
+    source function_callgraph.sh callers /usr/include/stdio.h "printf" "printf" files
 
     # generate classes tree from base class A
-    source classes_to_dot.sh child $canonical_pwd/dirA/A.hpp "A"
-    source classes_to_dot.sh base $canonical_pwd/dirC/D.hpp ":0:Newly:1:Added:3:D"
+    source classes_depgraph.sh child $canonical_pwd/dirA/A.hpp "A"
+    source classes_depgraph.sh base $canonical_pwd/dirC/D.hpp ":0:Newly:1:Added:3:D"
 
     source process_dot_files.sh . analysis/${analysis_type}
 

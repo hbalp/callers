@@ -59,18 +59,18 @@ then
     source indent_jsonfiles.sh .
 
     ## generate callee's tree from main entry point
-    source function_calls_to_dot.sh callees `pwd`/test_dummy.cpp "main" "int main()" files
+    source function_callgraph.sh callees `pwd`/test_dummy.cpp "main" "int main()" files
 
     ## generate caller's tree from main entry point
-    source function_calls_to_dot.sh callers `pwd`/test_dummy.cpp "main" "int main()" files
+    source function_callgraph.sh callers `pwd`/test_dummy.cpp "main" "int main()" files
 
     # add inherited classes to json files
     source add_inherited.sh .
     source indent_jsonfiles.sh .
 
     # generate class inheritance tree from A base class
-    source classes_to_dot.sh child `pwd`/test_dummy.cpp "A"
-    source classes_to_dot.sh base `pwd`/test_dummy.cpp "B"
+    source classes_depgraph.sh child `pwd`/test_dummy.cpp "A"
+    source classes_depgraph.sh base `pwd`/test_dummy.cpp "B"
     
     source process_dot_files.sh . analysis/${analysis_type}
 

@@ -28,6 +28,7 @@
 #endif
 
 #include "clang/AST/Decl.h"
+#include "CallersConfig.hpp"
 #include "CallersData.hpp"
 
 extern std::string getCanonicalAbsolutePath(const std::string& path);
@@ -610,8 +611,10 @@ void CallersData::File::output_json_desc() const
 {
   CallersData::JsonFileWriter js(this->jsonfilename);
 
-  js.out << "{\"file\":\"" << file
-	 << "\",\"path\":\"" << path;
+  js.out
+    << "{\"eClass\":\"" << CALLERS_TYPE_FILE
+    << "\",\"file\":\"" << file
+    << "\",\"path\":\"" << path;
 
   js.out << "\",\"namespaces\":[";
   std::set<Namespace>::const_iterator n, last_nspc;
@@ -630,6 +633,7 @@ void CallersData::File::output_json_desc() const
     }
 
   js.out << "],\"records\":[";
+
   std::set<Record>::const_iterator r, last_rec;
   last_rec = records->empty() ? records->end() : --records->end();
   for(r=records->begin(); r!=records->end(); ++r)
@@ -987,7 +991,8 @@ void CallersData::Record::print_cout() const
 {
   std::ostringstream start; 
   start << loc;
-  std::cout << "{\"fullname\":\"" << name
+  std::cout << "{\"eClass\":\"" << CALLERS_TYPE_RECORD
+	    << "\",\"fullname\":\"" << name
             << "\",\"kind\":\"" << ((kind == clang::TTK_Struct) ? "struct"
                                    : ((kind == clang::TTK_Class) ? "class"
                                    : "anonym"))
@@ -1017,12 +1022,13 @@ void CallersData::Record::output_json_desc(std::ofstream &js) const
   std::ostringstream start;
   start << loc;
   
-  js << "{\"fullname\": \"" << name
-     << "\",\"kind\":\"" << ((kind == clang::TTK_Struct) ? "struct"
-                            : ((kind == clang::TTK_Class) ? "class"
-                            : "anonym"))
-     << "\",\"loc\":\"" << start.str() 
-     << "\",\"inherits\":[";
+  js  << "{\"eClass\":\"" << CALLERS_TYPE_RECORD
+      << "\", \"fullname\": \"" << name
+      << "\",\"kind\":\"" << ((kind == clang::TTK_Struct) ? "struct"
+			      : ((kind == clang::TTK_Class) ? "class"
+				 : "anonym"))
+      << "\",\"loc\":\"" << start.str() 
+      << "\",\"inherits\":[";
 
   std::set<Inheritance>::const_iterator b, last_bc;
   last_bc = inherits->empty() ? inherits->end() : --inherits->end();
@@ -1318,14 +1324,15 @@ void CallersData::FctDecl::output_json_desc(std::ofstream &js) const
 {
   std::ostringstream out;
   out << line;
-  js << "{\"sign\": \"" << sign
+  js << "{\"eClass\":\"" << CALLERS_TYPE_FCT_DECL
+     << "\", \"sign\": \"" << sign
      << "\", \"virtuality\": \""
      << ((virtuality == VNoVirtual) ? "no"
 	 : ((virtuality == VVirtualDeclared) ? "declared"
 	    : ((virtuality == VVirtualDefined) ? "defined"
 	       : /* virtuality == VVirtualPure */ "pure")))
      << "\", \"line\": " << out.str() << "";
-
+  
   this->output_redeclarations(js);
   this->output_definitions(js);
   this->output_redefinitions(js);
@@ -1343,10 +1350,11 @@ void CallersData::FctDecl::print_cout(std::string sign, Virtuality virtuality, s
   loc << line;
 
   std::cout << "{\"sign\":\"" << sign
-	    << "\",\"virtuality\":\"" << ((virtuality == CallersData::VNoVirtual) ? "no"
-				       : ((virtuality == CallersData::VVirtualDeclared) ? "declared"
-					  : ((virtuality == CallersData::VVirtualDefined) ? "defined"
-					     : "pure")))
+	    << "\",\"virtuality\":\"" 
+	    << ((virtuality == CallersData::VNoVirtual) ? "no"
+		: ((virtuality == CallersData::VVirtualDeclared) ? "declared"
+		   : ((virtuality == CallersData::VVirtualDefined) ? "defined"
+		      : "pure")))
 	    << "\",\"file\":\"" << file
 	    << "\",\"line\":\"" << loc.str() << "\"}"
 	    << std::endl;
@@ -1594,7 +1602,8 @@ void CallersData::FctDef::output_json_desc(std::ofstream &js) const
 {
   std::ostringstream out;
   out << line;
-  js << "{\"sign\": \"" << sign
+  js << "{\"eClass\":\"" << CALLERS_TYPE_FCT_DEF
+     << "\", \"sign\": \"" << sign
      << "\", \"virtuality\": \""
      << ((virtuality == VNoVirtual) ? "no"
 	 : ((virtuality == VVirtualDeclared) ? "declared"

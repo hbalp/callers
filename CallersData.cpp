@@ -612,8 +612,8 @@ void CallersData::File::output_json_desc() const
   CallersData::JsonFileWriter js(this->jsonfilename);
 
   js.out
-    << "{\"eClass\":\"" << CALLERS_TYPE_FILE
-    << "\",\"file\":\"" << file
+    //<< "{\"eClass\":\"" << CALLERS_TYPE_FILE << "\",\"file\":\"" << file
+    << "{\"file\":\"" << file    
     << "\",\"path\":\"" << path;
 
   js.out << "\",\"namespaces\":[";
@@ -991,13 +991,14 @@ void CallersData::Record::print_cout() const
 {
   std::ostringstream start; 
   start << loc;
-  std::cout << "{\"eClass\":\"" << CALLERS_TYPE_RECORD
-	    << "\",\"fullname\":\"" << name
-            << "\",\"kind\":\"" << ((kind == clang::TTK_Struct) ? "struct"
-                                   : ((kind == clang::TTK_Class) ? "class"
-                                   : "anonym"))
-            << "\",\"loc\":\"" << start.str()
-	    << "\",\"inherits\":[";
+  std::cout
+    //<< "{\"eClass\":\"" << CALLERS_TYPE_RECORD << "\",\"fullname\":\"" << name
+    << "{\"fullname\":\"" << name            
+    << "\",\"kind\":\"" << ((kind == clang::TTK_Struct) ? "struct"
+			    : ((kind == clang::TTK_Class) ? "class"
+			       : "anonym"))
+    << "\",\"loc\":\"" << start.str()
+    << "\",\"inherits\":[";
 
   std::set<Inheritance>::const_iterator b, last_bc;
   last_bc = inherits->empty() ? inherits->end() : --inherits->end();
@@ -1022,8 +1023,8 @@ void CallersData::Record::output_json_desc(std::ofstream &js) const
   std::ostringstream start;
   start << loc;
   
-  js  << "{\"eClass\":\"" << CALLERS_TYPE_RECORD
-      << "\", \"fullname\": \"" << name
+  js  //<< "{\"eClass\":\"" << CALLERS_TYPE_RECORD << "\", \"fullname\": \"" << name
+      << "{\"fullname\": \"" << name
       << "\",\"kind\":\"" << ((kind == clang::TTK_Struct) ? "struct"
 			      : ((kind == clang::TTK_Class) ? "class"
 				 : "anonym"))
@@ -1324,8 +1325,8 @@ void CallersData::FctDecl::output_json_desc(std::ofstream &js) const
 {
   std::ostringstream out;
   out << line;
-  js << "{\"eClass\":\"" << CALLERS_TYPE_FCT_DECL
-     << "\", \"sign\": \"" << sign
+  js //<< "{\"eClass\":\"" << CALLERS_TYPE_FCT_DECL << "\", \"sign\": \"" << sign
+     << "{\"sign\": \"" << sign
      << "\", \"virtuality\": \""
      << ((virtuality == VNoVirtual) ? "no"
 	 : ((virtuality == VVirtualDeclared) ? "declared"
@@ -1602,8 +1603,8 @@ void CallersData::FctDef::output_json_desc(std::ofstream &js) const
 {
   std::ostringstream out;
   out << line;
-  js << "{\"eClass\":\"" << CALLERS_TYPE_FCT_DEF
-     << "\", \"sign\": \"" << sign
+  js //<< "{\"eClass\":\"" << CALLERS_TYPE_FCT_DEF << "\", \"sign\": \"" << sign
+     << "{\"sign\": \"" << sign
      << "\", \"virtuality\": \""
      << ((virtuality == VNoVirtual) ? "no"
 	 : ((virtuality == VVirtualDeclared) ? "declared"

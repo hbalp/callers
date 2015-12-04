@@ -332,7 +332,7 @@ function launch_callers_cpp ()
     echo "    return 17"
     echo "fi"
     echo "gzip -f ${callers_cpp_stdout_file}"
-    echo "gzip -f ${cpp_file}.file.callers.gen.json"
+    echo "gzip -f /tmp/callers${cpp_file}.file.callers.gen.json"
 }
 
 function launch_callers_c ()
@@ -371,7 +371,7 @@ function launch_callers_c ()
     echo "    return 18"
     echo "fi"
     echo "gzip -f ${callers_c_stdout_file}"
-    echo "gzip -f ${c_file}.file.callers.gen.json"
+    echo "gzip -f /tmp/callers${c_file}.file.callers.gen.json"
 }
 
 function prepare_frama_clang_analysis_from_compile_command()

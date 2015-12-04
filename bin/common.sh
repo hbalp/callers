@@ -4,6 +4,9 @@
 #       - All Rights Reserved
 #     coded by Hugues Balp
 
+user=balp
+#user=malfreyt
+
 # check whether the argument is present in input arguments of the script
 function has_arg()
 {
@@ -135,3 +138,13 @@ function list_defined_symbols()
     fi
     echo "################################################################################"
 }
+
+function init_tmp_callers_dir ()
+{
+    echo "Init tmp directory /tmp/callers"
+    mkdir -p /tmp/callers/home
+    ln -sf /tmp/callers/net/alpha.sc2.theresis.org/works/home/$user /tmp/callers/home/$user
+}
+
+init_tmp_callers_dir
+

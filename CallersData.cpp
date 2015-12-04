@@ -168,10 +168,18 @@ void CallersData::Dir::output_json_dir()
 CallersData::File::File(std::string file, std::string path) 
   : file(file),
     path(path),
-    jsonfilename(path + "/" + file + ".file.callers.gen.json")
+    jsonfilename("/tmp/callers" + path + "/" + file + ".file.callers.gen.json")
 {
   defined = new std::set<CallersData::Fct>;
   calls = new std::set<CallersData::FctCall>;
+
+  // Check whether the related callers'analysis path does already exists or not in the filesystem
+  std::string dirpath = "/tmp/callers" + path;
+  if(!(boost::filesystem::exists(dirpath)))
+  {
+    std::cout << "Creating tmp directory: " << dirpath << std::endl;
+    boost::filesystem::create_directories(dirpath);
+  }
 }
 
 void CallersData::File::parse_json_file() const

@@ -15,11 +15,11 @@ common=`which common.sh`
 bin_dir=`dirname $common`
 launch_scan_build=`which ${bin_dir}/launch_analysis.sh`
 
-source $common
-source $launch_scan_build
-
 # clean test
 source test_clean.sh
+
+source $common
+source $launch_scan_build
 
 # launch the analysis
 launch_the_analysis ${build_tool} ${analysis_type}
@@ -29,7 +29,7 @@ callers_json_rootdir=/tmp/callers
 if [ $build_tool != "scan-build" ]
 #if false
 then
-if [ $analysis_type == "callers" ] || [ $analysis_type == "all" ]; 
+if [ $analysis_type == "callers" ] || [ $analysis_type == "all" ];
 then
 
     # List generated json files
@@ -45,7 +45,6 @@ then
 
     # add extcallers to json files
     source add_extcallers.sh $callers_json_rootdir
-    source indent_jsonfiles.sh $callers_json_rootdir
 
     # generate callee's tree from main entry point
     #source function_calls_to_dot.sh callees "main" "int main()" `pwd`/test_local_callcycle.c
@@ -53,13 +52,18 @@ then
     source extract_fcg.sh callees /tmp/callers`pwd`/test_local_callcycle.c "main" "int main()" files
 
     # generate caller's tree from main entry point
-    #source function_calls_to_dot.sh callers "main" "int main()" `pwd`/test_local_callcycle.c
-    #source function_calls_to_dot.sh callers `pwd`/test_local_callcycle.c "a" "void a()"
+    #source function_calls_to_dot.sh callers /tmp/callers/`pwd`/test_local_callcycle.c "main" "int main()"
     source extract_fcg.sh callers /tmp/callers`pwd`/test_local_callcycle.c "a" "void a()"
+
+    source callgraph_to_ecore.sh .
+    source callgraph_to_dot.sh . files
 
     source process_dot_files.sh . analysis/callers
     inkscape analysis/callers/svg/main.fct.callees.gen.dot.svg
     #inkscape analysis/callers/svg/main.fct.callers.gen.dot.svg
     #inkscape analysis/callers/svg/a.fct.callers.gen.dot.svg
+
+    source indent_jsonfiles.sh .
+    source indent_jsonfiles.sh $callers_json_rootdir
 fi
 fi

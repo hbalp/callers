@@ -1,7 +1,7 @@
 #!/bin/bash
-set -x
+#set -x
 
-build_tool=cmake
+build_tool="cmake"
 #build_tool="scan-callers"
 #build_tool="scan-build"
 
@@ -47,7 +47,6 @@ then
     source add_extcallers.sh $callers_json_rootdir
 
     # generate callee's tree from main entry point
-    #source function_calls_to_dot.sh callees "main" "int main()" `pwd`/test_local_callcycle.c
     #source function_calls_to_dot.sh callees `pwd`/test_local_callcycle.c "main" "int main()" files
     source extract_fcg.sh callees /tmp/callers`pwd`/test_local_callcycle.c "main" "int main()" files
 
@@ -58,7 +57,8 @@ then
     source callgraph_to_ecore.sh .
     source callgraph_to_dot.sh . files
 
-    source process_dot_files.sh . analysis/callers
+    source process_dot_files.sh . analysis/${analysis_type}
+
     inkscape analysis/callers/svg/main.fct.callees.gen.dot.svg
     #inkscape analysis/callers/svg/main.fct.callers.gen.dot.svg
     #inkscape analysis/callers/svg/a.fct.callers.gen.dot.svg

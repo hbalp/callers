@@ -28,8 +28,6 @@ source $launch_scan_build
 # launch the analysis
 launch_the_analysis ${build_tool} ${analysis_type}
 
-callers_json_rootdir=/tmp/callers
-
 if [ $build_tool != "scan-build" ]
 #if false
 then
@@ -42,7 +40,7 @@ then
     #includes_directories="/usr/include/c++/4.8"
     # includes_directories="/usr/include"
 
-    # for inc_dir in /tmp/callers$includes_directories
+    # for inc_dir in $includes_directories
     # do
     #     cd $inc_dir
     #     list_files_in_dirs `pwd` .file.callers.gen.json dir.callers.gen.json analysis
@@ -60,23 +58,24 @@ then
     list_files_in_dirs $callers_json_rootdir .file.callers.gen.json dir.callers.gen.json "analysis"
 
     # List all defined symbols in file defined_symbols.all.gen.json
-    list_defined_symbols defined_symbols.all.gen.json $callers_json_rootdir dir.callers.gen.json
+    list_defined_symbols defined_symbols.all.gen.json
+
     # read_defined_symbols.native defined_symbols.all.gen.json file.callers.gen.json
 
     # add extcallees to json files
     source add_extcallees.sh $callers_json_rootdir
-    source add_extcallees.sh $callers_json_rootdir broken_symbols.json
+    #source add_extcallees.sh $callers_json_rootdir broken_symbols.json
 
     # add extcallers to json files
     source add_extcallers.sh $callers_json_rootdir
 
     # generate callee's tree from main entry point
     # source function_calls_to_dot.sh callees $canonical_pwd/test.cpp "main" "int main()" files
-    source extract_fcg.sh callees /tmp/callers${canonical_pwd}/test.cpp "main" "int main()" files
+    source extract_fcg.sh callees ${canonical_pwd}/test.cpp "main" "int main()" files
 
     # generate caller's tree from main entry point
     # source function_calls_to_dot.sh callers ${canonical_pwd}/dirB/B.cpp "c" "int c()" files
-    source extract_fcg.sh callers /tmp/callers${canonical_pwd}/dirB/B.cpp "c" "int c()" files
+    source extract_fcg.sh callers ${canonical_pwd}/dirB/B.cpp "c" "int c()" files
 
     source callgraph_to_ecore.sh .
     source callgraph_to_dot.sh . files

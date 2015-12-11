@@ -1,6 +1,7 @@
 #!/bin/bash
 set -x
 
+rm -f *.gen.callgraph
 rm -f *.gen.dot
 find . -name "*.gen.json" -exec rm {} \;
 find . -name "*.gen.json.gz" -exec rm {} \;

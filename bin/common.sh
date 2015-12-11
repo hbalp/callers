@@ -7,6 +7,22 @@
 user=balp
 #user=malfreyt
 
+export callers_json_rootdir=/tmp/callers
+
+################################################################################
+# WARNING: this function HAS TO BE EDITED MANUALLY
+# to update the symlink according to the user system configuration
+################################################################################
+function init_callers_json_rootdir ()
+{
+    callers_json_rootdir=$1
+    echo "Init callers_json_rootdir: $callers_json_rootdir"
+    mkdir -p ${callers_json_rootdir}/home
+    # TO BE EDITED
+    ln -sf ${callers_json_rootdir}/net/alpha.sc2.theresis.org/works/home/$user ${callers_json_rootdir}/home/$user
+}
+################################################################################
+
 # check whether the argument is present in input arguments of the script
 function has_arg()
 {
@@ -94,7 +110,7 @@ function system_includes ()
     # path to the first file to be analyzed
     file=$1
     clang=`which clang`
-    
+
     system_includes=`strace -f -e verbose=all -s 256 -v ${clang} -std=c++11 $file |& grep execve |& grep "bin/clang" |& grep cc1 |& sed -e s/'"-internal-isystem", "'/'-I"'/g|& sed -e s/'"-internal-externc-isystem", "'/'-I"'/g |& sed -e s/", "/"\n"/g |& grep "\-I\"" | sed -e s/\"//g | awk '{print}' ORS=' ' `
 
     # echo "system_includes: $system_includes" >&2
@@ -123,13 +139,13 @@ function list_files_in_dirs()
 function list_defined_symbols()
 {
     defined_symbols_jsonfilename=$1
-    current_dir=$2
-    jsondir_fileext=$3
+    jsondir_fileext="dir.callers.gen.json"
 
     echo "################################################################################"
-    echo "# List defined symbols in $current_dir ..."
+    echo "# List in file \"${defined_symbols_jsonfilename}\" all symbols defined in directory \"${callers_json_rootdir}\"..."
+    # echo "# DEBUG: jsondir_fileext=\"${jsondir_fileext}\""
     echo "################################################################################"
-    list_defined_symbols.native ${defined_symbols_jsonfilename} ${current_dir} ${jsondir_fileext}
+    list_defined_symbols.native ${defined_symbols_jsonfilename} ${jsondir_fileext}
     if [ $? -ne 0 ]; then
 	echo "################################################################################"
 	echo "# ERROR in list_defined_symbols.native $@. Stop here !"
@@ -139,12 +155,4 @@ function list_defined_symbols()
     echo "################################################################################"
 }
 
-function init_tmp_callers_dir ()
-{
-    echo "Init tmp directory /tmp/callers"
-    mkdir -p /tmp/callers/home
-    ln -sf /tmp/callers/net/alpha.sc2.theresis.org/works/home/$user /tmp/callers/home/$user
-}
-
-init_tmp_callers_dir
-
+init_callers_json_rootdir $callers_json_rootdir

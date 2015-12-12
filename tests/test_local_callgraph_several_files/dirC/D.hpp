@@ -9,7 +9,7 @@ class D : public C
 public:
   //  D();
 //~D();
-  
+
   virtual int c();
 };
 

@@ -36,6 +36,8 @@ then
     list_defined_symbols defined_symbols.json
     #read_defined_symbols defined_symbols.json file.callers.gen.json
 
+    source indent_jsonfiles.sh $callers_json_rootdir
+
     # add extcallees to json files
     source add_extcallees.sh $callers_json_rootdir defined_symbols.json
 
@@ -43,10 +45,10 @@ then
     source add_extcallers.sh $callers_json_rootdir
 
     ## generate callee's tree from main entry point
-    source extract_fcg.sh callees `pwd`/test_dummy.c "main" "int main()" files
+    source extract_fcg.sh callees `pwd`/test_inheritance.cpp "main" "int main()" files
 
     ## generate caller's tree from main entry point
-    source extract_fcg.sh callers `pwd`/test_dummy.c "main" "int main()" files
+    source extract_fcg.sh callers `pwd`/test_inheritance.cpp "main" "int main()" files
 
     source process_dot_files.sh . analysis/${analysis_type}
 

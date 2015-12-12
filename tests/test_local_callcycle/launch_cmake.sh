@@ -57,11 +57,12 @@ then
 
     source process_dot_files.sh . analysis/${analysis_type}
 
+    source indent_jsonfiles.sh .
+    source indent_jsonfiles.sh $callers_json_rootdir
+
     inkscape analysis/callers/svg/main.fct.callees.gen.dot.svg
     #inkscape analysis/callers/svg/main.fct.callers.gen.dot.svg
     #inkscape analysis/callers/svg/a.fct.callers.gen.dot.svg
 
-    source indent_jsonfiles.sh .
-    source indent_jsonfiles.sh $callers_json_rootdir
 fi
 fi

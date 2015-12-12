@@ -1,0 +1,34 @@
+#include <stdio.h>
+#include "test_inheritance.h"
+
+int main()
+{
+  A* a = new D();
+  a->c();
+  delete a;
+
+  // D* d = new D();
+  // d->c();
+  // delete d;
+
+  return 0;
+}
+
+int A::c()
+{
+  printf("A::c()\n");
+  return 0;
+}
+
+int D::c()
+{
+  printf("D::c()\n");
+  return 0;
+}
+
+/* B* A::get_b() */
+/* { */
+/*   printf("get_b()\n"); */
+/*   return &m_b; */
+/* } */
+

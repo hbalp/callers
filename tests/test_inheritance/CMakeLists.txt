@@ -4,5 +4,5 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_BUILD_TYPE Debug)
 
-add_executable(test_dummy test_dummy.c)
+add_executable(test_inheritance test_inheritance.cpp)
 

@@ -70,15 +70,15 @@ then
     source add_extcallers.sh $callers_json_rootdir
 
     # generate callee's tree from main entry point
-    # source function_calls_to_dot.sh callees $canonical_pwd/test.cpp "main" "int main()" files
+    # source extract_fcg.sh callees $canonical_pwd/test.cpp "main" "int main()" files
     source extract_fcg.sh callees ${canonical_pwd}/test.cpp "main" "int main()" files
 
     # generate caller's tree from main entry point
-    # source function_calls_to_dot.sh callers ${canonical_pwd}/dirB/B.cpp "c" "int c()" files
+    # source extract_fcg.sh callers ${canonical_pwd}/dirB/B.cpp "c" "int c()" files
     source extract_fcg.sh callers ${canonical_pwd}/dirB/B.cpp "c" "int c()" files
 
-    source callgraph_to_ecore.sh .
-    source callgraph_to_dot.sh . files
+    source callgraph_to_ecore.sh $callers_json_rootdir
+    source callgraph_to_dot.sh $callers_json_rootdir files
 
     source process_dot_files.sh . analysis/${analysis_type}
 

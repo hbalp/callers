@@ -46,12 +46,12 @@ then
     source indent_jsonfiles.sh .
 
     # generate callee's tree from main entry point
-    #source function_calls_to_dot.sh callees "main" "int main()" `pwd`/test_local_callcycle.c
-    source function_calls_to_dot.sh callees `pwd`/test_local_callcycle.c "main" "int main()" files
+    #source extract_fcg.sh callees "main" "int main()" `pwd`/test_local_callcycle.c
+    source extract_fcg.sh callees `pwd`/test_local_callcycle.c "main" "int main()" files
 
     # generate caller's tree from main entry point
-    #source function_calls_to_dot.sh callers "main" "int main()" `pwd`/test_local_callcycle.c
-    source function_calls_to_dot.sh callers `pwd`/test_local_callcycle.c "a" "void a()"
+    #source extract_fcg.sh callers "main" "int main()" `pwd`/test_local_callcycle.c
+    source extract_fcg.sh callers `pwd`/test_local_callcycle.c "a" "void a()"
 
     source process_dot_files.sh . analysis/callers
     inkscape analysis/callers/svg/main.fct.callees.gen.dot.svg

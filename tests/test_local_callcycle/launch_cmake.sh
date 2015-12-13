@@ -45,11 +45,11 @@ then
     source add_extcallers.sh $callers_json_rootdir
 
     # generate callee's tree from main entry point
-    #source function_calls_to_dot.sh callees `pwd`/test_local_callcycle.c "main" "int main()" files
+    #source extract_fcg.sh callees `pwd`/test_local_callcycle.c "main" "int main()" files
     source extract_fcg.sh callees `pwd`/test_local_callcycle.c "main" "int main()" files
 
     # generate caller's tree from main entry point
-    #source function_calls_to_dot.sh callers `pwd`/test_local_callcycle.c "main" "int main()"
+    #source extract_fcg.sh callers `pwd`/test_local_callcycle.c "main" "int main()"
     source extract_fcg.sh callers `pwd`/test_local_callcycle.c "a" "void a()"
 
     source callgraph_to_ecore.sh $callers_json_rootdir

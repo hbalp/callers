@@ -46,8 +46,11 @@ then
     source indent_jsonfiles.sh .
 
     # generate callee's tree from main entry points
-    source function_calls_to_dot.sh callees `pwd`/simple.c "simple_c" "int main(int, ((char)*)*)" files
+    source extract_fcg.sh callees `pwd`/simple.c "simple_c" "int main(int, ((char)*)*)" files
     #function_calls_to_dot.native callees `pwd`/simple.cpp "simple_cpp" "int main(int, ((char)*)*)" files
+
+    source callgraph_to_ecore.sh $callers_json_rootdir
+    source callgraph_to_dot.sh $callers_json_rootdir files
 
     source process_dot_files.sh . analysis/${analysis_type}
 

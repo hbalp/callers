@@ -45,14 +45,17 @@ then
     source add_extcallers.sh $callers_json_rootdir
 
     # generate callee's tree from main entry point
-    #source extract_fcg.sh callees `pwd`/test_local_callcycle.c "main" "int main()" files
     source extract_fcg.sh callees `pwd`/test_local_callcycle.c "main" "int main()" files
 
     # generate caller's tree from main entry point
     #source extract_fcg.sh callers `pwd`/test_local_callcycle.c "main" "int main()"
-    source extract_fcg.sh callers `pwd`/test_local_callcycle.c "a" "void a()"
+    source extract_fcg.sh callers `pwd`/test_local_callcycle.c "c" "int c()"
+    #source extract_fcg.sh callers `pwd`/test_local_callcycle.c "a" "void a()"
+    source extract_fcg.sh callers /usr/include/stdio.h "printf" "printf"
 
     source callgraph_to_ecore.sh $callers_json_rootdir
+
+    #source callgraph_to_dot.sh $callers_json_rootdir
     source callgraph_to_dot.sh $callers_json_rootdir files
 
     source process_dot_files.sh . analysis/${analysis_type}
@@ -60,9 +63,11 @@ then
     #source indent_jsonfiles.sh .
     source indent_jsonfiles.sh $callers_json_rootdir
 
-    inkscape analysis/callers/svg/main.fct.callees.gen.dot.svg
-    #inkscape analysis/callers/svg/main.fct.callers.gen.dot.svg
-    #inkscape analysis/callers/svg/a.fct.callers.gen.dot.svg
+    #inkscape analysis/callers/svg/main.fcg.callees.gen.dot.svg
+    #inkscape analysis/callers/svg/main.fcg.callers.gen.dot.svg
+    inkscape analysis/callers/svg/printf.fcg.callers.gen.dot.svg
+    #inkscape analysis/callers/svg/c.fcg.callers.gen.dot.svg
+    #inkscape analysis/callers/svg/a.fcg.callers.gen.dot.svg
 
 fi
 fi

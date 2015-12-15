@@ -984,7 +984,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	    //CallersData::File file(basename, dirpath);
 	    //file.parse_json_file();
 	    CallersData::Fct fct(builtinName, headerName, builtinPos);
-	    file->add_defined_function(&fct);
+	    file->add_declared_function(&fct);
 	    //file.output_json_desc();
 	    CallersData::FctCall fc = CallersData::FctCall(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
 							   builtinName, headerName, builtinPos);
@@ -996,9 +996,9 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	}
       #else
       if (builtinID > 0)
-	{
-	  return true;
-	}
+        {
+          return true;
+        }
       #endif
       std::string calleeName = writeFunction(*fd);
       osOut << inputFile << ": " << printParentFunction() << " -> " << calleeName << '\n';
@@ -1163,7 +1163,7 @@ CallersAction::Visitor::TraverseCXXDestructorDecl(clang::CXXDestructorDecl* Decl
 // add the function to the current json file only if it is really defined in this file
 bool
 CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
-   if (Decl->isThisDeclarationADefinition()) {
+
       pfdParent = Decl;
       sParent = writeFunction(*Decl);
       std::string fct_filepath = printFilePath(Decl->getSourceRange());
@@ -1171,11 +1171,19 @@ CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
       osOut << "visiting function " << sParent
             << " at " << fct_filepath << ':' << fct_line << '\n';
       CallersData::Fct fct(writeFunction(*Decl), fct_filepath, fct_line);
+
       // check whether the function is really defined in this file
       if(fct_filepath == currentJsonFile.fullPath())
 	// if true, add the function to the current json file
 	{
-	  currentJsonFile.add_defined_function(&fct);
+          if (Decl->isThisDeclarationADefinition())
+          {
+            currentJsonFile.add_defined_function(&fct);
+          }
+          else
+          {
+            currentJsonFile.add_declared_function(&fct);
+          }
 	}
       else
 	// otherwise, check whether a json file is already present for the visited function
@@ -1188,10 +1196,18 @@ CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
 	  std::set<CallersData::File>::iterator file = otherJsonFiles.get_file(basename, dirpath);
 	  //CallersData::File file(basename, dirpath);
 	  //file.parse_json_file();
-	  file->add_defined_function(&fct);
+
+          if (Decl->isThisDeclarationADefinition())
+          {
+            file->add_defined_function(&fct);
+          }
+          else
+          {
+            file->add_declared_function(&fct);
+          }
 	  //file.output_json_desc();
 	}
-   };
+
    return true;
 }
 

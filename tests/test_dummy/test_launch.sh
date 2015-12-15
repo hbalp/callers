@@ -56,8 +56,8 @@ then
     source indent_jsonfiles.sh .
     source indent_jsonfiles.sh $callers_json_rootdir
 
-    inkscape analysis/${analysis_type}/svg/main.fct.callees.gen.dot.svg
-    #inkscape analysis/${analysis_type}/svg/main.fct.callers.gen.dot.svg
+    inkscape analysis/${analysis_type}/svg/main.fcg.callees.gen.dot.svg
+    #inkscape analysis/${analysis_type}/svg/main.fcg.callers.gen.dot.svg
 
 fi
 fi

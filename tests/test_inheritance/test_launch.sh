@@ -48,7 +48,7 @@ then
     source extract_fcg.sh callees `pwd`/test_inheritance.cpp "main" "int main()" files
 
     ## generate caller's tree from main entry point
-    source extract_fcg.sh callers `pwd`/test_inheritance.cpp "main" "int main()" files
+    #source extract_fcg.sh callers `pwd`/test_inheritance.cpp "main" "int main()" files
 
     source callgraph_to_ecore.sh $callers_json_rootdir
     source callgraph_to_dot.sh $callers_json_rootdir files

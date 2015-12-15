@@ -3,7 +3,7 @@
 
 int main()
 {
-  A* a = new D();
+  A* a = new C();
   a->c();
   delete a;
 

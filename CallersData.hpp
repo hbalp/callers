@@ -69,18 +69,19 @@ namespace CallersData
       ~File();
       std::string fullPath () const;
       void parse_json_file() const;
+      void add_declared_function(Fct* fct) const;
+      void add_declared_function(std::string func, std::string filepath, int sign) const;
       void add_defined_function(Fct* fct) const;
       void add_defined_function(std::string func, std::string filepath, int sign) const;
       void add_function_call(FctCall* fc, Dir *context) const;
       void output_json_desc() const;
+      std::set<Fct> *declared;
       std::set<Fct> *defined;
   private:
       std::set<FctCall> *calls;
       std::string file = "unknownFileName";
       std::string path = "unknownFilePath";
       std::string jsonfilename = "unknownJsonFileName";
-      //std::list<std::string> defined;
-      //JsonFileWriter js;
   };
 
   /* Used to store function call before knowing if it's a local or an external call */
@@ -156,8 +157,15 @@ namespace CallersData
       std::set<ExtFct> *extcallers;
       std::set<ExtFct> *extcallees;
 
+      void set_defined();
+      void set_declared();
+
+      bool is_declared();
+      bool is_defined();
+
     private:
       void allocate();
+      bool defined = false;
   };
 
   bool operator< (const Fct& fct1, const Fct& fct2);

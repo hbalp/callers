@@ -171,6 +171,7 @@ CallersData::File::File(std::string file, std::string path)
     jsonfilename("/tmp/callers" + path + "/" + file + ".file.callers.gen.json")
 {
   defined = new std::set<CallersData::Fct>;
+  declared = new std::set<CallersData::Fct>;
   calls = new std::set<CallersData::FctCall>;
 
   // Check whether the related callers'analysis path does already exists or not in the filesystem
@@ -208,7 +209,8 @@ void CallersData::File::parse_json_file() const
 	{
 	  assert(file.HasMember("file"));
 	  assert(file.HasMember("path"));
-	  assert(file.HasMember("defined"));
+	  //assert(file.HasMember("defined"));
+	  //assert(file.HasMember("declared"));
 
 	  std::string filename(file["file"].GetString());
 	  std::string dirpath(file["path"].GetString());
@@ -217,24 +219,45 @@ void CallersData::File::parse_json_file() const
 	  std::cout << "file: " << filename << std::endl;
 	  std::cout << "path: " << dirpath << std::endl;
 
-	  const rapidjson::Value& defined = file["defined"];
-	  assert(defined.IsArray());
+	  const rapidjson::Value& declared = file["declared"];
+	  if(declared.IsArray())
+          {
+            // rapidjson uses SizeType instead of size_t.
+            for (rapidjson::SizeType s = 0; s < declared.Size(); s++)
+              {
+                const rapidjson::Value& symb = declared[s];
+                const rapidjson::Value& sign = symb["sign"];
+                const rapidjson::Value& line = symb["line"];
+                std::string symbol = sign.GetString();
+                int pos = line.GetInt();
+                std::ostringstream spos;
+                spos << pos;
+                std::string location(filepath + ":" + spos.str());
+                //symbol_location.insert(SymbLoc::value_type(symbol, location));
+                this->add_declared_function(symbol, this->file, pos);
+                std::cout << "Parsed declared function s[" << s << "]:\"" << symbol << "\"" << std::endl;
+              }
+          }
 
-	  // rapidjson uses SizeType instead of size_t.
-	  for (rapidjson::SizeType s = 0; s < defined.Size(); s++)
-	    {
-	      const rapidjson::Value& symb = defined[s];
-	      const rapidjson::Value& sign = symb["sign"];
-	      const rapidjson::Value& line = symb["line"];
-	      std::string symbol = sign.GetString();
-	      int pos = line.GetInt();
-	      std::ostringstream spos;
-	      spos << pos;
-	      std::string location(filepath + ":" + spos.str());
-	      //symbol_location.insert(SymbLoc::value_type(symbol, location));
-	      this->add_defined_function(symbol, this->file, pos);
-	      std::cout << "Parsed symbol s[" << s << "]:\"" << symbol << "\"" << std::endl;
-	    }
+	  const rapidjson::Value& defined = file["defined"];
+	  if(defined.IsArray())
+          {
+            // rapidjson uses SizeType instead of size_t.
+            for (rapidjson::SizeType s = 0; s < defined.Size(); s++)
+              {
+                const rapidjson::Value& symb = defined[s];
+                const rapidjson::Value& sign = symb["sign"];
+                const rapidjson::Value& line = symb["line"];
+                std::string symbol = sign.GetString();
+                int pos = line.GetInt();
+                std::ostringstream spos;
+                spos << pos;
+                std::string location(filepath + ":" + spos.str());
+                //symbol_location.insert(SymbLoc::value_type(symbol, location));
+                this->add_defined_function(symbol, this->file, pos);
+                std::cout << "Parsed defined function s[" << s << "]:\"" << symbol << "\"" << std::endl;
+              }
+          }
 	}
       else
 	{
@@ -259,10 +282,30 @@ std::string CallersData::File::fullPath() const
   return fullPath;
 }
 
+void CallersData::File::add_declared_function(CallersData::Fct* fct) const
+{
+  fct->set_declared();
+  std::cout << "Register function \"" << fct->sign
+	    << "\" declared in file \"" << this->fullPath() << ":"
+	    << fct->line << "\"" << std::endl;
+  declared->insert(*fct);
+}
+
+void CallersData::File::add_declared_function(std::string sign, std::string filepath, int line) const
+{
+  std::cout << "Create function \"" << sign
+	    << "\" declared in file \"" << this->fullPath() << ":" << line << "\"" << std::endl;
+  //Fct *fct = new Fct(sign, filepath, line); // fuite mémoire sur la pile si pas désalloué !
+  Fct fct(sign, filepath, line);
+  fct.set_declared();
+  declared->insert(fct);
+}
+
 void CallersData::File::add_defined_function(CallersData::Fct* fct) const
 {
+  fct->set_defined();
   std::cout << "Register function \"" << fct->sign
-	    << "\" defined in file \"" << this->fullPath() << ":" 
+	    << "\" defined in file \"" << this->fullPath() << ":"
 	    << fct->line << "\"" << std::endl;
   defined->insert(*fct);
 }
@@ -270,9 +313,10 @@ void CallersData::File::add_defined_function(CallersData::Fct* fct) const
 void CallersData::File::add_defined_function(std::string sign, std::string filepath, int line) const
 {
   std::cout << "Create function \"" << sign
-	    << "\" located in file \"" << this->fullPath() << ":" << line << "\"" << std::endl;
+	    << "\" defined in file \"" << this->fullPath() << ":" << line << "\"" << std::endl;
   //Fct *fct = new Fct(sign, filepath, line); // fuite mémoire sur la pile si pas désalloué !
   Fct fct(sign, filepath, line);
+  fct.set_defined();
   defined->insert(fct);
 }
 
@@ -442,24 +486,50 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 void CallersData::File::output_json_desc() const
 {
   CallersData::JsonFileWriter js(this->jsonfilename);
-  js.out << "{\"file\":\"" << file << "\",\"path\":\"" << path << "\",\"defined\":[";
-  
-  std::set<Fct>::const_iterator i, last;
-  last = defined->empty() ? defined->end() : --defined->end();
-  for(i=defined->begin(); i!=defined->end(); ++i)
-    {
-      if(i != last)
-	{
-	  i->output_json_desc(js.out);
-	  js.out << ",";
-	}
-      else
-	{
-	  i->output_json_desc(js.out);
-	}
-    }
 
-  js.out << "]}" << std::endl;
+  js.out << "{\"file\":\"" << file << "\",\"path\":\"" << path << "\"";
+
+  if(declared->size() > 0)
+  {
+    js.out << ",\"declared\":[";
+    std::set<Fct>::const_iterator i, last;
+    last = declared->empty() ? declared->end() : --declared->end();
+    for(i=declared->begin(); i!=declared->end(); ++i)
+      {
+        if(i != last)
+          {
+            i->output_json_desc(js.out);
+            js.out << ",";
+          }
+        else
+          {
+            i->output_json_desc(js.out);
+          }
+      }
+    js.out << "]";
+  }
+
+  if(defined->size() > 0)
+  {
+    js.out << ",\"defined\":[";
+    std::set<Fct>::const_iterator i, last;
+    last = defined->empty() ? defined->end() : --defined->end();
+    for(i=defined->begin(); i!=defined->end(); ++i)
+      {
+        if(i != last)
+          {
+            i->output_json_desc(js.out);
+            js.out << ",";
+          }
+        else
+          {
+            i->output_json_desc(js.out);
+          }
+      }
+    js.out << "]";
+  }
+
+  js.out << "}" << std::endl;
 }
 
 bool CallersData::operator< (const CallersData::File& file1, const CallersData::File& file2)
@@ -469,7 +539,7 @@ bool CallersData::operator< (const CallersData::File& file1, const CallersData::
 
 /***************************************** class Fct ****************************************/
 
-void CallersData::Fct::allocate() 
+void CallersData::Fct::allocate()
 {
   locallers  = new std::set<std::string>;
   locallees  = new std::set<std::string>;
@@ -477,7 +547,7 @@ void CallersData::Fct::allocate()
   extcallees = new std::set<ExtFct>;
 }
 
-CallersData::Fct::~Fct() 
+CallersData::Fct::~Fct()
 {
   delete locallers;
   delete locallees;
@@ -533,6 +603,26 @@ CallersData::Fct::Fct(const CallersData::Fct& copy_from_me)
     {
       extcallees->insert(*x);
     };
+}
+
+void CallersData::Fct::set_declared()
+{
+  defined = false;
+}
+
+void CallersData::Fct::set_defined()
+{
+  defined = true;
+}
+
+bool CallersData::Fct::is_declared()
+{
+  return !defined;
+}
+
+bool CallersData::Fct::is_defined()
+{
+  return defined;
 }
 
 void CallersData::Fct::add_local_caller(std::string caller) const
@@ -700,10 +790,17 @@ void CallersData::Fct::output_json_desc(std::ofstream &js) const
 
   this->output_local_callees(js);
 
+
+
+
+
+
+
+
   this->output_external_callers(js);
 
   this->output_external_callees(js);
-  
+
   js << "}";
 }
 

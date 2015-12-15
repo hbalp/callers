@@ -537,6 +537,143 @@ bool CallersData::operator< (const CallersData::File& file1, const CallersData::
   return file1.fullPath() < file2.fullPath();
 }
 
+=================
+/***************************************** class Record ****************************************/
+
+void CallersData::Record::allocate()
+{
+  inherits  = new std::set<std::string>;
+  inherited  = new std::set<std::string>;
+}
+
+CallersData::Record::~Record()
+{
+  delete inherits;
+  delete inherited;
+}
+
+CallersData::Record::Record(const char* name, const char* filepath, const int line, const bool is_abstract)
+  : name(name),
+    file(filepath),
+    line(line),
+    is_abstract(is_abstract)
+{
+  allocate();
+}
+
+CallersData::Record::Record(std::string name, std::string filepath, int line, const bool is_abstract)
+  : name(name),
+    file(filepath),
+    line(line),
+    is_abstract(is_abstract)
+{
+  allocate();
+}
+
+CallersData::Record::Record(const CallersData::Record& copy_from_me)
+{
+  allocate();
+  std::cout << "Record copy constructor" << std::endl;
+  name = copy_from_me.name;
+  line = copy_from_me.line;
+  is_abstract = copy_from_me.is_abstract;
+
+  // copy base classes
+  std::set<std::string>::const_iterator i;
+  for( i=copy_from_me.inherits->begin(); i!=copy_from_me.inherits->end(); ++i )
+    {
+      inherits->insert(*i);
+    };
+
+  // copy child classes
+  for( i=copy_from_me.inherited->begin(); i!=copy_from_me.inherited->end(); ++i )
+    {
+      inherited->insert(*i);
+    };
+}
+
+void CallersData::Record::add_base_class(std::string base) const
+{
+  std::cout << "Add base class \"" << base << "\" to class \"" << name << "\"" << std::endl;
+  inherits->insert(base);
+}
+
+void CallersData::Record::add_child_class(std::string child) const
+{
+  std::cout << "Add child class \"" << child << "\" to function \"" << name << "\"" << std::endl;
+  inherited->insert(child);
+}
+
+void CallersData::Record::output_base_classes(std::ofstream &js) const
+{
+  if (not inherits->empty())
+  {
+    js << ", \"inherits\": [";
+    std::set<std::string>::const_iterator i, last;
+    //last = std::prev(inherits.end(); // requires C++ 11
+    last = --inherits->end();
+    for( i=inherits->begin(); i!=inherits->end(); ++i )
+      {
+        if(i != last)
+          {
+            js << "\"" << *i << "\", ";
+          }
+        else
+          {
+            js << "\"" << *i << "\"";
+          }
+      };
+
+    js << "]";
+  }
+}
+
+void CallersData::Record::output_child_classes(std::ofstream &js) const
+{
+  if (not inherited->empty())
+  {
+    js << ", \"inherited\": [";
+    std::set<std::string>::const_iterator i, last;
+    //last = std::prev(inherited.end(); // requires C++ 11
+    last = --inherited->end();
+    for( i=inherited->begin(); i!=inherited->end(); ++i )
+      {
+        if(i != last)
+          {
+            js << "\"" << *i << "\", ";
+          }
+        else
+          {
+            js << "\"" << *i << "\"";
+          }
+      };
+
+    js << "]";
+
+  }
+}
+
+void CallersData::Record::output_json_desc(std::ofstream &js) const
+{
+  std::ostringstream out;
+  out << line;
+  js << "{\"name\":\"" << name
+     << "\",\"line\":" << out.str() << "";
+
+  this->output_base_classes(js);
+
+  this->output_child_classes(js);
+
+  js << "}";
+}
+
+bool CallersData::operator< (const CallersData::Record& rec1, const CallersData::Record& rec2)
+{
+  return rec1.name < rec2.name;
+}
+
+==================
+
 /***************************************** class Fct ****************************************/
 
 void CallersData::Fct::allocate()
@@ -789,13 +926,6 @@ void CallersData::Fct::output_json_desc(std::ofstream &js) const
   this->output_local_callers(js);
 
   this->output_local_callees(js);
-
-
-
-
-
-
-
 
   this->output_external_callers(js);
 

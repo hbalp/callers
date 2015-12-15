@@ -6,7 +6,7 @@
 
 //
 // Description:
-//   Callers's plugin c++ data structure 
+//   Callers's plugin c++ data structure
 //   to be used with the ATDgen data structure defined in file callgraph.atd
 //   for generating the callers's json files.
 //
@@ -21,7 +21,7 @@
 #include <rapidjson/writer.h>
 #include <rapidjson/stringbuffer.h>
 
-namespace CallersData 
+namespace CallersData
 {
   class JsonFileWriter
   {
@@ -57,6 +57,7 @@ namespace CallersData
       //JsonFileWriter js;
   };
 
+  class Record;
   class Fct;
   class FctCall;
 
@@ -69,6 +70,7 @@ namespace CallersData
       ~File();
       std::string fullPath () const;
       void parse_json_file() const;
+      void add_record(Record* record) const;
       void add_declared_function(Fct* fct) const;
       void add_declared_function(std::string func, std::string filepath, int sign) const;
       void add_defined_function(Fct* fct) const;
@@ -77,6 +79,7 @@ namespace CallersData
       void output_json_desc() const;
       std::set<Fct> *declared;
       std::set<Fct> *defined;
+      std::set<Record> *records;
   private:
       std::set<FctCall> *calls;
       std::string file = "unknownFileName";
@@ -122,11 +125,40 @@ namespace CallersData
       //void set_file(std::string file);
     private:
       std::string sign = "unknownExtFctSign";
-      std::string decl = "unknownExtFctDeclLoc"; 
+      std::string decl = "unknownExtFctDeclLoc";
       std::string def  = "unknownExtFctDefLoc";
   };
 
   std::ostream &operator<<(std::ostream &output, const ExtFct &fct);
+
+  class Record
+  {
+    public:
+      Record(const char* name, const char* filepath, const int line, const bool is_abstract = false);
+      Record(std::string name, std::string filepath, int line, bool is_abstract = false);
+      Record(const Record& copy_from_me);
+      ~Record();
+
+      void add_base_class(std::string base_class) const;
+      void add_child_class(std::string child_class) const;
+
+      void output_base_classes(std::ofstream &js) const;
+      void output_child_classes(std::ofstream &js) const;
+
+      void output_json_desc(std::ofstream &js) const;
+
+      std::string name = "unknownRecordName";
+      std::string file = "unknownRecordFile";
+      int line = -1;
+      std::set<string> *inherits
+      std::set<string> *inherited;
+
+    private:
+      void allocate();
+      bool is_abstract = false;
+  };
+
+  bool operator< (const Record& rec1, const Record& rec2);
 
   class Fct
   {

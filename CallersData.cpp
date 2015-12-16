@@ -665,13 +665,15 @@ void CallersData::Record::output_base_classes(std::ofstream &js) const
     last = --inherits->end();
     for( i=inherits->begin(); i!=inherits->end(); ++i )
       {
+        std::ostringstream line;
+        line << i->line;
         if(i != last)
           {
-            js << "{\"record\":\"" << i->name << "\",\"decl\":\"" << i->file << "\"}, ";
+            js << "{\"record\":\"" << i->name << "\",\"decl\":\"" << i->file << ":" << line << "\"}, ";
           }
         else
           {
-            js << "{\"record\":\"" << i->name << "\",\"decl\":\"" << i->file << "\"}";
+            js << "{\"record\":\"" << i->name << "\",\"decl\":\"" << i->file << ":" << line << "\"}";
           }
       };
 
@@ -689,13 +691,15 @@ void CallersData::Record::output_child_classes(std::ofstream &js) const
     last = --inherited->end();
     for( i=inherited->begin(); i!=inherited->end(); ++i )
       {
+        std::ostringstream line;
+        line << i->line;
         if(i != last)
           {
-            js << "{\"record\":\"" << i->name << "\",\"decl\":\"" << i->file << "\"}, ";
+            js << "{\"record\":\"" << i->name << "\",\"decl\":\"" << i->file << ":" << i->line << "\"}, ";
           }
         else
           {
-            js << "{\"record\":\"" << i->name << "\",\"decl\":\"" << i->file << "\"}";
+            js << "{\"record\":\"" << i->name << "\",\"decl\":\"" << i->file << ":" << i->line << "\"}";
           }
       };
 

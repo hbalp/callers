@@ -1162,51 +1162,89 @@ CallersAction::Visitor::TraverseCXXDestructorDecl(clang::CXXDestructorDecl* Decl
 
 // add the function to the current json file only if it is really defined in this file
 bool
-CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
+CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* function) {
 
-      pfdParent = Decl;
-      sParent = writeFunction(*Decl);
-      std::string fct_filepath = printFilePath(Decl->getSourceRange());
-      int fct_line = printLine(Decl->getSourceRange());
-      osOut << "visiting function " << sParent
-            << " at " << fct_filepath << ':' << fct_line << '\n';
-      CallersData::Fct fct(writeFunction(*Decl), fct_filepath, fct_line);
+      pfdParent = function;
+      sParent = writeFunction(*function);
+      std::string fct_filepath = printFilePath(function->getSourceRange());
+      int fct_line = printLine(function->getSourceRange());
 
-      // check whether the function is really defined in this file
-      if(fct_filepath == currentJsonFile.fullPath())
-	// if true, add the function to the current json file
-	{
-          if (Decl->isThisDeclarationADefinition())
+      if (function->isThisDeclarationADefinition())
+      {
+        CallersData::Fct fctDef(sParent, fct_filepath, fct_line);
+
+        // get the function declaration and check it's position
+        clang::FunctionDecl* functionDecl = function->getCanonicalDecl();
+        std::string fctDecl_file = printFilePath(functionDecl->getSourceRange());
+        int fctDecl_line = printLine(function->getSourceRange());
+
+        CallersData::Fct fctDecl(sParent, fctDecl_file, fctDecl_line);
+
+        osOut << "visiting function defined at file " << sParent
+              << fct_filepath << ':' << fct_line
+              << " and declared at file " << fctDecl_line << std::endl;
+
+        // check whether the function is really defined in this file
+        if(fct_filepath == currentJsonFile.fullPath())
+          // if true, add the function to the current json file
           {
-            currentJsonFile.add_defined_function(&fct);
+             currentJsonFile.add_defined_function(&fctDef);
           }
-          else
+        else
+          // otherwise, check whether a json file is already present for the visited function
+          // if true, parse it and add the defined function only when necessary
+          // if false, create this json file and add the defined function
           {
-            currentJsonFile.add_declared_function(&fct);
+            boost::filesystem::path p(fct_filepath);
+            std::string basename = p.filename().string();
+            std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+            std::set<CallersData::File>::iterator file = otherJsonFiles.get_file(basename, dirpath);
+            file->add_defined_function(&fctDef);
           }
-	}
+
+        // check whether the function is really declared in this file
+        if(fctDecl_file == currentJsonFile.fullPath())
+          // if true, add the function declaration to the current json file
+          {
+             currentJsonFile.add_declared_function(&fctDecl);
+          }
+        else
+          // otherwise, check whether a json file is already present for the visited function
+          // if true, parse it and add the defined function only when necessary
+          // if false, create this json file and add the defined function
+          {
+            boost::filesystem::path p(fct_filepath);
+            std::string basename = p.filename().string();
+            std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+            std::set<CallersData::File>::iterator file = otherJsonFiles.get_file(basename, dirpath);
+            file->add_declared_function(&fctDecl);
+          }
+      }
       else
-	// otherwise, check whether a json file is already present for the visited function
-	// if true, parse it and add the defined function only when necessary
-	// if false, create this json file and add the defined function
-	{
-	  boost::filesystem::path p(fct_filepath);
-	  std::string basename = p.filename().string();
-	  std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-	  std::set<CallersData::File>::iterator file = otherJsonFiles.get_file(basename, dirpath);
-	  //CallersData::File file(basename, dirpath);
-	  //file.parse_json_file();
+      {
+        osOut << "visiting function declared " << sParent
+              << " at " << fct_filepath << ':' << fct_line << '\n';
 
-          if (Decl->isThisDeclarationADefinition())
+        CallersData::Fct fctDecl(sParent, fct_filepath, fct_line);
+
+        // check whether the function is really defined in this file
+        if(fct_filepath == currentJsonFile.fullPath())
+          // if true, add the function to the current json file
           {
-            file->add_defined_function(&fct);
+             currentJsonFile.add_declared_function(&fctDecl);
           }
-          else
+        else
+          // otherwise, check whether a json file is already present for the visited function
+          // if true, parse it and add the defined function only when necessary
+          // if false, create this json file and add the defined function
           {
-            file->add_declared_function(&fct);
+            boost::filesystem::path p(fct_filepath);
+            std::string basename = p.filename().string();
+            std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+            std::set<CallersData::File>::iterator file = otherJsonFiles.get_file(basename, dirpath);
+            file->add_declared_function(&fctDecl);
           }
-	  //file.output_json_desc();
-	}
+      }
 
    return true;
 }
@@ -1251,7 +1289,7 @@ CallersAction::Visitor::VisitInheritanceList(CallersData::Record *record, clang:
 
       std::string baseName = printQualifiedName(*base);
       std::string baseFile = printFilePath(base->getSourceRange());
-      int baseLine = printLine(base->getSourceRange());
+      int baseLine = printLine(base->getLocStart());
       record->add_base_class(baseName, baseFile, baseLine);
 
       osOut << baseName;

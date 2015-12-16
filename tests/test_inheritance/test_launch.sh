@@ -36,7 +36,14 @@ then
     list_defined_symbols defined_symbols.gen.json
     #read_defined_symbols defined_symbols.gen.json file.callers.gen.json
 
-    source indent_jsonfiles.sh $callers_json_rootdir
+    # add definitions to json files
+    source add_definitions.sh $callers_json_rootdir net
+
+    # add declarations to json files
+    source add_declarations.sh $callers_json_rootdir net
+
+    # add inherited classes to json files
+    source add_inherited.sh $callers_json_rootdir
 
     # add extcallees to json files
     source add_extcallees.sh $callers_json_rootdir defined_symbols.gen.json
@@ -52,6 +59,9 @@ then
 
     source callgraph_to_ecore.sh $callers_json_rootdir
     source callgraph_to_dot.sh $callers_json_rootdir files
+
+    # generate a dot graph with child class dependencies from base class A
+    source classes_depgraph.sh child `pwd`/test_inheritance.h A
 
     source process_dot_files.sh . analysis/${analysis_type}
 

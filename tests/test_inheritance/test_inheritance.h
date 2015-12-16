@@ -38,6 +38,7 @@ public:
   //~C();
 
   virtual int c() {};
+  //virtual int c();
   int titi;
 };
 

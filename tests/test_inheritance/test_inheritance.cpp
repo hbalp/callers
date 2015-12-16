@@ -34,6 +34,8 @@ C::C (int titi, int toto) :
   titi(titi),
   A(toto) {};
 
+//int C::c() {}
+
 /* B* A::get_b() */
 /* { */
 /*   printf("get_b()\n"); */

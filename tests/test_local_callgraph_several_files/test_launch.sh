@@ -62,6 +62,9 @@ then
 
     # read_defined_symbols.native defined_symbols.all.gen.json file.callers.gen.json
 
+    # add definitions to json files
+    source add_definitions.sh $callers_json_rootdir
+
     # add extcallees to json files
     source add_extcallees.sh $callers_json_rootdir
     #source add_extcallees.sh $callers_json_rootdir broken_symbols.json

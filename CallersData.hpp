@@ -131,11 +131,13 @@ namespace CallersData
 
   std::ostream &operator<<(std::ostream &output, const ExtFct &fct);
 
+  enum RecordType { RStruct = 0, RClass = 1 };
+
   class Record
   {
     public:
-      Record(const char* name, const char* filepath, const int line, const bool is_abstract = false);
-      Record(std::string name, std::string filepath, int line, bool is_abstract = false);
+      Record(const char* name, const char* filepath, const int line, const int kind = RClass, const bool is_abstract = false);
+      Record(std::string name, std::string filepath, int line, int kind = RClass, bool is_abstract = false);
       Record(const Record& copy_from_me);
       ~Record();
 
@@ -150,12 +152,14 @@ namespace CallersData
       std::string name = "unknownRecordName";
       std::string file = "unknownRecordFile";
       int line = -1;
-      std::set<string> *inherits
-      std::set<string> *inherited;
+      std::set<std::string> *inherits;
+      std::set<std::string> *inherited;
 
     private:
       void allocate();
-      bool is_abstract = false;
+      int kind;
+      bool is_abstract;
+      static const char* RecordKind[];
   };
 
   bool operator< (const Record& rec1, const Record& rec2);

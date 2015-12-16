@@ -170,6 +170,7 @@ CallersData::File::File(std::string file, std::string path)
     path(path),
     jsonfilename("/tmp/callers" + path + "/" + file + ".file.callers.gen.json")
 {
+  records = new std::set<CallersData::Record>;
   defined = new std::set<CallersData::Fct>;
   declared = new std::set<CallersData::Fct>;
   calls = new std::set<CallersData::FctCall>;
@@ -280,6 +281,14 @@ std::string CallersData::File::fullPath() const
 {
   std::string fullPath = path + "/" + file;
   return fullPath;
+}
+
+void CallersData::File::add_record(CallersData::Record* record) const
+{
+  std::cout << "Register record \"" << record->name
+	    << "\" declared in file \"" << this->fullPath() << ":"
+	    << record->line << "\"" << std::endl;
+  records->insert(*record);
 }
 
 void CallersData::File::add_declared_function(CallersData::Fct* fct) const
@@ -489,6 +498,26 @@ void CallersData::File::output_json_desc() const
 
   js.out << "{\"file\":\"" << file << "\",\"path\":\"" << path << "\"";
 
+  if(records->size() > 0)
+  {
+    js.out << ",\"records\":[";
+    std::set<Record>::const_iterator i, last;
+    last = records->empty() ? records->end() : --records->end();
+    for(i=records->begin(); i!=records->end(); ++i)
+      {
+        if(i != last)
+          {
+            i->output_json_desc(js.out);
+            js.out << ",";
+          }
+        else
+          {
+            i->output_json_desc(js.out);
+          }
+      }
+    js.out << "]";
+  }
+
   if(declared->size() > 0)
   {
     js.out << ",\"declared\":[";
@@ -537,8 +566,9 @@ bool CallersData::operator< (const CallersData::File& file1, const CallersData::
   return file1.fullPath() < file2.fullPath();
 }
 
-=================
 /***************************************** class Record ****************************************/
+
+const char* CallersData::Record::RecordKind[] = { "struct", "class" };
 
 void CallersData::Record::allocate()
 {
@@ -552,19 +582,21 @@ CallersData::Record::~Record()
   delete inherited;
 }
 
-CallersData::Record::Record(const char* name, const char* filepath, const int line, const bool is_abstract)
+CallersData::Record::Record(const char* name, const char* filepath, const int line, int kind, const bool is_abstract)
   : name(name),
     file(filepath),
     line(line),
+    kind(kind),
     is_abstract(is_abstract)
 {
   allocate();
 }
 
-CallersData::Record::Record(std::string name, std::string filepath, int line, const bool is_abstract)
+CallersData::Record::Record(std::string name, std::string filepath, int line, int kind, const bool is_abstract)
   : name(name),
     file(filepath),
     line(line),
+    kind(kind),
     is_abstract(is_abstract)
 {
   allocate();
@@ -576,6 +608,7 @@ CallersData::Record::Record(const CallersData::Record& copy_from_me)
   std::cout << "Record copy constructor" << std::endl;
   name = copy_from_me.name;
   line = copy_from_me.line;
+  kind = copy_from_me.kind;
   is_abstract = copy_from_me.is_abstract;
 
   // copy base classes
@@ -657,8 +690,9 @@ void CallersData::Record::output_json_desc(std::ofstream &js) const
 {
   std::ostringstream out;
   out << line;
-  js << "{\"name\":\"" << name
-     << "\",\"line\":" << out.str() << "";
+  js << "{\"fullname\":\"" << name
+     << "\",\"kind\":\"" << RecordKind[kind]
+     << "\",\"loc\":" << out.str() << "";
 
   this->output_base_classes(js);
 
@@ -671,8 +705,6 @@ bool CallersData::operator< (const CallersData::Record& rec1, const CallersData:
 {
   return rec1.name < rec2.name;
 }
-
-==================
 
 /***************************************** class Fct ****************************************/
 

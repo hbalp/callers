@@ -1263,12 +1263,42 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
       if (tagKind == clang::TTK_Struct || tagKind == clang::TTK_Class) { // avoid unions
          bool isAnonymousRecord = false;
          std::string recordName = printQualifiedName(*Decl, &isAnonymousRecord);
+         std::string recordLocation = printFilePath(Decl->getSourceRange());
          recordName += printTemplateKind(*Decl);
          if (!isAnonymousRecord) {
             osOut << "visiting record " << recordName
                   << " at " << printLocation(Decl->getSourceRange()) << '\n';
             osOut << "    inherits from ";
             VisitInheritanceList(RD);
+            osOut << std::endl;
+
+            CallersData::Record record(recordName, recordLocation, printLine(Decl->getSourceRange()));
+
+            // check whether the record is really defined in this file
+            if(recordLocation == currentJsonFile.fullPath())
+              // if true, add the record to the current json file
+              {
+                osOut << "the record \"" << recordName << "\" is well defined in current file \""
+                      << recordLocation << "\"" << std::endl;
+                currentJsonFile.add_record(&record);
+              }
+            else
+              // otherwise, check whether a json file is already present for the visited record
+              // if true, parse it and add the defined record only when necessary
+              // if false, create this json file and add the defined record
+              {
+                osOut << "the record \"" << recordName
+                      << "\" is not defined in current file \"" << currentJsonFile.fullPath()
+                      << "\" but in file \"" << recordLocation << "\"" << std::endl;
+
+                boost::filesystem::path p(recordLocation);
+                std::string basename = p.filename().string();
+                std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+                std::set<CallersData::File>::iterator file = otherJsonFiles.get_file(basename, dirpath);
+
+                file->add_record(&record);
+              }
+
             osOut << '\n';
          };
       }

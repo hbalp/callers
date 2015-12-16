@@ -14,6 +14,10 @@ int main()
   return 0;
 }
 
+A::A (int toto)
+  : toto(toto)
+{}
+
 int A::c()
 {
   printf("A::c()\n");
@@ -25,6 +29,10 @@ int D::c()
   printf("D::c()\n");
   return 0;
 }
+
+C::C (int titi, int toto) :
+  titi(titi),
+  A(toto) {};
 
 /* B* A::get_b() */
 /* { */

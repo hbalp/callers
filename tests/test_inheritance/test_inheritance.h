@@ -13,7 +13,8 @@ public:
 class A
 {
 public:
-  // A();
+  A() {};
+  A(int toto);
   virtual ~A() {}
 
   int a();
@@ -21,6 +22,8 @@ public:
   virtual int c() = 0;
 
   B* get_b();
+
+  int toto;
 
 private:
   B m_b;
@@ -30,10 +33,12 @@ private:
 class C : public A
 {
 public:
-//C();
-//~C();
+   C() {};
+   C(int titi, int toto);
+  //~C();
 
   virtual int c() {};
+  int titi;
 };
 
 

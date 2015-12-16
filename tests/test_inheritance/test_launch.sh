@@ -32,14 +32,14 @@ then
     find $callers_json_rootdir -type f -name "*.gen.json.gz" -exec gunzip {} \;
     list_files_in_dirs $callers_json_rootdir .file.callers.gen.json dir.callers.gen.json analysis
 
-    # List all defined symbols in file defined_symbols.json
-    list_defined_symbols defined_symbols.json
-    #read_defined_symbols defined_symbols.json file.callers.gen.json
+    # List all defined symbols in file defined_symbols.gen.json
+    list_defined_symbols defined_symbols.gen.json
+    #read_defined_symbols defined_symbols.gen.json file.callers.gen.json
 
     source indent_jsonfiles.sh $callers_json_rootdir
 
     # add extcallees to json files
-    source add_extcallees.sh $callers_json_rootdir defined_symbols.json
+    source add_extcallees.sh $callers_json_rootdir defined_symbols.gen.json
 
     # add extcallers to json files
     source add_extcallers.sh $callers_json_rootdir

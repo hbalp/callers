@@ -1228,13 +1228,15 @@ CallersAction::Visitor::TraverseCXXRecordDecl(clang::CXXRecordDecl* Decl) {
 }
 
 void
-CallersAction::Visitor::VisitInheritanceList(clang::CXXRecordDecl* cxxDecl) {
+CallersAction::Visitor::VisitInheritanceList(CallersData::Record *record, clang::CXXRecordDecl* cxxDecl) {
    clang::CXXRecordDecl::base_class_iterator endBase = cxxDecl->bases_end();
    bool isFirst = true;
    for (clang::CXXRecordDecl::base_class_iterator
-         iterBase = cxxDecl->bases_begin(); iterBase != endBase; ++iterBase) {
+         iterBase = cxxDecl->bases_begin(); iterBase != endBase; ++iterBase) 
+   {
       const clang::Type* type = iterBase->getType().getTypePtr();
       const clang::CXXRecordDecl* base = type->getAsCXXRecordDecl();
+
       if (!base) {
          continue;
          // std::cerr << "Unsupported Inheritance Type:"
@@ -1246,7 +1248,13 @@ CallersAction::Visitor::VisitInheritanceList(clang::CXXRecordDecl* cxxDecl) {
          osOut << ",\n                  ";
       else
          isFirst = false;
-      osOut << printQualifiedName(*base);
+
+      std::string baseName = printQualifiedName(*base);
+      std::string baseFile = printFilePath(base->getSourceRange());
+      int baseLine = printLine(base->getSourceRange());
+      record->add_base_class(baseName, baseFile, baseLine);
+
+      osOut << baseName;
       osOut << printTemplateKind(*base);
    };
 }
@@ -1266,13 +1274,15 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
          std::string recordLocation = printFilePath(Decl->getSourceRange());
          recordName += printTemplateKind(*Decl);
          if (!isAnonymousRecord) {
+
             osOut << "visiting record " << recordName
                   << " at " << printLocation(Decl->getSourceRange()) << '\n';
-            osOut << "    inherits from ";
-            VisitInheritanceList(RD);
-            osOut << std::endl;
 
             CallersData::Record record(recordName, recordLocation, printLine(Decl->getSourceRange()));
+
+            osOut << " the record \"" << recordName << "\" inherits from ";
+            VisitInheritanceList(&record, RD);
+            osOut << std::endl;
 
             // check whether the record is really defined in this file
             if(recordLocation == currentJsonFile.fullPath())

@@ -566,14 +566,35 @@ bool CallersData::operator< (const CallersData::File& file1, const CallersData::
   return file1.fullPath() < file2.fullPath();
 }
 
+/***************************************** class NamedType ****************************************/
+
+CallersData::NamedType::NamedType(std::string name, std::string file, int line)
+  : name(name), file(file), line(line)
+{}
+
+CallersData::NamedType::NamedType(const CallersData::NamedType& copy_from_me)
+{
+  std::cout << "NamedType copy constructor" << std::endl;
+  name = copy_from_me.name;
+  file = copy_from_me.file;
+  line = copy_from_me.line;
+}
+
+bool CallersData::operator< (const CallersData::NamedType& type1, const CallersData::NamedType& type2)
+{
+  std::string index1 = type1.file + ":" + type1.name;
+  std::string index2 = type2.file + ":" + type2.name;
+  return index1 < index2;
+}
+
 /***************************************** class Record ****************************************/
 
 const char* CallersData::Record::RecordKind[] = { "struct", "class" };
 
 void CallersData::Record::allocate()
 {
-  inherits  = new std::set<std::string>;
-  inherited  = new std::set<std::string>;
+  inherits  = new std::set<NamedType>;
+  inherited  = new std::set<NamedType>;
 }
 
 CallersData::Record::~Record()
@@ -583,9 +604,7 @@ CallersData::Record::~Record()
 }
 
 CallersData::Record::Record(const char* name, const char* filepath, const int line, int kind, const bool is_abstract)
-  : name(name),
-    file(filepath),
-    line(line),
+  : NamedType(name, filepath, line),
     kind(kind),
     is_abstract(is_abstract)
 {
@@ -593,9 +612,7 @@ CallersData::Record::Record(const char* name, const char* filepath, const int li
 }
 
 CallersData::Record::Record(std::string name, std::string filepath, int line, int kind, const bool is_abstract)
-  : name(name),
-    file(filepath),
-    line(line),
+  : NamedType(name, filepath, line),
     kind(kind),
     is_abstract(is_abstract)
 {
@@ -603,16 +620,15 @@ CallersData::Record::Record(std::string name, std::string filepath, int line, in
 }
 
 CallersData::Record::Record(const CallersData::Record& copy_from_me)
+  : NamedType(copy_from_me)
 {
   allocate();
   std::cout << "Record copy constructor" << std::endl;
-  name = copy_from_me.name;
-  line = copy_from_me.line;
   kind = copy_from_me.kind;
   is_abstract = copy_from_me.is_abstract;
 
   // copy base classes
-  std::set<std::string>::const_iterator i;
+  std::set<NamedType>::const_iterator i;
   for( i=copy_from_me.inherits->begin(); i!=copy_from_me.inherits->end(); ++i )
     {
       inherits->insert(*i);
@@ -625,15 +641,17 @@ CallersData::Record::Record(const CallersData::Record& copy_from_me)
     };
 }
 
-void CallersData::Record::add_base_class(std::string base) const
+void CallersData::Record::add_base_class(std::string name, std::string file, int line) const
 {
-  std::cout << "Add base class \"" << base << "\" to class \"" << name << "\"" << std::endl;
+  std::cout << "Add base class \"" << name << "\" to class \"" << name << "\"" << std::endl;
+  NamedType base (name, file, line);
   inherits->insert(base);
 }
 
-void CallersData::Record::add_child_class(std::string child) const
+void CallersData::Record::add_child_class(std::string name, std::string file, int line) const
 {
-  std::cout << "Add child class \"" << child << "\" to function \"" << name << "\"" << std::endl;
+  std::cout << "Add child class \"" << name << "\" to function \"" << name << "\"" << std::endl;
+  NamedType child (name, file, line);
   inherited->insert(child);
 }
 
@@ -642,18 +660,18 @@ void CallersData::Record::output_base_classes(std::ofstream &js) const
   if (not inherits->empty())
   {
     js << ", \"inherits\": [";
-    std::set<std::string>::const_iterator i, last;
+    std::set<NamedType>::const_iterator i, last;
     //last = std::prev(inherits.end(); // requires C++ 11
     last = --inherits->end();
     for( i=inherits->begin(); i!=inherits->end(); ++i )
       {
         if(i != last)
           {
-            js << "\"" << *i << "\", ";
+            js << "{\"record\":\"" << i->name << "\",\"decl\":\"" << i->file << "\"}, ";
           }
         else
           {
-            js << "\"" << *i << "\"";
+            js << "{\"record\":\"" << i->name << "\",\"decl\":\"" << i->file << "\"}";
           }
       };
 
@@ -666,18 +684,18 @@ void CallersData::Record::output_child_classes(std::ofstream &js) const
   if (not inherited->empty())
   {
     js << ", \"inherited\": [";
-    std::set<std::string>::const_iterator i, last;
+    std::set<NamedType>::const_iterator i, last;
     //last = std::prev(inherited.end(); // requires C++ 11
     last = --inherited->end();
     for( i=inherited->begin(); i!=inherited->end(); ++i )
       {
         if(i != last)
           {
-            js << "\"" << *i << "\", ";
+            js << "{\"record\":\"" << i->name << "\",\"decl\":\"" << i->file << "\"}, ";
           }
         else
           {
-            js << "\"" << *i << "\"";
+            js << "{\"record\":\"" << i->name << "\",\"decl\":\"" << i->file << "\"}";
           }
       };
 

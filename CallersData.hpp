@@ -133,7 +133,21 @@ namespace CallersData
 
   enum RecordType { RStruct = 0, RClass = 1 };
 
-  class Record
+  class NamedType
+  {
+    public:
+      //NamedType() {};
+      NamedType(std::string name, std::string filepath, int line);
+      NamedType(const CallersData::NamedType& copy_from_me);
+
+      std::string name = "unknownRecordName";
+      std::string file = "unknownRecordFile";
+      int line = -1;
+  };
+
+  bool operator< (const NamedType& type1, const NamedType& type2);
+
+  class Record : public NamedType
   {
     public:
       Record(const char* name, const char* filepath, const int line, const int kind = RClass, const bool is_abstract = false);
@@ -141,19 +155,16 @@ namespace CallersData
       Record(const Record& copy_from_me);
       ~Record();
 
-      void add_base_class(std::string base_class) const;
-      void add_child_class(std::string child_class) const;
+      void add_base_class(std::string name, std::string file, int line) const;
+      void add_child_class(std::string name, std::string file, int line) const;
 
       void output_base_classes(std::ofstream &js) const;
       void output_child_classes(std::ofstream &js) const;
 
       void output_json_desc(std::ofstream &js) const;
 
-      std::string name = "unknownRecordName";
-      std::string file = "unknownRecordFile";
-      int line = -1;
-      std::set<std::string> *inherits;
-      std::set<std::string> *inherited;
+      std::set<NamedType> *inherits;
+      std::set<NamedType> *inherited;
 
     private:
       void allocate();

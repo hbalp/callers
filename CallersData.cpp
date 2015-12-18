@@ -178,13 +178,21 @@ void CallersData::Dir::output_json_dir()
 CallersData::File::File(std::string file, std::string path) 
   : file(file),
     path(path),
-    jsonfilename(path + "/" + file + ".file.callers.gen.json")
+    jsonfilename("/tmp/callers" + path + "/" + file + ".file.callers.gen.json")
 {
   namespaces = new std::set<CallersData::Namespace>;
   declared = new std::set<CallersData::FctDecl>;
   defined = new std::set<CallersData::FctDef>;
   records = new std::set<CallersData::Record>;
   calls = new std::set<CallersData::FctCall>;
+
+  // Check whether the related callers'analysis path does already exists or not in the filesystem
+  std::string dirpath = "/tmp/callers" + path;
+  if(!(boost::filesystem::exists(dirpath)))
+  {
+    std::cout << "Creating tmp directory: " << dirpath << std::endl;
+    boost::filesystem::create_directories(dirpath);
+  }
 }
 
 CallersData::File::~File()
@@ -288,9 +296,31 @@ void CallersData::File::parse_json_file() const
 	  std::cout << "file: " << filename << std::endl;
 	  std::cout << "path: " << dirpath << std::endl;
 
-	  const rapidjson::Value& defined = file["defined"];
-	  assert(defined.IsArray());
+	  const rapidjson::Value& declared = file["declared"];
+	  if(declared.IsArray())
+          {
+            // rapidjson uses SizeType instead of size_t.
+            for (rapidjson::SizeType s = 0; s < declared.Size(); s++)
+              {
+                const rapidjson::Value& symb = declared[s];
+                const rapidjson::Value& sign = symb["sign"];
+                const rapidjson::Value& line = symb["line"];
+                std::string symbol = sign.GetString();
+                int pos = line.GetInt();
+                std::ostringstream spos;
+                spos << pos;
+                std::string location(filepath + ":" + spos.str());
+                //symbol_location.insert(SymbLoc::value_type(symbol, location));
+                this->add_declared_function(symbol, this->file, pos);
+                std::cout << "Parsed declared function s[" << s << "]:\"" << symbol << "\"" << std::endl;
+              }
+          }
 
+
+	  // rapidjson uses SizeType instead of size_t.
+	  const rapidjson::Value& defined = file["defined"];
+	  if(defined.IsArray())
+      {
 	  // rapidjson uses SizeType instead of size_t.
 	  for (rapidjson::SizeType s = 0; s < defined.Size(); s++)
 	    {
@@ -323,6 +353,7 @@ void CallersData::File::parse_json_file() const
 	      this->add_defined_function(symbol, virtuality, this->file, pos);
 	      std::cout << "Parsed symbol s[" << s << "]:\"" << symbol << "\"" << std::endl;
 	    }
+      }
 	}
       else
 	{
@@ -332,6 +363,13 @@ void CallersData::File::parse_json_file() const
 	  exit(3);
 	}
     }
+}
+
+CallersData::File::~File()
+{
+  //this->output_json_desc();
+  delete defined;
+  delete calls;
 }
 
 std::string CallersData::File::fullPath() const
@@ -364,42 +402,6 @@ CallersData::File::create_or_get_namespace(std::string qualifiers, const clang::
   return search_result;
 }
 
-void CallersData::File::add_declared_function(CallersData::FctDecl* fct) const
-{
-  std::cout << "Register function declaration \"" << fct->sign
-	    << "\" declared in file \"" << this->fullPath() << ":" 
-	    << fct->line << "\"" << std::endl;
-  declared->insert(*fct);
-}
-
-// void CallersData::File::add_declared_function(std::string sign, Virtuality virtuality, 
-// 					      std::string filepath, int line) const
-// {
-//   std::cout << "Create function declaration \"" << sign
-// 	    << "\" located in file \"" << this->fullPath() << ":" << line << "\"" << std::endl;
-//   //FctDef *fct = new FctDef(sign, filepath, line); // fuite mémoire sur la pile si pas désalloué !
-//   FctDecl fct(sign, virtuality, filepath, line);
-//   declared->insert(fct);
-// }
-
-void CallersData::File::add_defined_function(CallersData::FctDef* fct) const
-{
-  std::cout << "Register function definition \"" << fct->sign
-	    << "\" defined in file \"" << this->fullPath() << ":" 
-	    << fct->line << "\"" << std::endl;
-  defined->insert(*fct);
-}
-
-void CallersData::File::add_defined_function(std::string sign, Virtuality virtuality, 
-					     std::string filepath, int line) const
-{
-  std::cout << "Create function definition \"" << sign
-	    << "\" located in file \"" << this->fullPath() << ":" << line << "\"" << std::endl;
-  //FctDef *fct = new FctDef(sign, filepath, line); // fuite mémoire sur la pile si pas désalloué !
-  FctDef fct(sign, virtuality, filepath, line);
-  defined->insert(fct);
-}
-
 void CallersData::File::add_namespace(CallersData::Namespace nspc) const
 {
   std::cout << "Register namespace \"" << nspc.name
@@ -430,6 +432,42 @@ void CallersData::File::add_record(std::string name, clang::TagTypeKind kind, in
 	    << "\" with " << nb_base_classes << " base classes, "
 	    << "located in file \"" << this->fullPath()
 	    << ":" << loc << "\"" << std::endl;
+}
+
+void CallersData::File::add_declared_function(CallersData::FctDecl* fct) const
+{
+  fct->set_declared();
+  std::cout << "Register function \"" << fct->sign
+	    << "\" declared in file \"" << this->fullPath() << ":"
+	    << fct->line << "\"" << std::endl;
+  declared->insert(*fct);
+}
+
+void CallersData::File::add_declared_function(std::string sign, Virtuality virtuality, std::string filepath, int line) const
+{
+  std::cout << "Create function \"" << sign
+	    << "\" declared in file \"" << this->fullPath() << ":" << line << "\"" << std::endl;
+  //Fct *fct = new Fct(sign, filepath, line); // fuite mémoire sur la pile si pas désallouée !
+  Fct fct(sign, virtuality, filepath, line);
+  declared->insert(fct);
+}
+
+void CallersData::File::add_defined_function(CallersData::FctDef* fct) const
+{
+  std::cout << "Register function definition \"" << fct->sign
+	    << "\" defined in file \"" << this->fullPath() << ":" 
+	    << fct->line << "\"" << std::endl;
+  defined->insert(*fct);
+}
+
+void CallersData::File::add_defined_function(std::string sign, Virtuality virtuality, 
+					     std::string filepath, int line) const
+{
+  std::cout << "Create function definition \"" << sign
+	    << "\" located in file \"" << this->fullPath() << ":" << line << "\"" << std::endl;
+  //FctDef *fct = new FctDef(sign, filepath, line); // fuite mémoire sur la pile si pas désalloué !
+  FctDef fct(sign, virtuality, filepath, line);
+  defined->insert(fct);
 }
 
 void
@@ -616,71 +654,87 @@ void CallersData::File::output_json_desc() const
     << "{\"file\":\"" << file    
     << "\",\"path\":\"" << path;
 
-  js.out << "\",\"namespaces\":[";
-  std::set<Namespace>::const_iterator n, last_nspc;
-  last_nspc = namespaces->empty() ? namespaces->end() : --namespaces->end();
-  for(n=namespaces->begin(); n!=namespaces->end(); ++n)
-    {
-      if(n != last_nspc)
-	{
-	  n->output_json_desc(js.out);
-	  js.out << ",";
-	}
-      else
-	{
-	  n->output_json_desc(js.out);
-	}
-    }
+  if(namespaces->size() > 0)
+  {
+	  js.out << "\",\"namespaces\":[";
+	  std::set<Namespace>::const_iterator n, last_nspc;
+	  last_nspc = namespaces->empty() ? namespaces->end() : --namespaces->end();
+	  for(n=namespaces->begin(); n!=namespaces->end(); ++n)
+		{
+		  if(n != last_nspc)
+			{
+			  n->output_json_desc(js.out);
+			  js.out << ",";
+			}
+			  else
+			{
+			  n->output_json_desc(js.out);
+			}
+		}
+	  js.out << "]";
+  }
 
-  js.out << "],\"records\":[";
+  if(records->size() > 0)
+  {
+	  js.out << ",\"records\":[";
+	  std::set<Record>::const_iterator r, last_rec;
+	  last_rec = records->empty() ? records->end() : --records->end();
+	  for(r=records->begin(); r!=records->end(); ++r)
+		{
+		  if(r != last_rec)
+			{
+			  r->output_json_desc(js.out);
+			  js.out << ",";
+			}
+			  else
+			{
+			  r->output_json_desc(js.out);
+			}
+	   }
+	  js.out << "]";
+  }
 
-  std::set<Record>::const_iterator r, last_rec;
-  last_rec = records->empty() ? records->end() : --records->end();
-  for(r=records->begin(); r!=records->end(); ++r)
-    {
-      if(r != last_rec)
-	{
-	  r->output_json_desc(js.out);
-	  js.out << ",";
-	}
-      else
-	{
-	  r->output_json_desc(js.out);
-	}
-    }
-
-  js.out << "],\"declared\":[";
+  if(declared->size() > 0)
+  {
+  js.out << ",\"declared\":[";
   std::set<FctDecl>::const_iterator d, last_decl;
   last_decl = declared->empty() ? declared->end() : --declared->end();
   for(d=declared->begin(); d!=declared->end(); ++d)
     {
       if(d != last_decl)
-	{
-	  d->output_json_desc(js.out);
-	  js.out << ",";
-	}
-      else
-	{
-	  d->output_json_desc(js.out);
-	}
+		{
+		  d->output_json_desc(js.out);
+		  js.out << ",";
+		}
+		  else
+		{
+		  d->output_json_desc(js.out);
+		}
     }
+	  js.out << "]";
+  }
 
-  js.out << "],\"defined\":[";
-  std::set<FctDef>::const_iterator i, last_fct;
-  last_fct = defined->empty() ? defined->end() : --defined->end();
-  for(i=defined->begin(); i!=defined->end(); ++i)
-    {
-      if(i != last_fct)
-	{
-	  i->output_json_desc(js.out);
-	  js.out << ",";
-	}
-      else
-	{
-	  i->output_json_desc(js.out);
-	}
-    }
-  js.out << "]}" << std::endl;
+  if(defined->size() > 0)
+  {
+	  js.out << ",\"defined\":[";
+	  std::set<FctDef>::const_iterator i, last_fct;
+	  last_fct = defined->empty() ? defined->end() : --defined->end();
+	  for(i=defined->begin(); i!=defined->end(); ++i)
+		{
+		  if(i != last_fct)
+			{
+			  i->output_json_desc(js.out);
+			  js.out << ",";
+			}
+			  else
+			{
+			  i->output_json_desc(js.out);
+			}
+		}
+	  js.out << "]";
+  }
+
+  js.out << "}" << std::endl;
 }
 
 bool CallersData::operator< (const CallersData::File& file1, const CallersData::File& file2)
@@ -924,6 +978,13 @@ bool CallersData::operator< (const CallersData::Inheritance& inheritance1,
 void CallersData::Record::allocate()
 {
   inherits = new std::set<CallersData::Inheritance>;
+  inherited = new std::set<CallersData::Inheritance>;
+}
+
+CallersData::Record::~Record()
+{
+  delete inherits;
+  delete inherited;
 }
 
 CallersData::Record::Record(const char* name, clang::TagTypeKind kind, const int loc)
@@ -958,11 +1019,10 @@ CallersData::Record::Record(const CallersData::Record& copy_from_me)
     {
       inherits->insert(*b);
     }
-}
-
-CallersData::Record::~Record()
-{
-  delete inherits;
+  for(b=copy_from_me.inherited->begin(); b!=copy_from_me.inherited->end(); ++b)
+    {
+      inherited->insert(*b);
+    }
 }
 
 void CallersData::Record::add_inheritance(CallersData::Inheritance bclass) const
@@ -1017,6 +1077,25 @@ void CallersData::Record::print_cout() const
 
   std::cout << "]}";
 }
+/*
+// output_base_classes
+// output_child_classes
+
+void CallersData::Record::output_json_desc(std::ofstream &js) const
+{
+  std::ostringstream out;
+  out << line;
+  js << "{\"fullname\":\"" << name
+     << "\",\"kind\":\"" << RecordKind[kind]
+     << "\",\"loc\":" << out.str() << "";
+
+  this->output_base_classes(js);
+
+  this->output_child_classes(js);
+
+  js << "}";
+}
+*/
 
 void CallersData::Record::output_json_desc(std::ofstream &js) const
 {
@@ -1207,16 +1286,16 @@ void CallersData::FctDecl::output_local_callers(std::ofstream &js) const
       //last = std::prev(locallers.end(); // requires C++ 11
       last = --locallers->end();
       for( i=locallers->begin(); i!=locallers->end(); ++i )
-	{
-	  if(i != last)
-	    {
-	      js << "\"" << *i << "\", ";
-	    }
-	  else
-	    {
-	      js << "\"" << *i << "\"";
-	    }
-	};
+		{
+		  if(i != last)
+			{
+			  js << "\"" << *i << "\", ";
+			}
+		  else
+			{
+			  js << "\"" << *i << "\"";
+			}
+		};
 
       js << "]";
     }
@@ -1232,16 +1311,16 @@ void CallersData::FctDecl::output_redeclarations(std::ofstream &js) const
       //last = std::prev(redeclarations.end(); // requires C++ 11
       extlast = redeclarations->empty() ? redeclarations->end() : --redeclarations->end();
       for( x=redeclarations->begin(); x!=redeclarations->end(); ++x )
-	{
-	  if(x != extlast)
-	    {
-	      js << *x << ", ";
-	    }
-	  else
-	    {
-	      js << *x;
-	    }
-	};
+		{
+		  if(x != extlast)
+			{
+			  js << *x << ", ";
+			}
+		  else
+			{
+			  js << *x;
+			}
+		};
       js << "]";
 
     }
@@ -1268,7 +1347,6 @@ void CallersData::FctDecl::output_definitions(std::ofstream &js) const
 	    }
 	};
       js << "]";
-
     }
 }
 

@@ -56,15 +56,14 @@ then
     source indent_jsonfiles.sh .
 
     # generate callee's tree from main entry point
-    source function_callgraph.sh callees `pwd`/test.cpp "main" "int main()" files
-    #source function_callgraph.sh callees "main" "int main()" `pwd`/test.cpp files
+    source extract_fcg.sh callees "main" "int main()" `pwd`/test.cpp files
 
     # generate caller's tree from main entry point
-    #source function_callgraph.sh callers "main" "int main()" `pwd`/test.cpp
-    source function_callgraph.sh callers `pwd`/test.cpp "main" "int main()" files
+    #source extract_fcg.sh callers "main" "int main()" `pwd`/test.cpp
+    source extract_fcg.sh callers `pwd`/test.cpp "main" "int main()" files
 
     # generate a call graph from "int A::a()" to "int c()"
-    source function_callgraph.sh c2c `pwd`/A.cpp "A_a" "int A::a()" `pwd`/B.cpp "c" "int c()"
+    source extract_fcg.sh c2c `pwd`/A.cpp "A_a" "int A::a()" `pwd`/B.cpp "c" "int c()"
 
     source process_dot_files.sh . analysis/${analysis_type}
 

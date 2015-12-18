@@ -60,7 +60,6 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   typedef clang::RecursiveASTVisitor<Visitor> Parent;
   std::string inputFile;
   std::ostream& osOut;
-  //CallersData::File currentJsonFile;
   std::set<CallersData::File>::iterator currentJsonFile;
   CallersData::Dir otherJsonFiles;
   clang::CompilerInstance& ciCompilerInstance;

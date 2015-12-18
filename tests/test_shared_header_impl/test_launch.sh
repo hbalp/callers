@@ -46,20 +46,23 @@ then
     source indent_jsonfiles.sh .
 
     # generate callee's tree from main entry point
-    function_callgraph.native callees `pwd`/test.cpp "main" "int main()" files
-    #source function_callgraph.sh callees "main" "int main()" `pwd`/test.cpp files
+    function_calls_to_dot.native callees `pwd`/test.cpp "main" "int main()" files
+    #source extract_fcg.sh callees "main" "int main()" `pwd`/test.cpp files
 
     # generate caller's tree from main entry point
-    #source function_callgraph.sh callers `pwd`/test.cpp "main" "int main()" files
+    #source extract_fcg.sh callers `pwd`/test.cpp "main" "int main()" files
 
     # generate caller's tree from B::B() constructor
-    source function_callgraph.sh callers `pwd`/B.cpp "B" "void B::B()" files
+    source extract_fcg.sh callers `pwd`/B.cpp "B" "void B::B()" files
 
     # generate caller's tree from printf builtin function
-    source function_callgraph.sh callers /usr/include/stdio.h "printf" "printf" files
+    source extract_fcg.sh callers /usr/include/stdio.h "printf" "printf" files
 
     # generate a call graph from "int A::a()" to "int c()"
-    source function_callgraph.sh c2c `pwd`/A.cpp "A_a" "int A::a()" `pwd`/B.hpp "c" "int c()"
+    source extract_fcg.sh c2c `pwd`/A.cpp "A_a" "int A::a()" `pwd`/B.hpp "c" "int c()"
+
+    source callgraph_to_ecore.sh $callers_json_rootdir
+    source callgraph_to_dot.sh $callers_json_rootdir files
 
     source process_dot_files.sh . analysis/${analysis_type}
 

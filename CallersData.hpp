@@ -6,7 +6,7 @@
 
 //
 // Description:
-//   Callers's plugin c++ data structure 
+//   Callers's plugin c++ data structure
 //   to be used with the ATDgen data structure defined in file callgraph.atd
 //   for generating the callers's json files.
 //
@@ -21,7 +21,7 @@
 #include <rapidjson/writer.h>
 #include <rapidjson/stringbuffer.h>
 
-namespace CallersData 
+namespace CallersData
 {
   class JsonFileWriter
   {
@@ -94,8 +94,6 @@ namespace CallersData
       std::string file = "unknownFileName";
       std::string path = "unknownFilePath";
       std::string jsonfilename = "unknownJsonFileName";
-      //std::list<std::string> defined;
-      //JsonFileWriter js;
   };
 
   /* Namespace class */

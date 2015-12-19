@@ -19,7 +19,19 @@ public:
 
   int a();
 
-  virtual int c() = 0;
+  //virtual int c() = 0;
+
+  int nv()
+  {
+    printf("A::nv()\n");
+    return 0;
+  }
+
+  virtual int v()
+  {
+    printf("A::v()\n");
+    return 0;
+  }
 
   B* get_b();
 
@@ -29,7 +41,6 @@ private:
   B m_b;
 };
 
-
 class C : public A
 {
 public:
@@ -37,11 +48,13 @@ public:
    C(int titi, int toto);
   //~C();
 
-  virtual int c() {};
-  //virtual int c();
+  int nv();
+
+  //virtual int v() {};
+  virtual int v();
+
   int titi;
 };
-
 
 class D : public C
 {
@@ -49,7 +62,9 @@ public:
   //  D();
 //~D();
 
-  virtual int c();
+  int nv();
+
+  virtual int v();
 };
 
 #endif

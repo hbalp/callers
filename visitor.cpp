@@ -258,6 +258,7 @@ CallersAction::Visitor::printTemplateKind(const clang::FunctionDecl& function) c
 
 std::string
 CallersAction::Visitor::printTemplateKind(const clang::RecordDecl& decl) const {
+   assert(llvm::dyn_cast<clang::CXXRecordDecl>(&decl));
    const clang::CXXRecordDecl *RD = llvm::dyn_cast<clang::CXXRecordDecl>(&decl);
    const clang::ClassTemplateSpecializationDecl* TSD = NULL;
    if (decl.getKind() == clang::Decl::ClassTemplateSpecialization) // do not handle partial specialization !
@@ -881,10 +882,12 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
        osOut << inputFile << ":WARNING: unknownFilePath for callee: " << callee_sign << std::endl;
        callee_filepos = -1;
      }
+   assert(pfdParent != NULL);
    auto parentMethod = llvm::dyn_cast<clang::CXXMethodDecl>(pfdParent);
-   CallersData::FctCall fc(printParentFunction(), 
+   CallersData::FctCall fc(printParentFunction(),
 	(parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
-	printParentFunctionFilePath(), printParentFunctionLine(), 
+
+   printParentFunctionFilePath(), printParentFunctionLine(),
 	callee_sign, CallersData::VNoVirtual, callee_filepath, callee_filepos);
    currentJsonFile->add_function_call(&fc, &otherJsonFiles);
    return true;
@@ -1002,14 +1005,14 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
 	//CallersData::FctDef fct(malloc_sign, CallersData::VNoVirtual, malloc_filepath, malloc_filepos);
 	//file->add_defined_function(&fct);
 	CallersData::FctDecl fct(malloc_sign, CallersData::VNoVirtual, malloc_filepath, malloc_filepos);
-	file->add_declared_function(&fct);
+	file->add_declared_function(&fct, &otherJsonFiles);
       }
 
       CallersData::FctCall fc(printParentFunction(),
 	(parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
-	printParentFunctionFilePath(), printParentFunctionLine(), 
+	printParentFunctionFilePath(), printParentFunctionLine(),
 	malloc_sign, CallersData::VNoVirtual, malloc_filepath, malloc_filepos);
-      currentJsonFile->add_function_call(&fc, &otherJsonFiles);
+        currentJsonFile->add_function_call(&fc, &otherJsonFiles);
     }
    return true;
 }
@@ -1101,11 +1104,15 @@ bool
 CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
    const clang::FunctionDecl* fd = callExpr->getDirectCallee();
    if (fd) {
-     if (fd->getBuiltinID() > 0)
+      if (fd->getBuiltinID() > 0)
        {
 	  this->VisitBuiltinFunction(fd);
 	  return true;
-	}
+       }
+      if (fd->isThisDeclarationADefinition())
+       {
+         fd = fd->getCanonicalDecl();
+       }
       std::string calleeName = writeFunction(*fd);
       osOut << inputFile << ": " << printParentFunction() << " -7-> " << calleeName << '\n';
       std::string callee_filepath = printFilePath(fd->getSourceRange());
@@ -1287,9 +1294,9 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
         auto methodDef = llvm::dyn_cast<clang::CXXMethodDecl>(function);
         auto virtualityDef = (methodDef && methodDef->isVirtual()) ?
           (methodDef->isPure() ? CallersData::VVirtualPure : CallersData::VVirtualDefined)
-          : CallersData::VNoVirtual);
+          : CallersData::VNoVirtual;
 
-        CallersData::Fct fctDef(fct_sign, virtuality_Def, fct_filepath, fct_line);
+        CallersData::FctDef fctDef(fct_sign, virtualityDef, fct_filepath, fct_line);
 
         // get the function declaration and check it's position
         clang::FunctionDecl* functionDecl = function->getCanonicalDecl();
@@ -1299,9 +1306,9 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
         auto methodDecl = llvm::dyn_cast<clang::CXXMethodDecl>(functionDecl);
         auto virtualityDecl = (methodDecl && methodDecl->isVirtual()) ?
           (methodDecl->isPure() ? CallersData::VVirtualPure : CallersData::VVirtualDeclared)
-          : CallersData::VNoVirtual);
+          : CallersData::VNoVirtual;
 
-        CallersData::Fct fctDecl(fct_sign, virtuality, fctDecl_file, fctDecl_line);
+        CallersData::FctDecl fctDecl(fct_sign, virtualityDecl, fctDecl_file, fctDecl_line);
 
         // Complete the prototype declaration with a new "definition" entry
         // TBC
@@ -1311,10 +1318,10 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
               << " and declared at file " << fctDecl_line << std::endl;
 
         // check whether the function is really defined in this file
-        if(fct_filepath == currentJsonFile.fullPath())
+        if(fct_filepath == currentJsonFile->fullPath())
           // if true, add the function to the current json file
           {
-             currentJsonFile.add_defined_function(&fctDef);
+             currentJsonFile->add_defined_function(&fctDef);
           }
         else
           // otherwise, check whether a json file is already present for the visited function
@@ -1324,15 +1331,15 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
             boost::filesystem::path p(fct_filepath);
             std::string basename = p.filename().string();
             std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-            std::set<CallersData::File>::iterator file = otherJsonFiles.get_file(basename, dirpath);
+            std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
             file->add_defined_function(&fctDef);
           }
 
         // check whether the function is really declared in this file
-        if(fctDecl_file == currentJsonFile.fullPath())
+        if(fctDecl_file == currentJsonFile->fullPath())
           // if true, add the function declaration to the current json file
           {
-             currentJsonFile.add_declared_function(&fctDecl);
+            currentJsonFile->add_declared_function(&fctDecl, &otherJsonFiles);
           }
         else
           // otherwise, check whether a json file is already present for the visited function
@@ -1342,23 +1349,23 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
             boost::filesystem::path p(fct_filepath);
             std::string basename = p.filename().string();
             std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-            std::set<CallersData::File>::iterator file = otherJsonFiles.get_file(basename, dirpath);
-            file->add_declared_function(&fctDecl);
+            std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
+            file->add_declared_function(&fctDecl, &otherJsonFiles);
           }
    return true;
 }
 
 bool
-CallersAction::Visitor::VisitFunctionDeclaration(clang::FunctionDecl* functionDecl) {
+CallersAction::Visitor::VisitFunctionDeclaration(clang::FunctionDecl* function) {
 
-      std::string fct_sign = writeFunction(*functionDecl);
+      std::string fct_sign = writeFunction(*function);
       std::string fct_filepath = printFilePath(function->getSourceRange());
       int fct_line = printLine(function->getSourceRange());
 
-        auto methodDecl = llvm::dyn_cast<clang::CXXMethodDecl>(functionDecl);
+        auto methodDecl = llvm::dyn_cast<clang::CXXMethodDecl>(function);
         auto virtualityDecl = (methodDecl && methodDecl->isVirtual()) ?
           (methodDecl->isPure() ? CallersData::VVirtualPure : CallersData::VVirtualDeclared)
-          : CallersData::VNoVirtual);
+          : CallersData::VNoVirtual;
 
 		if (methodDecl->isVirtual()) {
 		osOut << "visiting virtual declared method " << fct_sign
@@ -1373,13 +1380,13 @@ CallersAction::Visitor::VisitFunctionDeclaration(clang::FunctionDecl* functionDe
 			  << " at " << fct_filepath << ':' << fct_line << '\n';
 		  }
 
-        CallersData::Fct fctDecl(fct_sign, virtualityDecl, fct_filepath, fct_line);
+        CallersData::FctDecl fctDecl(fct_sign, virtualityDecl, fct_filepath, fct_line);
 
         // check whether the function is really defined in this file
-        if(fct_filepath == currentJsonFile.fullPath())
+        if(fct_filepath == currentJsonFile->fullPath())
           // if true, add the function to the current json file
           {
-             currentJsonFile.add_declared_function(&fctDecl);
+             currentJsonFile->add_declared_function(&fctDecl, &otherJsonFiles);
           }
         else
           // otherwise, check whether a json file is already present for the visited function
@@ -1389,14 +1396,20 @@ CallersAction::Visitor::VisitFunctionDeclaration(clang::FunctionDecl* functionDe
             boost::filesystem::path p(fct_filepath);
             std::string basename = p.filename().string();
             std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-            std::set<CallersData::File>::iterator file = otherJsonFiles.get_file(basename, dirpath);
-            file->add_declared_function(&fctDecl);
+            std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
+            file->add_declared_function(&fctDecl, &otherJsonFiles);
           }
     return true;
 }
 
+// global variable:out: pfdParent
 bool
 CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
+
+   pfdParent = Decl;
+   std::string fct_filepath = printFilePath(Decl->getSourceRange());
+   int fct_line = printLine(Decl->getSourceRange());
+   sParent = writeFunction(*Decl);
 
    bool isDefinition = Decl->isThisDeclarationADefinition();
    auto methodDecl = llvm::dyn_cast<clang::CXXMethodDecl>(Decl);
@@ -1405,20 +1418,22 @@ CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
 
    if (isDefinition) {
 
+    osOut << "visiting function \"" << sParent
+           << "\" defined at " << fct_filepath << ':' << fct_line << std::endl;
+
      this->VisitFunctionDefinition(Decl);
    }
    else if (isDeclarationOfInterest) {
-   //else {
+
+    osOut << "visiting method \"" << sParent
+           << "\" declared at " << fct_filepath << ':' << fct_line << std::endl;
+
      this->VisitFunctionDeclaration(Decl);
    }
-   else
-     {
-       osOut << "visiting function declared " << sParent
-              << " at " << fct_filepath << ':' << fct_line << '\n';
-       osOut << "WARNING: other unsupported case for ... " << std::endl;
-       std::string fct_sign = writeFunction(*Decl);
-       osOut << "... fct_decl: " << fct_sign << std::endl;
-     }
+   else {
+     osOut << "ignore function \"" << sParent
+            << "\" declared at " << fct_filepath << ':' << fct_line << std::endl;
+   }
    return true;
 }
 
@@ -1439,13 +1454,13 @@ CallersAction::Visitor::TraverseCXXRecordDecl(clang::CXXRecordDecl* Decl) {
 }
 
 void
-CallersAction::Visitor::VisitInheritanceList(clang::CXXRecordDecl* cxxDecl, 
-					     CallersData::Record* rec)
+CallersAction::Visitor::VisitInheritanceList(clang::CXXRecordDecl* cxxDecl,
+					     CallersData::Record* record)
 {
    clang::CXXRecordDecl::base_class_iterator endBase = cxxDecl->bases_end();
    bool isFirst = true;
    for (clang::CXXRecordDecl::base_class_iterator
-         iterBase = cxxDecl->bases_begin(); iterBase != endBase; ++iterBase) 
+         iterBase = cxxDecl->bases_begin(); iterBase != endBase; ++iterBase)
    {
       const clang::Type* type = iterBase->getType().getTypePtr();
       const clang::CXXRecordDecl* base = type->getAsCXXRecordDecl();
@@ -1464,9 +1479,9 @@ CallersAction::Visitor::VisitInheritanceList(clang::CXXRecordDecl* cxxDecl,
 
       std::string baseName = printQualifiedName(*base);
       std::string baseFile = printFilePath(base->getSourceRange());
-      int baseLine = printLine(base->getLocStart());
-      //record->add_base_class(baseName, baseFile, baseLine);
-      record->add_inheritance(basename, baseFile);
+      int baseBegin = printLine(base->getLocStart());
+      int baseEnd = printLine(base->getLocEnd());
+      record->add_base_class(baseName, baseFile, baseBegin, baseEnd);
 
       osOut << baseName;
       osOut << printTemplateKind(*base);
@@ -1481,30 +1496,33 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
 
    clang::CXXRecordDecl *RD = llvm::dyn_cast<clang::CXXRecordDecl>(Decl);
    if (Decl->isThisDeclarationADefinition() && RD && RD->isCompleteDefinition()) {
-      auto tagKind = Decl->getTagKind();
+     clang::TagTypeKind tagKind = Decl->getTagKind();
       if (tagKind == clang::TTK_Struct || tagKind == clang::TTK_Class) { // avoid unions
          bool isAnonymousRecord = false;
          std::string recordName = printQualifiedName(*Decl, &isAnonymousRecord);
-         std::string recordLocation = printFilePath(Decl->getSourceRange());
+         std::string recordFile = printFilePath(Decl->getSourceRange());
+         int recordBegin = printLine(Decl->getLocStart());
+         int recordEnd = printLine(Decl->getLocEnd());
+
          recordName += printTemplateKind(*Decl);
          if (!isAnonymousRecord) {
 
             osOut << "visiting record " << recordName
                   << " at " << printLocation(Decl->getSourceRange()) << '\n';
 
-            CallersData::Record record(recordName, recordLocation, printLine(Decl->getSourceRange()));
+            CallersData::Record record(recordName, tagKind, recordFile, recordBegin, recordEnd);
 
             osOut << " the record \"" << recordName << "\" inherits from ";
-            VisitInheritanceList(&record, RD);
+            VisitInheritanceList(RD, &record);
             osOut << std::endl;
 
             // check whether the record is really defined in this file
-            if(recordLocation == currentJsonFile.fullPath())
+            if(recordFile == currentJsonFile->fullPath())
               // if true, add the record to the current json file
               {
                 osOut << "the record \"" << recordName << "\" is well defined in current file \""
-                      << recordLocation << "\"" << std::endl;
-                currentJsonFile.add_record(&record);
+                      << recordFile << "\"" << std::endl;
+                currentJsonFile->add_record(record);
               }
             else
               // otherwise, check whether a json file is already present for the visited record
@@ -1512,15 +1530,15 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
               // if false, create this json file and add the defined record
               {
                 osOut << "the record \"" << recordName
-                      << "\" is not defined in current file \"" << currentJsonFile.fullPath()
-                      << "\" but in file \"" << recordLocation << "\"" << std::endl;
+                      << "\" is not defined in current file \"" << currentJsonFile->fullPath()
+                      << "\" but in file \"" << recordFile << "\"" << std::endl;
 
-                boost::filesystem::path p(recordLocation);
+                boost::filesystem::path p(recordFile);
                 std::string basename = p.filename().string();
                 std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-                std::set<CallersData::File>::iterator file = otherJsonFiles.get_file(basename, dirpath);
+                std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
 
-                file->add_record(&record);
+                file->add_record(record);
               }
 
             osOut << '\n';

@@ -10,7 +10,7 @@ int c()
   return 0;
 }
 
-B::B() 
+B::B()
 {
   //c();
 }
@@ -18,7 +18,7 @@ B::B()
 int B::b()
 {
   printf("b()\n");
-  c();
+  //c();
   return 0;
 }
 

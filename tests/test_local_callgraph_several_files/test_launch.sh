@@ -61,7 +61,7 @@ then
     list_defined_symbols defined_symbols.all.gen.json
 
     # add declarations to json files
-    source add_declarations.sh `pwd` $includes_directories
+    source add_declarations.sh $callers_json_rootdir
 
     # add definitions to json files
     source add_definitions.sh $callers_json_rootdir
@@ -74,10 +74,10 @@ then
     source add_extcallers.sh $callers_json_rootdir
 
     # add inherited to json files
-    source add_inherited.sh .
+    source add_inherited.sh $callers_json_rootdir
 
     # add virtual function calls to json files
-    source add_virtual_function_calls.sh `pwd`
+    source add_virtual_function_calls.sh $callers_json_rootdir
 
     # generate callee's tree from main entry point
     # source extract_fcg.sh callees $canonical_pwd/test.cpp "main" "int main()" files
@@ -85,19 +85,19 @@ then
 
     # generate caller's tree from main entry point
     # source extract_fcg.sh callers ${canonical_pwd}/dirB/B.cpp "c" "int c()" files
-    source extract_fcg.sh callers ${canonical_pwd}/dirB/B.cpp "c" "int c()" files
+    #source extract_fcg.sh callers ${canonical_pwd}/dirB/B.cpp "c" "int c()" files
 
     source callgraph_to_ecore.sh $callers_json_rootdir
     source callgraph_to_dot.sh $callers_json_rootdir files
 
-    # generate classes tree from base class A
-    source classes_depgraph.sh child $canonical_pwd/dirA/A.hpp "A"
-    source classes_depgraph.sh base $canonical_pwd/dirC/D.hpp ":0:Newly:1:Added:3:D"
+    # # generate classes tree from base class A
+    # source classes_depgraph.sh child $canonical_pwd/dirA/A.hpp "A"
+    # source classes_depgraph.sh base $canonical_pwd/dirC/D.hpp ":0:Newly:1:Added:3:D"
 
     source process_dot_files.sh . analysis/${analysis_type}
 
-    inkscape analysis/${analysis_type}/svg/main.fct.callees.gen.dot.svg
-    #inkscape analysis/${analysis_type}/svg/c.fct.callers.gen.dot.svg
+    inkscape analysis/${analysis_type}/svg/main.fcg.callees.gen.dot.svg
+    #inkscape analysis/${analysis_type}/svg/c.fcg.callers.gen.dot.svg
 
     source indent_jsonfiles.sh .
     source indent_jsonfiles.sh $callers_json_rootdir

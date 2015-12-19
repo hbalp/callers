@@ -68,7 +68,6 @@ namespace CallersData
   class File
   {
     friend bool operator< (const CallersData::File& file1, const CallersData::File& file2);
-
     public:
       File(std::string file, std::string path);
       File(const CallersData::File& copy_from_me);
@@ -76,13 +75,13 @@ namespace CallersData
       std::string fullPath () const;
       void parse_json_file() const;
       std::set<CallersData::Namespace>::iterator create_or_get_namespace(std::string qualifiers, const clang::NamespaceDecl* nspc);
-      void add_declared_function(FctDecl* fct) const;
-      //void add_declared_function(std::string func, Virtuality virtuality, std::string filepath, int sign) const;
+      //void add_declared_function(std::string sign, Virtuality virtuality, std::string file, int line) const;
+      void add_declared_function(FctDecl* fct, Dir *context) const;
+      void add_defined_function(std::string sign, Virtuality virtuality, std::string file, int line) const;
       void add_defined_function(FctDef* fct) const;
-      void add_defined_function(std::string func, Virtuality virtuality, std::string filepath, int sign) const;
       void add_namespace(Namespace nspc) const;
       void add_record(Record record) const;
-      void add_record(std::string name, clang::TagTypeKind kind, int loc) const;
+      void add_record(std::string name, clang::TagTypeKind kind, int begin, int end) const;
       void add_function_call(FctCall* fc, Dir *context) const;
       void output_json_desc() const;
       std::set<Namespace> *namespaces;
@@ -130,15 +129,17 @@ namespace CallersData
     friend bool operator< (const CallersData::Inheritance& inheritance1, const CallersData::Inheritance& inheritance2);
 
   public:
-    Inheritance(const char* name, const char* decl);
-    Inheritance(std::string name, std::string decl);
+    Inheritance(const char* name, const char* file, const int begin, const int end);
+    Inheritance(std::string name, std::string file, int begin, int end);
     Inheritance(const CallersData::Inheritance& copy_from_me);
     ~Inheritance() {}
     void allocate();
     void output_json_desc(std::ofstream &js) const;
     inline void print_cout() const;
-    std::string name = "unknownBaseClass";
-    std::string decl = "unknownBaseClassLocation";
+    std::string name = "unknownClassName";
+    std::string file = "unknownClassFile";
+    int begin = -1;
+    int end = -1;
   private:
   };
 
@@ -149,19 +150,24 @@ namespace CallersData
     friend bool operator< (const CallersData::Record& rec1, const CallersData::Record& rec2);
 
     public:
-      Record(const char* name, clang::TagTypeKind kind, const int loc);
-      Record(std::string name, clang::TagTypeKind kind, int loc);
+      Record(const char* name, clang::TagTypeKind kind, const std::string file, const int begin, const int end);
+      Record(std::string name, clang::TagTypeKind kind, std::string file, int begin, int end);
       Record(const Record& copy_from_me);
       ~Record();
       void allocate();
-      void add_inheritance(Inheritance inheritance) const;
-      void add_inheritance(std::string name, std::string decl) const;
+      void add_base_class(std::string name, std::string file, int deb, int fin) const;
+      void add_base_class(Inheritance inheritance) const;
+      // void add_child_class(std::string name, std::string file, int deb, int fin) const;
+      // void add_child_class(Inheritance inheritance) const;
       void output_json_desc(std::ofstream &js) const;
       void print_cout() const;
       std::string name = "unknownRecordName";
       clang::TagTypeKind kind = clang::TTK_Struct;
-      int loc = -1;
+      std::string file;
+      int begin = -1;
+      int end = -1;
       std::set<Inheritance> *inherits;
+      std::set<Inheritance> *inherited;
     private:
   };
 
@@ -210,7 +216,7 @@ namespace CallersData
       inline void print_cout(std::string sign, Virtuality is_virtual, std::string decl, std::string def);
       std::string sign = "unknownExtFctSign";
       Virtuality virtuality = VNoVirtual;
-      std::string decl = "unknownExtFctDeclLoc"; 
+      std::string decl = "unknownExtFctDeclLoc";
       std::string def  = "unknownExtFctDefLoc";
   };
 
@@ -225,7 +231,7 @@ namespace CallersData
       ~FctDecl();
 
       void add_local_caller(std::string caller) const;
-      void add_external_caller(std::string caller_sign, Virtuality virtuality, std::string caller_decl) const;
+      void add_external_caller(std::string sign, Virtuality virtuality, std::string file, int line) const;
       void add_redeclaration(std::string fct_sign, Virtuality redecl_virtuality, std::string redecl_file, int redecl_line) const;
       void add_definition(std::string fct_sign, std::string def_sign, Virtuality def_virtuality, std::string def_file_pos) const;
       void add_redefinition(std::string fct_sign, Virtuality redef_virtuality, std::string redef_file, int redef_line) const;
@@ -262,11 +268,11 @@ namespace CallersData
       FctDef(const FctDef& copy_from_me);
       ~FctDef();
 
-      void add_local_caller(std::string caller) const;
+      //void add_local_caller(std::string caller) const;
       void add_local_callee(std::string callee) const;
-      void add_external_caller(std::string caller_sign, Virtuality virtuality, std::string caller_decl) const;
-      void add_external_callee(std::string callee_sign, Virtuality virtuality, std::string callee_decl_file, int callee_decl_line) const;
-      void add_builtin_callee(std::string callee_sign, Virtuality builtin_virtuality, std::string builtin_decl_file, int builtin_decl_line) const;
+      //void add_external_caller(std::string sign, Virtuality virtuality, std::string file, int line) const;
+      void add_external_callee(std::string sign, Virtuality virtuality, std::string file, int line) const;
+      void add_builtin_callee(std::string sign, Virtuality builtin_virtuality, std::string builtin_decl_file, int builtin_decl_line) const;
 
       void output_local_callers(std::ofstream &js) const;
       void output_local_callees(std::ofstream &js) const;

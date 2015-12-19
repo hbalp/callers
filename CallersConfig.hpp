@@ -22,3 +22,5 @@
 #define CALLERS_TYPE_FCT_DECL "http://com.thalesgroup.fr/tcs/callers/1.0.0#//fct_decl"
 
 #define CALLERS_TYPE_FCT_DEF "http://com.thalesgroup.fr/tcs/callers/1.0.0#//fct_def"
+
+#define CALLERS_ERROR_UNSUPPORTED_CASE 17

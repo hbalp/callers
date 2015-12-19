@@ -68,7 +68,7 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   clang::SourceManager* psSources;
 
   std::string writeFunction(const clang::FunctionDecl& function, bool isUnqualified=false) const;
-  
+
   // get the basename of a file from its unix-like full path
   std::string getBasename(const clang::StringRef& filename) const;
   // convert function signature to a json compatible identifier
@@ -95,7 +95,7 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   std::string printQualifiedName(const clang::NamedDecl& namedDecl, bool* isEmpty=nullptr) const;
 
   const std::string& printParentFunction() const
-  {  
+  {
     if (pfdParent && sParent.length() == 0)
       sParent = writeFunction(*pfdParent);
     return sParent;

@@ -10,7 +10,7 @@ echo "Try to indent all json files present in directory \"${dir}\""
 for json in `find $dir -name "*.json"`
 do
 tmp="${json}.tmp"
-echo "* indent json file: ${json}"
+#echo "* indent json file: ${json}"
 cp ${json} ${tmp}
 ydump ${tmp} > ${json}
 rm ${tmp}

@@ -5,7 +5,6 @@
 #     coded by Hugues Balp
 
 user=balp
-#user=malfreyt
 
 export callers_json_rootdir=/tmp/callers
 

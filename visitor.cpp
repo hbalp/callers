@@ -1075,7 +1075,7 @@ CallersAction::Visitor::VisitBuiltinFunction(const clang::FunctionDecl* fd) {
     }
 
   std::cout << "DEBUG: builtin location (headerName): " << headerName << std::endl;
- 
+
   // check whether a json file is already present for the builtin function
   // if true, parse it and add the defined function only when necessary
   // if false, create this json file and add the defined function
@@ -1086,8 +1086,8 @@ CallersAction::Visitor::VisitBuiltinFunction(const clang::FunctionDecl* fd) {
     std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
     //CallersData::File file(basename, dirpath);
     //file.parse_json_file();
-    CallersData::FctDef fct(builtinName, CallersData::VNoVirtual, headerName, builtinPos);
-    file->add_defined_function(&fct);
+    CallersData::FctDecl fct(builtinName, CallersData::VNoVirtual, headerName, builtinPos);
+    file->add_declared_function(&fct, &otherJsonFiles);
     //file.output_json_desc();
     auto parentMethod = llvm::dyn_cast<clang::CXXMethodDecl>(pfdParent);
     CallersData::FctCall fc = CallersData::FctCall(printParentFunction(),

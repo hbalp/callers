@@ -1012,6 +1012,7 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
 	(parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
 	printParentFunctionFilePath(), printParentFunctionLine(),
 	malloc_sign, CallersData::VNoVirtual, malloc_filepath, malloc_filepos);
+        fc.is_builtin = true;
         currentJsonFile->add_function_call(&fc, &otherJsonFiles);
     }
    return true;

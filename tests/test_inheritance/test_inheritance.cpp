@@ -3,6 +3,8 @@
 
 int main()
 {
+  printf("main()\n");
+
   A* a = new C();
   a->v();
   a->nv();

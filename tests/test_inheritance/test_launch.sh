@@ -65,9 +65,13 @@ then
     source callgraph_to_ecore.sh $callers_json_rootdir
     source callgraph_to_dot.sh $callers_json_rootdir files
 
+    source indent_jsonfiles.sh .
+    source indent_jsonfiles.sh $callers_json_rootdir
+
     # generate class inheritance tree from A base class
-    source classes_depgraph.sh child `pwd`/test_dummy.cpp "A"
-    source classes_depgraph.sh base `pwd`/test_dummy.cpp "B"
+    # source classes_depgraph.sh child `pwd`/test_dummy.cpp "A"
+    # source classes_depgraph.sh base `pwd`/test_dummy.cpp "B"
+    # source classes_depgraph.sh base `pwd`/test_inheritance.cpp "B"
     source classes_depgraph.sh child `pwd`/test_inheritance.h A
 
     source process_dot_files.sh . analysis/${analysis_type}
@@ -75,8 +79,8 @@ then
     source indent_jsonfiles.sh .
     source indent_jsonfiles.sh $callers_json_rootdir
 
-    inkscape analysis/${analysis_type}/svg/main.fct.callees.gen.dot.svg
-    #inkscape analysis/${analysis_type}/svg/main.fct.callers.gen.dot.svg
+    inkscape analysis/${analysis_type}/svg/main.fcg.callees.gen.dot.svg
+    #inkscape analysis/${analysis_type}/svg/main.fcg.callers.gen.dot.svg
 fi
 else
     find . -type f -name "*.gen.json.gz" -exec gunzip {} \;

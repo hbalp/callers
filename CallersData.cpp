@@ -1015,8 +1015,8 @@ void CallersData::Inheritance::print_cout() const
   fin << end;
   std::cout << "{\"record\":\"" << name
 	    << "\",\"file\":\"" << file
-	    << "\",\"debut\":\"" << begin
-	    << "\",\"fin\":\"" << end
+	    << "\",\"debut\":" << begin
+	    << ",\"fin\":" << end
 	    << std::endl;
 }
 
@@ -1028,8 +1028,8 @@ void CallersData::Inheritance::output_json_desc(std::ofstream &js) const
   fin << end;
   js << "{\"record\":\"" << name
      << "\",\"file\":\"" << file
-     << "\",\"debut\":\"" << begin
-     << "\",\"fin\":\"" << end << "\"}";
+     << "\",\"debut\":" << begin
+     << ",\"fin\":" << end << "}";
 }
 
 bool CallersData::operator< (const CallersData::Inheritance& inheritance1, 
@@ -1122,13 +1122,16 @@ void CallersData::Record::print_cout() const
 {
   std::ostringstream debut;
   debut << begin;
+  std::ostringstream fin;
+  fin << end;
   std::cout
-    << "{\"fullname\":\"" << name
+    << "{\"name\":\"" << name
     << "\",\"kind\":\"" << ((kind == clang::TTK_Struct) ? "struct"
 			    : ((kind == clang::TTK_Class) ? "class"
 			       : "anonym"))
-    << "\",\"loc\":\"" << debut.str()
-    << "\",\"inherits\":[";
+    << "\",\"debut\":" << debut.str()
+    << ",\"fin\":" << fin.str()
+    << ",\"inherits\":[";
 
   std::set<Inheritance>::const_iterator b, last_bc;
   last_bc = inherits->empty() ? inherits->end() : --inherits->end();
@@ -1154,11 +1157,14 @@ void CallersData::Record::print_cout() const
 
 void CallersData::Record::output_json_desc(std::ofstream &js) const
 {
-  std::ostringstream out;
-  out << line;
+  std::ostringstream debut;
+  debut << begin;
+  std::ostringstream fin;
+  fin << end;
   js << "{\"name\":\"" << name
      << "\",\"kind\":\"" << RecordKind[kind]
-     << "\",\"debut\":\"" << out.str() << "\"";
+     << "\",\"debut\":" << begin.str()
+     << ",\"fin\":" << end.str();
 
   this->output_base_classes(js);
 
@@ -1178,11 +1184,11 @@ void CallersData::Record::output_json_desc(std::ofstream &js) const
   js  //<< "{\"eClass\":\"" << CALLERS_TYPE_RECORD << "\", \"fullname\": \"" << name
       << "{\"name\": \"" << name
       << "\",\"kind\":\"" << ((kind == clang::TTK_Struct) ? "struct"
-			      : ((kind == clang::TTK_Class) ? "class"
-				 : "anonym"))
-      << "\",\"debut\":\"" << debut.str()
-      << "\",\"fin\":\"" << fin.str()
-      << "\",\"inherits\":[";
+                             : ((kind == clang::TTK_Class) ? "class"
+                             : "anonym"))
+      << "\",\"debut\":" << debut.str()
+      << ",\"fin\":" << fin.str()
+      << ",\"inherits\":[";
 
   std::set<Inheritance>::const_iterator b, last_bc;
   last_bc = inherits->empty() ? inherits->end() : --inherits->end();
@@ -1482,19 +1488,20 @@ void CallersData::FctDecl::output_json_desc(std::ofstream &js) const
   out << line;
   js //<< "{\"eClass\":\"" << CALLERS_TYPE_FCT_DECL << "\", \"sign\": \"" << sign
      << "{\"sign\": \"" << sign
+     << "\", \"line\": \"" << out.str()
      << "\", \"virtuality\": \""
      << ((virtuality == VNoVirtual) ? "no"
 	 : ((virtuality == VVirtualDeclared) ? "declared"
 	    : ((virtuality == VVirtualDefined) ? "defined"
 	       : /* virtuality == VVirtualPure */ "pure")))
-     << "\", \"line\": \"" << out.str() << "\"";
+      << "\"";
 
   this->output_redeclarations(js);
   this->output_definitions(js);
   this->output_redefinitions(js);
   this->output_local_callers(js);
   this->output_external_callers(js);
-  
+
   js << "}";
 }
 
@@ -1506,13 +1513,14 @@ void CallersData::FctDecl::print_cout(std::string sign, Virtuality virtuality, s
   loc << line;
 
   std::cout << "{\"sign\":\"" << sign
-	    << "\",\"virtuality\":\"" 
+	    << "\",\"line\":\"" << loc.str()
+	    << "\",\"virtuality\":\""
 	    << ((virtuality == CallersData::VNoVirtual) ? "no"
 		: ((virtuality == CallersData::VVirtualDeclared) ? "declared"
 		   : ((virtuality == CallersData::VVirtualDefined) ? "defined"
 		      : "pure")))
 	    << "\",\"file\":\"" << file
-	    << "\",\"line\":\"" << loc.str() << "\"}"
+             << "\"}"
 	    << std::endl;
 }
 
@@ -1761,12 +1769,13 @@ void CallersData::FctDef::output_json_desc(std::ofstream &js) const
   out << line;
   js //<< "{\"eClass\":\"" << CALLERS_TYPE_FCT_DEF << "\", \"sign\": \"" << sign
      << "{\"sign\": \"" << sign
+     << "\", \"line\": \"" << out.str()
      << "\", \"virtuality\": \""
      << ((virtuality == VNoVirtual) ? "no"
 	 : ((virtuality == VVirtualDeclared) ? "declared"
 	    : ((virtuality == VVirtualDefined) ? "defined"
 	       : /* virtuality == VVirtualPure */ "pure")))
-     << "\", \"line\": \"" << out.str() << "\"";
+      << "\"";
 
   this->output_local_callers(js);
   this->output_local_callees(js);
@@ -1784,12 +1793,13 @@ void CallersData::FctDef::print_cout(std::string sign, Virtuality virtuality, st
   loc << line;
 
   std::cout << "{\"sign\":\"" << sign
+	    << "\",\"line\":\"" << loc.str()
 	    << "\",\"virtuality\":\"" << ((virtuality == CallersData::VNoVirtual) ? "no"
 				       : ((virtuality == CallersData::VVirtualDeclared) ? "declared"
 					  : ((virtuality == CallersData::VVirtualDefined) ? "defined"
 					     : "pure")))
 	    << "\",\"file\":\"" << file
-	    << "\",\"line\":\"" << loc.str() << "\"}"
+             << "\"}"
 	    << std::endl;
 }
 
@@ -1845,9 +1855,9 @@ void CallersData::ExtFct::print_cout(std::string sign, Virtuality virtuality, st
 }
 
 CallersData::ExtFct::ExtFct(std::string sign, Virtuality is_virtual, std::string decl)
-  : sign(sign), 
+  : sign(sign),
     virtuality(is_virtual),
-    decl(decl), 
+    decl(decl),
     def("unknownExtFctDef")
 {
   std::cout << "Create external function: " << std::endl;
@@ -1855,9 +1865,9 @@ CallersData::ExtFct::ExtFct(std::string sign, Virtuality is_virtual, std::string
 }
 
 CallersData::ExtFct::ExtFct(std::string sign, Virtuality is_virtual, std::string decl, std::string def)
-  : sign(sign), 
+  : sign(sign),
     virtuality(is_virtual),
-    decl(decl), 
+    decl(decl),
     def(def)
 {
   std::cout << "Create external function: " << std::endl;

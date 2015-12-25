@@ -11,7 +11,7 @@ class A
 public:
   A();
   virtual ~A() {}
-  
+
   int a();
 
   virtual int c() = 0;

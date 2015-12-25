@@ -96,11 +96,14 @@ then
 
     source process_dot_files.sh . analysis/${analysis_type}
 
-    inkscape analysis/${analysis_type}/svg/main.fcg.callees.gen.dot.svg
-    #inkscape analysis/${analysis_type}/svg/c.fcg.callers.gen.dot.svg
-
     source indent_jsonfiles.sh .
     source indent_jsonfiles.sh $callers_json_rootdir
+
+    inkscape analysis/${analysis_type}/svg/main.fcg.callees.gen.dot.svg
+    #inkscape analysis/${analysis_type}/svg/main.fct.callees.gen.dot.svg
+
+    #inkscape analysis/${analysis_type}/svg/c.fcg.callers.gen.dot.svg
+    #inkscape analysis/${analysis_type}/svg/c.fct.callers.gen.dot.svg
 fi
 else
     find . -type f -name "*.gen.json.gz" -exec gunzip {} \;

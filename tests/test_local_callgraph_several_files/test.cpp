@@ -7,21 +7,21 @@
 int main()
 {
   A* a = new C();
-  a->a();
-  B* b = a->get_b();
-  b->b();
-  b->coucou2();
+  // a->a();
+  // B* b = a->get_b();
+  // b->b();
+  // b->coucou2();
   a->c();
   //C* d = new C();
   //::Newly::Added::D* d = new ::Newly::Added::D();
-  C* d = new ::Newly::Added::D();
+  // C* d = new ::Newly::Added::D();
 
-  //assert_callers(d, (D*) null_ptr, );
-  //ACSL++ avec les methodes virtuelles
-  /*@ 
-    @ */
-  d->c();
-  delete d;
+  // //assert_callers(d, (D*) null_ptr, );
+  // //ACSL++ avec les methodes virtuelles
+  // /*@ 
+  //   @ */
+  // d->c();
+  // delete d;
   delete a;
   return 0;
 }

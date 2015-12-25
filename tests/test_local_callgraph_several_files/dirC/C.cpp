@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "C.hpp"
 
-C::C() 
+C::C()
 {
   //c();
 }

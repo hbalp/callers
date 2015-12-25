@@ -1302,6 +1302,7 @@ void CallersData::FctDecl::add_local_caller(std::string caller) const
   locallers->insert(caller);
 }
 
+// TODO: filter cases where the redeclaration is already present in the fct_decl
 void CallersData::FctDecl::add_redeclaration(std::string redef_sign, CallersData::Virtuality redef_virtuality, std::string redef_decl_file, int redef_decl_line) const
 {
   std::string redef_decl_location = redef_decl_file;
@@ -1309,15 +1310,34 @@ void CallersData::FctDecl::add_redeclaration(std::string redef_sign, CallersData
   out << redef_decl_line;
   redef_decl_location += ":";
   redef_decl_location += out.str();
-  
-  std::cout << "Add redeclaration \"" << redef_sign
-	    << "\" to function \"" << sign << "\". " 
-	    << "Function is redefined in file: " << redef_decl_file
-	    << " at line: " << redef_decl_line
-	    << std::endl;
-  
-  ExtFct extfct (redef_sign, redef_virtuality, redef_decl_location);
-  redeclarations->insert(extfct);
+  std::cerr << "Check whether the redeclaration \"" << redef_sign << "\" is already present or not..." << std::endl;
+  std::set<CallersData::ExtFct>::iterator search_result;
+  CallersData::ExtFct searched_redecl(redef_sign, redef_virtuality, redef_decl_location);
+  search_result = redeclarations->find(searched_redecl);
+  if(search_result != redeclarations->end())
+    {
+      std::cout << "Already present redeclaration \"" << redef_sign
+                << "\" of function \"" << sign << "\", so do not add it twice. "
+                << "Function is redefined in file: " << redef_decl_file
+                << " at line: " << redef_decl_line
+                << std::endl;
+    }
+  else
+    {
+      std::cout << "Add redeclaration \"" << redef_sign
+                << "\" to function \"" << sign << "\". "
+                << "Function is redefined in file: " << redef_decl_file
+                << " at line: " << redef_decl_line
+                << std::endl;
+      CallersData::ExtFct redecl (redef_sign, redef_virtuality, redef_decl_location);
+      redeclarations->insert(redecl);
+      search_result = redeclarations->find(searched_redecl);
+      if(search_result != redeclarations->end())
+        {
+          std::cout << "the redeclaration \"" << redef_sign << "\" is well present now !" << std::endl;
+        }
+    }
+  return;
 }
 
 void CallersData::FctDecl::add_definition(std::string fct_sign, std::string def_sign, 

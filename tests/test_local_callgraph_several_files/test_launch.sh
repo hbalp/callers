@@ -2,7 +2,9 @@
 #set -x
 
 #canonical_pwd="/media/sf_users_3u$PWD"
-canonical_pwd="$PWD"
+#canonical_pwd="$PWD"
+canonical_pwd="/net/alpha.sc2.theresis.org/works/$PWD"
+#canonical_pwd="/net/alpha.sc2.theresis.org/works/home/balp/third_parties/llvm/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files"
 
 build_tool="cmake"
 #build_tool="scan-callers"
@@ -90,9 +92,9 @@ then
     source callgraph_to_ecore.sh $callers_json_rootdir
     source callgraph_to_dot.sh $callers_json_rootdir files
 
-    # # generate classes tree from base class A
-    # source classes_depgraph.sh child $canonical_pwd/dirA/A.hpp "A"
-    # source classes_depgraph.sh base $canonical_pwd/dirC/D.hpp ":0:Newly:1:Added:3:D"
+    # generate classes tree from base class A
+    source classes_depgraph.sh child $canonical_pwd/dirA/A.hpp "A"
+    source classes_depgraph.sh base $canonical_pwd/dirC/D.hpp "::Newly::Added::D"
 
     source process_dot_files.sh . analysis/${analysis_type}
 
@@ -101,6 +103,9 @@ then
 
     inkscape analysis/${analysis_type}/svg/main.fcg.callees.gen.dot.svg
     #inkscape analysis/${analysis_type}/svg/main.fct.callees.gen.dot.svg
+
+    #inkscape analysis/${analysis_type}/svg/A.child.classes.gen.dot.svg
+    #inkscape analysis/${analysis_type}/svg/::Newly::Added::D.base.classes.gen.dot.svg
 
     #inkscape analysis/${analysis_type}/svg/c.fcg.callers.gen.dot.svg
     #inkscape analysis/${analysis_type}/svg/c.fct.callers.gen.dot.svg

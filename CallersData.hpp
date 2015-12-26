@@ -54,8 +54,7 @@ namespace CallersData
       std::list<std::string> childrens;
       std::string jsonfilename = "unknownJsonFileName";
       std::set<File> files;
-      //JsonFileWriter js;
-  };
+   };
 
   class Namespace;
   class Record;

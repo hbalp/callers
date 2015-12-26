@@ -27,6 +27,7 @@
 #include <boost/algorithm/string.hpp>
 #endif
 
+#include "assert.h"
 #include "clang/AST/Decl.h"
 #include "CallersConfig.hpp"
 #include "CallersData.hpp"
@@ -80,19 +81,31 @@ CallersData::JsonFileWriter::~JsonFileWriter()
 /***************************************** class Dir ****************************************/
 
 CallersData::Dir::Dir()
-{}
+{
+  assert(0);
+}
 
 CallersData::Dir::Dir(std::string dir, std::string path)
   : dir(dir),
     path(path),
     jsonfilename(path + "/" + dir + "/" + dir + ".dir.callers.gen.json")
 {
-  // files = new std::set<CallersData::File>;
+  // Check whether the path dir does well begins with prefix /tmp/callers
+  std::string root_prefix (CALLERS_ROOTDIR_PREFIX);
+  bool has_prefix = boost::algorithm::contains(path, root_prefix);
+  assert(has_prefix == true);
+  std::string home_prefix ("/tmp/callers/home");
+  has_prefix = boost::algorithm::contains(path, home_prefix);
+  if(has_prefix == true)
+  {
+    std::cerr << "DEBUG: Bad Directory prefix: /tmp/callers/home" << std::cerr;
+    assert(0);
+  }
 }
 
 CallersData::Dir::~Dir()
 {
-  //this->output_json_files();
+
 }
 
 std::string CallersData::Dir::fullPath()
@@ -142,7 +155,7 @@ std::set<CallersData::File>::iterator CallersData::Dir::create_or_get_file(std::
 
 void CallersData::Dir::output_json_files()
 {
-  std::set<CallersData::File>::const_iterator f;  
+  std::set<CallersData::File>::const_iterator f;
 
   for(f=files.begin(); f!=files.end(); ++f)
     {
@@ -175,10 +188,10 @@ void CallersData::Dir::output_json_dir()
 
 /***************************************** class File ****************************************/
 
-CallersData::File::File(std::string file, std::string path) 
+CallersData::File::File(std::string file, std::string path)
   : file(file),
     path(path),
-    jsonfilename("/tmp/callers" + path + "/" + file + ".file.callers.gen.json")
+    jsonfilename(CALLERS_ROOTDIR_PREFIX + path + "/" + file + ".file.callers.gen.json")
 {
   namespaces = new std::set<CallersData::Namespace>;
   declared = new std::set<CallersData::FctDecl>;
@@ -187,7 +200,7 @@ CallersData::File::File(std::string file, std::string path)
   calls = new std::set<CallersData::FctCall>;
 
   // Check whether the related callers'analysis path does already exists or not in the filesystem
-  std::string dirpath = "/tmp/callers" + path;
+  std::string dirpath = CALLERS_ROOTDIR_PREFIX + path;
   if(!(boost::filesystem::exists(dirpath)))
   {
     std::cout << "Creating tmp directory: " << dirpath << std::endl;
@@ -389,7 +402,7 @@ std::string CallersData::File::fullPath() const
 std::set<CallersData::Namespace>::iterator 
 CallersData::File::create_or_get_namespace(std::string qualifiers, const clang::NamespaceDecl* nspc)
 {
-  std::cerr << "Check whether the namespace \"" << qualifiers << "\" is already created or not..." << std::endl;
+  // std::cout << "CallersData::DEBUG: Check whether the namespace \"" << qualifiers << "\" is already created or not..." << std::endl;
   std::set<CallersData::Namespace>::iterator search_result;
   CallersData::Namespace searched_nspc(qualifiers);
   search_result = namespaces->find(searched_nspc);
@@ -403,9 +416,9 @@ CallersData::File::create_or_get_namespace(std::string qualifiers, const clang::
       this->add_namespace(c_namespace);
       search_result = namespaces->find(searched_nspc);
       if(search_result != namespaces->end())
-	{
-	  std::cout << "The namespace \"" << qualifiers << "\" is well present now !" << std::endl;
-	}
+        {
+          std::cout << "The namespace \"" << qualifiers << "\" is well present now !" << std::endl;
+        }
     }
   return search_result;
 }
@@ -505,7 +518,7 @@ void CallersData::File::add_defined_function(CallersData::FctDef* fct) const
 void CallersData::File::add_defined_function(std::string fct_sign, Virtuality fct_virtuality,
 					     std::string fct_file, int fct_line) const
 {
-  std::cerr << "Create function definition \"" << fct_sign
+  std::cout << "Create function definition \"" << fct_sign
 	    << "\" located in file \"" << fct_file << ":" << fct_line << "\"" << std::endl;
   FctDef fct(fct_sign, fct_virtuality, fct_file, fct_line);
   this->add_defined_function(&fct);
@@ -793,8 +806,7 @@ bool CallersData::operator< (const CallersData::File& file1, const CallersData::
 
 void CallersData::Namespace::allocate()
 {
-  // namespaces = new std::set<CallersData::Namespace>;
-  // records = new std::set<CallersData::Record>;
+
 }
 
 CallersData::Namespace::Namespace(std::string qualifier)
@@ -804,7 +816,7 @@ CallersData::Namespace::Namespace(std::string qualifier)
   std::cout << "Create namespace: " << std::endl;
   std::vector<std::string> namespaces;
   boost::algorithm::split_regex(namespaces, qualifier, boost::regex("::"));
-  std::vector<std::string>::iterator nspc = namespaces.end(); 
+  std::vector<std::string>::iterator nspc = namespaces.end();
   name = *nspc;
   this->print_cout();
 }
@@ -1310,7 +1322,7 @@ void CallersData::FctDecl::add_redeclaration(std::string redef_sign, CallersData
   out << redef_decl_line;
   redef_decl_location += ":";
   redef_decl_location += out.str();
-  std::cerr << "Check whether the redeclaration \"" << redef_sign << "\" is already present or not..." << std::endl;
+  // std::cout << "Check whether the redeclaration \"" << redef_sign << "\" is already present or not..." << std::endl;
   std::set<CallersData::ExtFct>::iterator search_result;
   CallersData::ExtFct searched_redecl(redef_sign, redef_virtuality, redef_decl_location);
   search_result = redeclarations->find(searched_redecl);

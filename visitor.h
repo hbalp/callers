@@ -13,6 +13,7 @@
 #define CLANG_VisitorH
 
 #include "libgen.h"
+#include "CallersConfig.hpp"
 #include "CallersData.hpp"
 #include "clang/Basic/Version.h"
 
@@ -131,9 +132,9 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
 	 std::ostream& sout, 
 	 clang::CompilerInstance& compilerInstance)
    : inputFile(in), osOut(sout), 
-    otherJsonFiles(),
-    ciCompilerInstance(compilerInstance), 
-    pfdParent(nullptr), psSources(nullptr)
+     otherJsonFiles("callers", CALLERS_ROOTDIR_PREFIX),
+     ciCompilerInstance(compilerInstance), 
+     pfdParent(nullptr), psSources(nullptr)
   {
     currentJsonFile = otherJsonFiles.create_or_get_file(file, path);
   }

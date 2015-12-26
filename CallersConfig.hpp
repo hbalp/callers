@@ -6,7 +6,7 @@
 
 //
 // Description:
-//   Callers's plugin c++ data structure 
+//   Callers's plugin c++ data structure
 //   to be used with the ATDgen data structure defined in file callgraph.atd
 //   for generating the callers's json files.
 //
@@ -24,3 +24,5 @@
 #define CALLERS_TYPE_FCT_DEF "http://com.thalesgroup.fr/tcs/callers/1.0.0#//fct_def"
 
 #define CALLERS_ERROR_UNSUPPORTED_CASE 17
+
+#define CALLERS_ROOTDIR_PREFIX "/tmp/callers"

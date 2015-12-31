@@ -1,6 +1,9 @@
 #!/bin/bash
 #set -x
 
+#canonical_pwd="$PWD"
+canonical_pwd="/net/alpha.sc2.theresis.org/works$PWD"
+
 build_tool="cmake"
 #build_tool="scan-callers"
 #build_tool="scan-build"
@@ -39,29 +42,29 @@ then
     #read_defined_symbols.native defined_symbols.json file.callers.gen.json
 
     # add declarations to json files
-    source add_declarations.sh `pwd` $includes_directories
+    source add_declarations.sh $callers_json_rootdir
 
     # add definitions to json files
-    source add_definitions.sh `pwd` $includes_directories
+    source add_definitions.sh $callers_json_rootdir
 
     # add extcallees to json files
-    source add_extcallees.sh $callers_json_rootdir defined_symbols.gen.json
+    source add_extcallees.sh $callers_json_rootdir
 
     # add extcallers to json files
     source add_extcallers.sh $callers_json_rootdir
 
     # add inherited to json files
-    source add_inherited.sh .
+    source add_inherited.sh $callers_json_rootdir
 
     # add virtual function calls to json files
-    source add_virtual_function_calls.sh `pwd`
+    source add_virtual_function_calls.sh $callers_json_rootdir
 
     # generate callee's tree from main entry point
-    source extract_fcg.sh callees `pwd`/test_local_callcycle.c "main" "int main()" files
+    source extract_fcg.sh callees $canonical_pwd/test_local_callcycle.c "main" "int main()" files
 
     # generate caller's tree from main entry point
     #source extract_fcg.sh callers `pwd`/test_local_callcycle.c "main" "int main()"
-    source extract_fcg.sh callers `pwd`/test_local_callcycle.c "c" "int c()"
+    source extract_fcg.sh callers $canonical_pwd/test_local_callcycle.c "c" "int c()"
     #source extract_fcg.sh callers `pwd`/test_local_callcycle.c "a" "void a()"
     source extract_fcg.sh callers /usr/include/stdio.h "printf" "printf"
 
@@ -75,9 +78,9 @@ then
     #source indent_jsonfiles.sh .
     source indent_jsonfiles.sh $callers_json_rootdir
 
-    #inkscape analysis/callers/svg/main.fcg.callees.gen.dot.svg
+    inkscape analysis/callers/svg/main.fcg.callees.gen.dot.svg
     #inkscape analysis/callers/svg/main.fcg.callers.gen.dot.svg
-    inkscape analysis/callers/svg/printf.fcg.callers.gen.dot.svg
+    #inkscape analysis/callers/svg/printf.fcg.callers.gen.dot.svg
     #inkscape analysis/callers/svg/c.fcg.callers.gen.dot.svg
     #inkscape analysis/callers/svg/a.fcg.callers.gen.dot.svg
 

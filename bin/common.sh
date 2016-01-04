@@ -16,9 +16,9 @@ function init_callers_json_rootdir ()
 {
     callers_json_rootdir=$1
     echo "Init callers_json_rootdir: $callers_json_rootdir"
-    mkdir -p ${callers_json_rootdir}/home
     # TO BE EDITED
-    ln -sf ${callers_json_rootdir}/net/alpha.sc2.theresis.org/works/home/$user ${callers_json_rootdir}/home/$user
+    mkdir -p ${callers_json_rootdir}/works/home
+    ln -sf ${callers_json_rootdir}/net/alpha.sc2.theresis.org/works/home/$user ${callers_json_rootdir}/works/home/$user
 }
 ################################################################################
 

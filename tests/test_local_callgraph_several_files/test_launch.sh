@@ -3,7 +3,7 @@
 
 #canonical_pwd="/media/sf_users_3u$PWD"
 #canonical_pwd="$PWD"
-canonical_pwd="/net/alpha.sc2.theresis.org/works$PWD"
+canonical_pwd="/net/alpha.sc2.theresis.org$PWD"
 #canonical_pwd="/net/alpha.sc2.theresis.org/works/home/balp/third_parties/llvm/tools/clang/tools/extra/callers/tests/test_local_callgraph_several_files"
 
 build_tool="cmake"
@@ -22,7 +22,7 @@ test_dir=$(cd `dirname "${BASH_SOURCE[0]}"` && pwd)
 launch_scan_build=`which ${bin_dir}/launch_analysis.sh`
 
 # clean test
-source clean.sh
+source test_clean.sh
 
 source $common
 source $launch_scan_build

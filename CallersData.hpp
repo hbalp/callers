@@ -72,12 +72,12 @@ namespace CallersData
       File(const CallersData::File& copy_from_me);
       ~File();
       std::string fullPath () const;
-      void parse_json_file() const;
+      void parse_json_file(CallersData::Dir *files) const;
       std::set<CallersData::Namespace>::iterator create_or_get_namespace(std::string qualifiers, const clang::NamespaceDecl* nspc);
       //void add_declared_function(std::string sign, Virtuality virtuality, std::string file, int line) const;
-      void add_declared_function(FctDecl* fct, Dir *context) const;
-      void add_defined_function(std::string sign, Virtuality virtuality, std::string file, int line) const;
-      void add_defined_function(FctDef* fct) const;
+      void add_declared_function(FctDecl* fct, std::string filepath, Dir *context) const;
+      void add_defined_function(std::string sign, Virtuality virtuality, std::string file, int line, std::string filepath) const;
+      void add_defined_function(FctDef* fct, std::string filepath) const;
       void add_namespace(Namespace nspc) const;
       void add_record(Record record) const;
       void add_record(std::string name, clang::TagTypeKind kind, int begin, int end) const;
@@ -91,6 +91,7 @@ namespace CallersData
       std::set<FctCall> *calls;
       std::string file = "unknownFileName";
       std::string path = "unknownFilePath";
+      std::string fullpath = "unknownFilePath";
       std::string jsonfilename = "unknownJsonFileName";
   };
 

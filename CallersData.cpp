@@ -34,12 +34,80 @@
 
 extern std::string getCanonicalAbsolutePath(const std::string& path);
 
+/***************************************** shared utilities ****************************************/
+
+const std::string root_prefix(CALLERS_ROOTDIR_PREFIX);
+
+// return true if the root dir prefix is well present and false otherwise
+bool has_rootdir_prefix(std::string path)
+{
+  // Check whether the path does well begins with root dir prefix
+  bool has_prefix = boost::algorithm::contains(path, root_prefix);
+  return has_prefix;
+}
+
+// stops the execution if the input path does not begins with the expected root dir prefix
+void assert_rootdir_prefix(std::string path)
+{
+  // Check whether the path does well begins with root dir prefix
+  bool has_prefix = has_rootdir_prefix(path);
+  assert(has_prefix == true);
+  return;
+}
+
+// add the root dir prefix to the input path when it is not present
+// similar to the ocaml shared function check_root_dir in file common.ml of the callgraph plugin
+std::string check_rootdir_prefix(std::string path)
+{
+  // Check whether the path dir does well begins with root dir prefix
+  bool has_prefix = has_rootdir_prefix(path);
+  if( has_prefix )
+    {
+      // the post-condition is ok, so nothing to do
+      return path;
+    }
+  else
+    // add the root dir prefix to the input path
+    {
+      std::cout << "check_root_dir: adds the rootdir prefix \"" << root_prefix << "\" to the path \"" << path << "\"" << std::endl;
+      path = root_prefix + path;
+      return path;
+    }
+}
+
+// remove the root dir prefix when present in the input path
+// similar to the ocaml shared function filter_root_dir in file common.ml of the callgraph plugin
+std::string filter_rootdir_prefix(std::string path)
+{
+  // Check whether the path dir does well begins with root dir prefix
+  bool has_prefix = has_rootdir_prefix(path);
+  if( has_prefix )
+    // remove the rootdir prefix from the input path
+    {
+      std::vector<std::string> parts;
+      boost::algorithm::split_regex(parts, path, boost::regex(root_prefix));
+      std::vector<std::string>::iterator part = parts.end();
+      std::string filtered_path = *part;
+      std::cout << "check_root_dir: removes the rootdir prefix \"" << root_prefix << "\" from the path \"" << path << "\": " << filtered_path << std::endl;
+      return filtered_path;
+    }
+  else
+    {
+      // the post-condition is ok, so nothing to do
+      return path;
+    }
+}
+
 /***************************************** class JsonFileWriter ****************************************/
 
 CallersData::JsonFileWriter::JsonFileWriter(std::string jsonFileName)
   : fileName(jsonFileName), out()
-{ 
+{
   std::cout << "Try to open file \"" << jsonFileName << "\" in write mode..." << std::endl;
+
+  // Check whether the input path does well begins with the expected rootdir path
+  assert_rootdir_prefix(jsonFileName);
+
   bool opened = false;
   do
     {
@@ -61,9 +129,9 @@ CallersData::JsonFileWriter::JsonFileWriter(std::string jsonFileName)
   while( opened == false );
 }
 
-CallersData::JsonFileWriter::~JsonFileWriter() 
+CallersData::JsonFileWriter::~JsonFileWriter()
 {
-  std::cout << "Close file \"" << fileName << "\"." << std::endl;  
+  std::cout << "Close file \"" << fileName << "\"." << std::endl;
   out.close();
   if(out.fail())
     {
@@ -90,12 +158,10 @@ CallersData::Dir::Dir(std::string dir, std::string path)
     path(path),
     jsonfilename(path + "/" + dir + "/" + dir + ".dir.callers.gen.json")
 {
-  // Check whether the path dir does well begins with prefix /tmp/callers
-  std::string root_prefix (CALLERS_ROOTDIR_PREFIX);
-  bool has_prefix = boost::algorithm::contains(path, root_prefix);
-  assert(has_prefix == true);
+  assert_rootdir_prefix(path);
+
   std::string home_prefix ("/tmp/callers/home");
-  has_prefix = boost::algorithm::contains(path, home_prefix);
+  bool has_prefix = boost::algorithm::contains(path, home_prefix);
   if(has_prefix == true)
   {
     std::cerr << "DEBUG: Bad Directory prefix: /tmp/callers/home" << std::cerr;
@@ -142,7 +208,7 @@ std::set<CallersData::File>::iterator CallersData::Dir::create_or_get_file(std::
       //std::cout << "The file \"" << filepath << "\" is not yet opened." << std::endl;
       std::cout << "Tries to open and parse the file \"" << filepath << "\"..." << std::endl;
       CallersData::File file(filename, dirpath);
-      file.parse_json_file();
+      file.parse_json_file(this);
       this->add_file(file);
       search_result = files.find(searched_file);
       if(search_result != files.end())
@@ -191,6 +257,7 @@ void CallersData::Dir::output_json_dir()
 CallersData::File::File(std::string file, std::string path)
   : file(file),
     path(path),
+    fullpath(CALLERS_ROOTDIR_PREFIX + path),
     jsonfilename(CALLERS_ROOTDIR_PREFIX + path + "/" + file + ".file.callers.gen.json")
 {
   namespaces = new std::set<CallersData::Namespace>;
@@ -200,11 +267,10 @@ CallersData::File::File(std::string file, std::string path)
   calls = new std::set<CallersData::FctCall>;
 
   // Check whether the related callers'analysis path does already exists or not in the filesystem
-  std::string dirpath = CALLERS_ROOTDIR_PREFIX + path;
-  if(!(boost::filesystem::exists(dirpath)))
+  if(!(boost::filesystem::exists(fullpath)))
   {
-    std::cout << "Creating tmp directory: " << dirpath << std::endl;
-    boost::filesystem::create_directories(dirpath);
+    std::cout << "Creating tmp directory: " << fullpath << std::endl;
+    boost::filesystem::create_directories(fullpath);
   }
 }
 
@@ -222,6 +288,7 @@ CallersData::File::File(const CallersData::File& copy_from_me)
 {
   file = copy_from_me.file;
   path = copy_from_me.path;
+  fullpath = copy_from_me.fullpath;
   jsonfilename = copy_from_me.jsonfilename;
 
   namespaces = new std::set<CallersData::Namespace>;
@@ -232,24 +299,24 @@ CallersData::File::File(const CallersData::File& copy_from_me)
 
   std::cout << "File Copy Constructor of file \"" << file
 	    << "\" defining " << copy_from_me.records->size()
-	    << " classes, " << copy_from_me.defined->size() << " functions" 
-	    << " and " << copy_from_me.calls->size() << " function calls" 
+	    << " classes, " << copy_from_me.defined->size() << " functions"
+	    << " and " << copy_from_me.calls->size() << " function calls"
 	    << std::endl;
-  
+
   // copy namespaces definitions
   std::set<Namespace>::const_iterator n;
   for(n=copy_from_me.namespaces->begin(); n!=copy_from_me.namespaces->end(); ++n)
     {
       namespaces->insert(*n);
     }
-  
+
   // copy records definitions
   std::set<Record>::const_iterator r;
   for(r=copy_from_me.records->begin(); r!=copy_from_me.records->end(); ++r)
     {
       records->insert(*r);
     }
-  
+
   // copy function declarations
   std::set<FctDecl>::const_iterator d;
   for(d=copy_from_me.declared->begin(); d!=copy_from_me.declared->end(); ++d)
@@ -272,11 +339,13 @@ CallersData::File::File(const CallersData::File& copy_from_me)
     }
 }
 
-void CallersData::File::parse_json_file() const
+void CallersData::File::parse_json_file(CallersData::Dir *files) const
 {
   /* Check whether the related json file does already exists or not. */
   //std::string jsonfilename = this->js.fileName;
-  std::string jsonfilename = this->path + "/" + file + ".file.callers.gen.json";
+  std::string jsonfilename = this->fullpath + "/" + file + ".file.callers.gen.json";
+  std::cout << "Parsing json file \"" << jsonfilename << "\"..." << std::endl;
+  assert_rootdir_prefix(jsonfilename);
   FILE* pFile = fopen(jsonfilename.c_str(), "rb");
   // Always check to see if file opening succeeded
   if (pFile == NULL)
@@ -309,78 +378,84 @@ void CallersData::File::parse_json_file() const
 	  std::cout << "file: " << filename << std::endl;
 	  std::cout << "path: " << dirpath << std::endl;
 
-	  const rapidjson::Value& declared = file["declared"];
-	  if(declared.IsArray())
+	  if(file.HasMember("declared"))
           {
-            // rapidjson uses SizeType instead of size_t.
-            for (rapidjson::SizeType s = 0; s < declared.Size(); s++)
-              {
-                const rapidjson::Value& symb = declared[s];
-                const rapidjson::Value& sign = symb["sign"];
-                const rapidjson::Value& line = symb["line"];
-                std::string symbol = sign.GetString();
+            const rapidjson::Value& declared = file["declared"];
+            if(declared.IsArray())
+            {
+              // rapidjson uses SizeType instead of size_t.
+              for (rapidjson::SizeType s = 0; s < declared.Size(); s++)
+                {
+                  const rapidjson::Value& symb = declared[s];
+                  const rapidjson::Value& sign = symb["sign"];
+                  const rapidjson::Value& line = symb["line"];
+                  std::string symbol = sign.GetString();
 
-                CallersData::Virtuality virtuality;
-                if(symb.HasMember("virtuality"))
-                  {
-                    const rapidjson::Value& virtuality_value = symb["virtuality"];
-                    std::string virtuality_text = virtuality_value.GetString();
-                    virtuality =
-                      ((virtuality_text == "declared") ? VVirtualDeclared
-                       : (virtuality_text == "defined") ? VVirtualDefined
-                       : ((virtuality_text == "pure") ? VVirtualPure : VNoVirtual));
-                  }
-                else
-                  {
-                    virtuality = VNoVirtual;
-                  }
+                  CallersData::Virtuality virtuality;
+                  if(symb.HasMember("virtuality"))
+                    {
+                      const rapidjson::Value& virtuality_value = symb["virtuality"];
+                      std::string virtuality_text = virtuality_value.GetString();
+                      virtuality =
+                        ((virtuality_text == "declared") ? VVirtualDeclared
+                         : (virtuality_text == "defined") ? VVirtualDefined
+                         : ((virtuality_text == "pure") ? VVirtualPure : VNoVirtual));
+                    }
+                  else
+                    {
+                      virtuality = VNoVirtual;
+                    }
 
-                int pos = line.GetInt();
-                std::ostringstream spos;
-                spos << pos;
-                std::string location(filepath + ":" + spos.str());
-                //symbol_location.insert(SymbLoc::value_type(symbol, location));
-                CallersData::FctDecl fctDecl(symbol, virtuality, this->file, pos);
-                this->add_declared_function(&fctDecl, NULL);
-                std::cout << "Parsed declared function s[" << s << "]:\"" << symbol << "\"" << std::endl;
-              }
+                  int pos = line.GetInt();
+                  std::ostringstream spos;
+                  spos << pos;
+                  std::string location(filepath + ":" + spos.str());
+                  //symbol_location.insert(SymbLoc::value_type(symbol, location));
+                  CallersData::FctDecl fctDecl(symbol, virtuality, this->file, pos);
+                  this->add_declared_function(&fctDecl, filepath, files);
+                  std::cout << "Parsed declared function s[" << s << "]:\"" << symbol << "\"" << std::endl;
+                }
+            }
           }
 
-	  // rapidjson uses SizeType instead of size_t.
-	  const rapidjson::Value& defined = file["defined"];
-	  if(defined.IsArray())
+	  if(file.HasMember("defined"))
           {
             // rapidjson uses SizeType instead of size_t.
-            for (rapidjson::SizeType s = 0; s < defined.Size(); s++)
-              {
-                const rapidjson::Value& symb = defined[s];
-                const rapidjson::Value& sign = symb["sign"];
-                const rapidjson::Value& line = symb["line"];
-                std::string symbol = sign.GetString();
+            const rapidjson::Value& defined = file["defined"];
+            if(defined.IsArray())
+            {
+              // rapidjson uses SizeType instead of size_t.
+              for (rapidjson::SizeType s = 0; s < defined.Size(); s++)
+                {
+                  const rapidjson::Value& symb = defined[s];
+                  const rapidjson::Value& sign = symb["sign"];
+                  const rapidjson::Value& line = symb["line"];
+                  std::string symbol = sign.GetString();
 
-                CallersData::Virtuality virtuality;
-                if(symb.HasMember("virtuality"))
-                  {
-                    const rapidjson::Value& virtuality_value = symb["virtuality"];
-                    std::string virtuality_text = virtuality_value.GetString();
-                    virtuality =
-                      ((virtuality_text == "declared") ? VVirtualDeclared
-                       : (virtuality_text == "defined") ? VVirtualDefined
-                       : ((virtuality_text == "pure") ? VVirtualPure : VNoVirtual));
-                  }
-                else
-                  {
-                    virtuality = VNoVirtual;
-                  }
+                  CallersData::Virtuality virtuality;
+                  if(symb.HasMember("virtuality"))
+                    {
+                      const rapidjson::Value& virtuality_value = symb["virtuality"];
+                      std::string virtuality_text = virtuality_value.GetString();
+                      virtuality =
+                        ((virtuality_text == "declared") ? VVirtualDeclared
+                         : (virtuality_text == "defined") ? VVirtualDefined
+                         : ((virtuality_text == "pure") ? VVirtualPure : VNoVirtual));
+                    }
+                  else
+                    {
+                      virtuality = VNoVirtual;
+                    }
 
-                int pos = line.GetInt();
-                std::ostringstream spos;
-                spos << pos;
-                std::string location(filepath + ":" + spos.str());
-                //symbol_location.insert(SymbLoc::value_type(symbol, location));
-                this->add_defined_function(symbol, virtuality, this->file, pos);
-                std::cout << "Parsed symbol s[" << s << "]:\"" << symbol << "\"" << std::endl;
-              }
+                  int pos = line.GetInt();
+                  std::ostringstream spos;
+                  spos << pos;
+                  std::string location(filepath + ":" + spos.str());
+                  //symbol_location.insert(SymbLoc::value_type(symbol, location));
+                  this->add_defined_function(symbol, virtuality, this->file, pos, filepath);
+                  std::cout << "Parsed symbol s[" << s << "]:\"" << symbol << "\"" << std::endl;
+                }
+            }
           }
 	}
       else
@@ -399,7 +474,7 @@ std::string CallersData::File::fullPath() const
   return fullPath;
 }
 
-std::set<CallersData::Namespace>::iterator 
+std::set<CallersData::Namespace>::iterator
 CallersData::File::create_or_get_namespace(std::string qualifiers, const clang::NamespaceDecl* nspc)
 {
   // std::cout << "CallersData::DEBUG: Check whether the namespace \"" << qualifiers << "\" is already created or not..." << std::endl;
@@ -455,14 +530,14 @@ void CallersData::File::add_record(std::string name, clang::TagTypeKind kind, in
 	    << ":" << begin << ":" << end << "\"" << std::endl;
 }
 
-void CallersData::File::add_declared_function(CallersData::FctDecl* fct, CallersData::Dir *files) const
+void CallersData::File::add_declared_function(CallersData::FctDecl* fct, std::string filepath, CallersData::Dir *files) const
 {
   std::cout << "Register function \"" << fct->sign
 	    << "\" declared in file \"" << fct->file << ":"
 	    << fct->line << "\"" << std::endl;
 
   // Check whether the declared function belongs to the current file.
-  if( fct->file == this->fullPath() )
+  if( filepath == this->fullPath() )
     // the declared function belongs to the current file
     {
       std::cout << "The declared function belongs to the current file, so we add it directly\n" << std::endl;
@@ -480,7 +555,7 @@ void CallersData::File::add_declared_function(CallersData::FctDecl* fct, Callers
       std::string fct_decl_dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
       assert(files != NULL);
       std::set<CallersData::File>::iterator fct_decl_file = files->create_or_get_file(fct_decl_basename, fct_decl_dirpath);
-      fct_decl_file->add_declared_function(fct, NULL);
+      fct_decl_file->add_declared_function(fct, filepath, files);
     }
 }
 
@@ -492,14 +567,14 @@ void CallersData::File::add_declared_function(std::string fct_sign, Virtuality f
 }
 */
 
-void CallersData::File::add_defined_function(CallersData::FctDef* fct) const
+void CallersData::File::add_defined_function(CallersData::FctDef* fct, std::string filepath) const
 {
   std::cout << "Register function \"" << fct->sign
 	    << "\" defined in file \"" << fct->file << ":"
 	    << fct->line << "\"" << std::endl;
 
   // Check whether the defined function belongs to the current file.
-  if( fct->file == this->fullPath() )
+  if( filepath == this->fullPath() )
     // the defined function belongs to the current file
     {
       std::cout << "The defined function belongs to the current file, so we add it directly\n" << std::endl;
@@ -516,18 +591,18 @@ void CallersData::File::add_defined_function(CallersData::FctDef* fct) const
 }
 
 void CallersData::File::add_defined_function(std::string fct_sign, Virtuality fct_virtuality,
-					     std::string fct_file, int fct_line) const
+					     std::string fct_file, int fct_line, std::string fct_filepath) const
 {
   std::cout << "Create function definition \"" << fct_sign
 	    << "\" located in file \"" << fct_file << ":" << fct_line << "\"" << std::endl;
   FctDef fct(fct_sign, fct_virtuality, fct_file, fct_line);
-  this->add_defined_function(&fct);
+  this->add_defined_function(&fct, fct_filepath);
 }
 
 void
 CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir *files) const
 {
-  // std::cerr << "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii" << std::endl; 
+  // std::cerr << "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii" << std::endl;
   std::cout << "Register function call from caller \"" << fc->caller_file << ":" << fc->caller_sign
             << "\" to callee \"" << fc->callee_decl_file << ":" << fc->callee_sign
 	    << "\" in file \"" << this->fullPath() << "\"" << std::endl;
@@ -562,7 +637,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
       std::cout << "The caller function belongs to the current file" << std::endl;
 
       // adds the caller function to the defined functions of the current file
-      add_defined_function(fc->caller_sign, fc->caller_virtuality, fc->caller_file, fc->caller_line);
+      add_defined_function(fc->caller_sign, fc->caller_virtuality, fc->caller_file, fc->caller_line, fc->caller_file);
       // get a reference to the related defined function
       CallersData::FctDef caller_fct(fc->caller_sign, fc->caller_virtuality, fc->caller_file, fc->caller_line);
       caller = defined->find(caller_fct);
@@ -578,7 +653,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 
 	  // adds the callee function to the declared functions of the current file
           CallersData::FctDecl fctDecl(fc->callee_sign, fc->callee_virtuality, fc->callee_decl_file, fc->callee_decl_line);
-          this->add_declared_function(&fctDecl, NULL);
+          this->add_declared_function(&fctDecl, fc->callee_decl_file, files);
 
 	  // get a reference to the related declared function
 	  CallersData::FctDecl callee_fct(fc->callee_sign, fc->callee_virtuality, fc->callee_decl_file, fc->callee_decl_line);
@@ -624,7 +699,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
       // CallersData::File caller_file(caller_basename, caller_dirpath);
       // caller_file.parse_json_file();
       CallersData::FctDef caller_def( fc->caller_sign, fc->caller_virtuality, fc->caller_file, fc->caller_line);
-      caller_file->add_defined_function(&caller_def);
+      caller_file->add_defined_function(&caller_def, fc->caller_file);
       // get a reference to the related defined function
       caller = caller_file->defined->find(caller_def);
       // ensure caller has really been found
@@ -639,7 +714,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 
 	  // adds the callee function to the declared functions of the current file
           CallersData::FctDecl fctDecl(fc->callee_sign, fc->callee_virtuality, fc->callee_decl_file, fc->callee_decl_line);
-	  add_declared_function(&fctDecl, NULL);
+	  add_declared_function(&fctDecl, fc->callee_decl_file, files);
 
 	  // get a reference to the related defined function
 	  CallersData::FctDecl callee_fct(fc->callee_sign, fc->callee_virtuality, fc->callee_decl_file, fc->callee_decl_line);
@@ -668,7 +743,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 	  //CallersData::File callee_file(callee_basename, callee_dirpath);
 	  //callee_file.parse_json_file();
 	  CallersData::FctDecl callee_decl( fc->callee_sign, fc->callee_virtuality, fc->callee_decl_file, fc->callee_decl_line);
-	  callee_file->add_declared_function(&callee_decl, files);
+	  callee_file->add_declared_function(&callee_decl, fc->callee_decl_file, files);
 
 	  // get a reference to the related defined function
 	  callee = callee_file->declared->find(callee_decl);
@@ -1520,8 +1595,8 @@ void CallersData::FctDecl::output_json_desc(std::ofstream &js) const
   out << line;
   js //<< "{\"eClass\":\"" << CALLERS_TYPE_FCT_DECL << "\", \"sign\": \"" << sign
      << "{\"sign\": \"" << sign
-     << "\", \"line\": \"" << out.str()
-     << "\", \"virtuality\": \""
+     << "\", \"line\": " << out.str()
+     << ", \"virtuality\": \""
      << ((virtuality == VNoVirtual) ? "no"
 	 : ((virtuality == VVirtualDeclared) ? "declared"
 	    : ((virtuality == VVirtualDefined) ? "defined"
@@ -1801,8 +1876,8 @@ void CallersData::FctDef::output_json_desc(std::ofstream &js) const
   out << line;
   js //<< "{\"eClass\":\"" << CALLERS_TYPE_FCT_DEF << "\", \"sign\": \"" << sign
      << "{\"sign\": \"" << sign
-     << "\", \"line\": \"" << out.str()
-     << "\", \"virtuality\": \""
+     << "\", \"line\": " << out.str()
+     << ", \"virtuality\": \""
      << ((virtuality == VNoVirtual) ? "no"
 	 : ((virtuality == VVirtualDeclared) ? "declared"
 	    : ((virtuality == VVirtualDefined) ? "defined"

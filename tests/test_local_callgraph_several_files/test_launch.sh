@@ -82,27 +82,31 @@ then
     source add_virtual_function_calls.sh $callers_json_rootdir
 
     # generate callee's tree from main entry point
-    # source extract_fcg.sh callees $canonical_pwd/test.cpp "main" "int main()" files
-    source extract_fcg.sh callees ${canonical_pwd}/test.cpp "main" "int main()" files
+    # source extract_fcg.sh callees "$canonical_pwd/test.cpp" "main" "int main()" files
+    source extract_fcg.sh callees "${canonical_pwd}/test.cpp" "main" "int main()" files
 
     # generate caller's tree from main entry point
-    # source extract_fcg.sh callers ${canonical_pwd}/dirB/B.cpp "c" "int c()" files
-    #source extract_fcg.sh callers ${canonical_pwd}/dirB/B.cpp "c" "int c()" files
+    # source extract_fcg.sh callers "${canonical_pwd}/dirB/B.cpp" "c" "int c()" files
+    # source extract_fcg.sh callers ${canonical_pwd}/dirB/B.hpp "c" "int c()" files
+    source extract_fcg.sh callers "/usr/include/stdio.h" "printf" "printf" files
+
+    # source extract_fcg.sh c2c "$canonical_pwd/dirA/A.cpp" "A_a" "int A::a()" "/usr/include/stdio.h" "printf" "printf" files
 
     source callgraph_to_ecore.sh $callers_json_rootdir
-    source callgraph_to_dot.sh $callers_json_rootdir files
+#    source callgraph_to_dot.sh $callers_json_rootdir files
+    source callgraph_to_dot.sh $callers_json_rootdir
 
     # generate classes tree from base class A
-    source classes_depgraph.sh child $canonical_pwd/dirA/A.hpp "A"
-    source classes_depgraph.sh base $canonical_pwd/dirC/D.hpp "::Newly::Added::D"
+    source classes_depgraph.sh child "$canonical_pwd/dirA/A.hpp" "A"
+    source classes_depgraph.sh base "$canonical_pwd/dirC/D.hpp" "::Newly::Added::D"
 
     source process_dot_files.sh . analysis/${analysis_type}
 
-    source indent_jsonfiles.sh .
+    #source indent_jsonfiles.sh .
     source indent_jsonfiles.sh $callers_json_rootdir
 
     inkscape analysis/${analysis_type}/svg/main.fcg.callees.gen.dot.svg
-    #inkscape analysis/${analysis_type}/svg/main.fct.callees.gen.dot.svg
+    #inkscape analysis/${analysis_type}/svg/printf.fcg.callees.gen.dot.svg
 
     #inkscape analysis/${analysis_type}/svg/A.child.classes.gen.dot.svg
     #inkscape analysis/${analysis_type}/svg/::Newly::Added::D.base.classes.gen.dot.svg

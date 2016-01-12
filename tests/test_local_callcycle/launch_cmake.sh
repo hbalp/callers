@@ -2,7 +2,7 @@
 #set -x
 
 #canonical_pwd="$PWD"
-canonical_pwd="/net/alpha.sc2.theresis.org/works$PWD"
+canonical_pwd="/net/alpha.sc2.theresis.org$PWD"
 
 build_tool="cmake"
 #build_tool="scan-callers"
@@ -62,11 +62,11 @@ then
     # generate callee's tree from main entry point
     source extract_fcg.sh callees $canonical_pwd/test_local_callcycle.c "main" "int main()" files
 
-    # generate caller's tree from main entry point
-    #source extract_fcg.sh callers `pwd`/test_local_callcycle.c "main" "int main()"
-    source extract_fcg.sh callers $canonical_pwd/test_local_callcycle.c "c" "int c()"
-    #source extract_fcg.sh callers `pwd`/test_local_callcycle.c "a" "void a()"
-    source extract_fcg.sh callers /usr/include/stdio.h "printf" "printf"
+    # # generate caller's tree from main entry point
+    # #source extract_fcg.sh callers `pwd`/test_local_callcycle.c "main" "int main()"
+    # source extract_fcg.sh callers $canonical_pwd/test_local_callcycle.c "c" "int c()"
+    # #source extract_fcg.sh callers `pwd`/test_local_callcycle.c "a" "void a()"
+    # source extract_fcg.sh callers /usr/include/stdio.h "printf" "printf"
 
     source callgraph_to_ecore.sh $callers_json_rootdir
 

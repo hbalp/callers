@@ -15,6 +15,7 @@
 #include "libgen.h"
 #include "CallersConfig.hpp"
 #include "CallersData.hpp"
+#include "clang/AST/GlobalDecl.h"
 #include "clang/Basic/Version.h"
 
 #if (CLANG_VERSION_MAJOR > 3)                                 \
@@ -66,9 +67,14 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   clang::CompilerInstance& ciCompilerInstance;
   const clang::FunctionDecl* pfdParent;
   mutable std::string sParent;
+  clang::DiagnosticsEngine& diag_eng_;
+  clang::MangleContext* mangle_context_;
   clang::SourceManager* psSources;
 
   std::string writeFunction(const clang::FunctionDecl& function, bool isUnqualified=false) const;
+  void getMangledName(clang::MangleContext* ctx,
+                      const clang::FunctionDecl* decl,
+                      MangledName* result);
 
   // get the basename of a file from its unix-like full path
   std::string getBasename(const clang::StringRef& filename) const;
@@ -129,12 +135,15 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
  Visitor(const std::string& in,
 	 const std::string& file,
 	 const std::string& path,
-	 std::ostream& sout, 
-	 clang::CompilerInstance& compilerInstance)
-   : inputFile(in), osOut(sout), 
+	 std::ostream& sout,
+	 clang::CompilerInstance& compilerInstance,
+         clang::DiagnosticsEngine& diag_eng)
+   : inputFile(in), osOut(sout),
      otherJsonFiles("callers", CALLERS_ROOTDIR_PREFIX),
-     ciCompilerInstance(compilerInstance), 
-     pfdParent(nullptr), psSources(nullptr)
+     ciCompilerInstance(compilerInstance),
+     pfdParent(nullptr),
+     diag_eng_(diag_eng),
+     psSources(nullptr)
   {
     currentJsonFile = otherJsonFiles.create_or_get_file(file, path);
   }
@@ -150,7 +159,7 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   virtual bool VisitBuiltinFunction(const clang::FunctionDecl* fd);
   virtual bool VisitCallExpr(const clang::CallExpr* callExpr);
   virtual bool VisitMemberCallExpr(const clang::CXXMemberCallExpr* callExpr);
-  
+
   virtual void HandleTranslationUnit(clang::ASTContext &context);
   virtual bool TraverseVarDecl(clang::VarDecl* Decl);
   virtual bool TraverseParmVarDecl(clang::VarDecl* Decl) { return true; }

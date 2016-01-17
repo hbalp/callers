@@ -1757,4 +1757,9 @@ and add the path work_dir/callgraph to the PATH environment variable.
     exemple: method ::Newly::Added::D::c() of test_local_callgraph_several_files
 *** TODO Add the *add_definitions* OCAML backend
 *** TODO Add the *add_redefinitions* OCAML backend
-    
+** Adding C++ mangling information
+    DEADLINE: <2016-01-18 lun.>
+   1. [ ] complete local info with caller_mangled in methods [/]
+      1. [ ] void CallersData::FctDecl::add_local_caller
+      2. [ ] complete local info with caller_mangled in method void CallersData::FctDecl::add_local_callee
+

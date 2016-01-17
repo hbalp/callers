@@ -21,6 +21,8 @@
 #include <rapidjson/writer.h>
 #include <rapidjson/stringbuffer.h>
 
+typedef std::string MangledName;
+
 namespace CallersData
 {
   class JsonFileWriter
@@ -63,6 +65,7 @@ namespace CallersData
   class FctCall;
 
   enum Virtuality { VNoVirtual, VVirtualDeclared, VVirtualDefined, VVirtualPure };
+  enum FctKind { E_FctDecl, E_FctDef };
 
   class File
   {
@@ -76,7 +79,7 @@ namespace CallersData
       std::set<CallersData::Namespace>::iterator create_or_get_namespace(std::string qualifiers, const clang::NamespaceDecl* nspc);
       //void add_declared_function(std::string sign, Virtuality virtuality, std::string file, int line) const;
       void add_declared_function(FctDecl* fct, std::string filepath, Dir *context) const;
-      void add_defined_function(std::string sign, Virtuality virtuality, std::string file, int line, std::string filepath) const;
+      void add_defined_function(MangledName mangled, std::string sign, Virtuality virtuality, std::string file, int line, std::string filepath) const;
       void add_defined_function(FctDef* fct, std::string filepath) const;
       void add_namespace(Namespace nspc) const;
       void add_record(Record record) const;
@@ -180,17 +183,19 @@ namespace CallersData
     friend void File::add_function_call(FctCall* fc, Dir* context) const;
 
     public:
-      FctCall(std::string caller_sign, Virtuality caller_virtuality, std::string caller_file,
-	int caller_line, std::string callee_sign, Virtuality callee_virtuality,
+      FctCall(MangledName caller_mangled, std::string caller_sign, Virtuality caller_virtuality, std::string caller_file,
+            int caller_line, MangledName callee_mangled, std::string callee_sign, Virtuality callee_virtuality,
 	std::string callee_decl_file, int callee_decl_line);
       //FctCall(const FctCall& copy_from_me);
       ~FctCall() {}
       bool is_builtin = false;
     protected:
+      std::string caller_mangled = "unknownCallerMangled";
       std::string caller_sign = "unknownCallerSign";
       Virtuality caller_virtuality = VNoVirtual;
       std::string caller_file = "unknownCallerFile";
       int caller_line = -1;
+      std::string callee_mangled = "unknownCalleeMangled";
       std::string callee_sign = "unknownCalleeSign";
       Virtuality callee_virtuality = VNoVirtual;
       std::string callee_decl_file = "unknownCalleeDeclFile";
@@ -207,17 +212,17 @@ namespace CallersData
     friend bool operator< (const CallersData::ExtFct& fct1, const CallersData::ExtFct& fct2);
 
     public:
-      ExtFct(std::string sign, Virtuality is_virtual, std::string decl);
-      ExtFct(std::string sign, Virtuality is_virtual, std::string decl, std::string def);
+      ExtFct(MangledName mangled, std::string sign, Virtuality is_virtual, std::string fct_loc, FctKind kind);
       ExtFct(const ExtFct& copy_from_me);
       ~ExtFct() {}
       //void set_file(std::string file);
     private:
-      inline void print_cout(std::string sign, Virtuality is_virtual, std::string decl, std::string def);
+      inline void print_cout(MangledName mangled, std::string sign, Virtuality is_virtual, std::string fct, FctKind kind);
+      MangledName mangled = "unknownExtFctMangled";
       std::string sign = "unknownExtFctSign";
       Virtuality virtuality = VNoVirtual;
-      std::string decl = "unknownExtFctDeclLoc";
-      std::string def  = "unknownExtFctDefLoc";
+      std::string fct = "unknownExtFctDeclLoc";
+      FctKind kind = E_FctDecl;
   };
 
   std::ostream &operator<<(std::ostream &output, const ExtFct &fct);
@@ -225,16 +230,16 @@ namespace CallersData
   class FctDecl
   {
     public:
-      FctDecl(const char* sign, Virtuality is_virtual, const char* filepath, const int line);
-      FctDecl(std::string sign, Virtuality is_virtual, std::string filepath, int line);
+      FctDecl(const char* mangled, const char* sign, Virtuality is_virtual, const char* filepath, const int line);
+      FctDecl(std::string mangled, std::string sign, Virtuality is_virtual, std::string filepath, int line);
       FctDecl(const FctDecl& copy_from_me);
       ~FctDecl();
 
-      void add_local_caller(std::string caller) const;
-      void add_external_caller(std::string sign, Virtuality virtuality, std::string file, int line) const;
-      void add_redeclaration(std::string fct_sign, Virtuality redecl_virtuality, std::string redecl_file, int redecl_line) const;
-      void add_definition(std::string fct_sign, std::string def_sign, Virtuality def_virtuality, std::string def_file_pos) const;
-      void add_redefinition(std::string fct_sign, Virtuality redef_virtuality, std::string redef_file, int redef_line) const;
+      void add_local_caller(MangledName caller_mangled, std::string caller_sign) const;
+      void add_external_caller(MangledName mangled, std::string sign, Virtuality virtuality, std::string file, int line) const;
+      void add_redeclaration(MangledName fct_mangled, std::string fct_sign, Virtuality redecl_virtuality, std::string redecl_file, int redecl_line) const;
+      void add_definition(MangledName fct_mangled, std::string fct_sign, std::string def_sign, Virtuality def_virtuality, std::string def_file_pos) const;
+      void add_redefinition(MangledName fct_mangled, std::string fct_sign, Virtuality redef_virtuality, std::string redef_file, int redef_line) const;
 
       void output_local_callers(std::ofstream &js) const;
       void output_external_callers(std::ofstream &js) const;
@@ -243,6 +248,7 @@ namespace CallersData
       void output_redefinitions(std::ofstream &js) const;
       void output_json_desc(std::ofstream &js) const;
 
+      MangledName mangled = "unknownFctDeclMangledName";
       std::string sign = "unknownFctDeclSign";
       std::string file = "unknownFctDeclFile";
       Virtuality virtuality = VNoVirtual;
@@ -263,16 +269,16 @@ namespace CallersData
   class FctDef
   {
     public:
-      FctDef(const char* sign, Virtuality is_virtual, const char* filepath, const int line);
-      FctDef(std::string sign, Virtuality is_virtual, std::string filepath, int line);
+      FctDef(const char* mangled, const char* sign, Virtuality is_virtual, const char* filepath, const int line);
+      FctDef(MangledName mangled, std::string sign, Virtuality is_virtual, std::string filepath, int line);
       FctDef(const FctDef& copy_from_me);
       ~FctDef();
 
       //void add_local_caller(std::string caller) const;
-      void add_local_callee(std::string callee) const;
-      //void add_external_caller(std::string sign, Virtuality virtuality, std::string file, int line) const;
-      void add_external_callee(std::string sign, Virtuality virtuality, std::string file, int line) const;
-      void add_builtin_callee(std::string sign, Virtuality builtin_virtuality, std::string builtin_decl_file, int builtin_decl_line) const;
+      void add_local_callee(MangledName callee_mangled, std::string callee_sign) const;
+      //void add_external_caller(MangledName fct_mangled, std::string sign, Virtuality virtuality, std::string file, int line) const;
+      void add_external_callee(MangledName mangled, std::string sign, Virtuality virtuality, std::string file, int line) const;
+      void add_builtin_callee(MangledName mangled, std::string sign, Virtuality builtin_virtuality, std::string builtin_decl_file, int builtin_decl_line) const;
 
       void output_local_callers(std::ofstream &js) const;
       void output_local_callees(std::ofstream &js) const;
@@ -280,6 +286,7 @@ namespace CallersData
       void output_external_callees(std::ofstream &js) const;
       void output_json_desc(std::ofstream &js) const;
 
+      MangledName mangled = "unknownFctDefMangledName";
       std::string sign = "unknownFctSign";
       std::string file = "unknownFctFile";
       Virtuality virtuality = VNoVirtual;

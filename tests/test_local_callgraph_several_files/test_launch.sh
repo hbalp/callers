@@ -93,8 +93,7 @@ then
     # source extract_fcg.sh c2c "$canonical_pwd/dirA/A.cpp" "A_a" "int A::a()" "/usr/include/stdio.h" "printf" "printf" files
 
     source callgraph_to_ecore.sh $callers_json_rootdir
-#    source callgraph_to_dot.sh $callers_json_rootdir files
-    source callgraph_to_dot.sh $callers_json_rootdir
+    source callgraph_to_dot.sh $callers_json_rootdir files
 
     # generate classes tree from base class A
     source classes_depgraph.sh child "$canonical_pwd/dirA/A.hpp" "A"

@@ -31,6 +31,7 @@
 #include "clang/AST/Decl.h"
 #include "CallersConfig.hpp"
 #include "CallersData.hpp"
+#include "utilities.hpp"
 
 extern std::string getCanonicalAbsolutePath(const std::string& path);
 
@@ -52,6 +53,19 @@ void assert_rootdir_prefix(std::string path)
   // Check whether the path does well begins with root dir prefix
   bool has_prefix = has_rootdir_prefix(path);
   assert(has_prefix == true);
+  return;
+}
+
+void assert_homedir_prefix(std::string path)
+{
+  // Check whether the path does not begins with home dir prefix
+  std::string home_prefix ("/tmp/callers/home");
+  bool has_prefix = boost::algorithm::contains(path, home_prefix);
+  if(has_prefix == true)
+  {
+    std::cerr << "DEBUG: Bad Directory prefix: /tmp/callers/home" << std::cerr;
+    assert(0);
+  }
   return;
 }
 
@@ -159,14 +173,10 @@ CallersData::Dir::Dir(std::string dir, std::string path)
     jsonfilename(path + "/" + dir + "/" + dir + ".dir.callers.gen.json")
 {
   assert_rootdir_prefix(path);
+  //assert_homedir_prefix(path);
 
-  std::string home_prefix ("/tmp/callers/home");
-  bool has_prefix = boost::algorithm::contains(path, home_prefix);
-  if(has_prefix == true)
-  {
-    std::cerr << "DEBUG: Bad Directory prefix: /tmp/callers/home" << std::cerr;
-    assert(0);
-  }
+  // the dir id results from the base64 compression of the dir path
+  id = encode64(path);
 }
 
 CallersData::Dir::~Dir()
@@ -233,7 +243,10 @@ void CallersData::Dir::output_json_files()
 void CallersData::Dir::output_json_dir()
 {
   CallersData::JsonFileWriter js(this->jsonfilename);
-  js.out << "{\"dir\":\"" << dir << "\",\"path\":\"" << path << "\",\"files\":[";
+  js.out << "{\"dir\":\"" << dir
+         << "\",\"path\":\"" << path
+         << "\",\"id\":\"" << id
+         << "\",\"files\":[";
 
   std::list<std::string>::const_iterator i, last;
   last = filenames.empty() ? filenames.end() : --filenames.end();
@@ -266,6 +279,10 @@ CallersData::File::File(std::string file, std::string path)
   records = new std::set<CallersData::Record>;
   calls = new std::set<CallersData::FctCall>;
 
+  filepath = this->fullPath();
+  // the file id results from the base64 encoding of the file path
+  id = encode64(filepath);
+
   // Check whether the related callers'analysis path does already exists or not in the filesystem
   if(!(boost::filesystem::exists(fullpath)))
   {
@@ -288,6 +305,8 @@ CallersData::File::File(const CallersData::File& copy_from_me)
 {
   file = copy_from_me.file;
   path = copy_from_me.path;
+  id = copy_from_me.id;
+  filepath = copy_from_me.filepath;
   fullpath = copy_from_me.fullpath;
   jsonfilename = copy_from_me.jsonfilename;
 
@@ -793,7 +812,8 @@ void CallersData::File::output_json_desc() const
   js.out
     //<< "{\"eClass\":\"" << CALLERS_TYPE_FILE << "\",\"file\":\"" << file
     << "{\"file\":\"" << file
-    << "\",\"path\":\"" << path << "\"";
+    << "\",\"path\":\"" << path
+    << "\",\"id\":\"" << id << "\"";
 
   if(namespaces->size() > 0)
   {

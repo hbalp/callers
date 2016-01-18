@@ -52,6 +52,7 @@ namespace CallersData
     private:
       std::string dir = "unknownDirName";
       std::string path = "unknownDirPath";
+      std::string id = "unknownDirPath_id";
       std::list<std::string> filenames;
       std::list<std::string> childrens;
       std::string jsonfilename = "unknownJsonFileName";
@@ -93,8 +94,10 @@ namespace CallersData
   private:
       std::set<FctCall> *calls;
       std::string file = "unknownFileName";
-      std::string path = "unknownFilePath";
-      std::string fullpath = "unknownFilePath";
+      std::string path = "unknownFileDirPath";
+      std::string fullpath = "unknownFileDirFullPath";
+      std::string filepath = "unknownFilePath";
+      std::string id = "unknownFilePath_b64";
       std::string jsonfilename = "unknownJsonFileName";
   };
 

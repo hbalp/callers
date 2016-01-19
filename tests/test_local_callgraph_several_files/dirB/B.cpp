@@ -2,6 +2,12 @@
 #include "B.hpp"
 #include "test.hpp"
 
+int coucou3()
+{
+  printf("coucou3()\n");
+  return 0;
+}
+
 int c()
 {
   printf("c()\n");

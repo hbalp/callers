@@ -89,6 +89,7 @@ then
     # source extract_fcg.sh callers "${canonical_pwd}/dirB/B.cpp" "c" "int c()" files
     # source extract_fcg.sh callers ${canonical_pwd}/dirB/B.hpp "c" "int c()" files
     source extract_fcg.sh callers "/usr/include/stdio.h" "printf" "printf" files
+    source extract_fcg.sh callers "/usr/include/malloc.h" "malloc" "malloc" files
 
     # source extract_fcg.sh c2c "$canonical_pwd/dirA/A.cpp" "A_a" "int A::a()" "/usr/include/stdio.h" "printf" "printf" files
 

@@ -31,7 +31,6 @@
 #include "clang/AST/Decl.h"
 #include "CallersConfig.hpp"
 #include "CallersData.hpp"
-#include "utilities.hpp"
 
 extern std::string getCanonicalAbsolutePath(const std::string& path);
 
@@ -174,9 +173,6 @@ CallersData::Dir::Dir(std::string dir, std::string path)
 {
   assert_rootdir_prefix(path);
   //assert_homedir_prefix(path);
-
-  // the dir id results from the base64 compression of the dir path
-  id = encode64(path);
 }
 
 CallersData::Dir::~Dir()
@@ -245,7 +241,6 @@ void CallersData::Dir::output_json_dir()
   CallersData::JsonFileWriter js(this->jsonfilename);
   js.out << "{\"dir\":\"" << dir
          << "\",\"path\":\"" << path
-         << "\",\"id\":\"" << id
          << "\",\"files\":[";
 
   std::list<std::string>::const_iterator i, last;
@@ -280,8 +275,6 @@ CallersData::File::File(std::string file, std::string path)
   calls = new std::set<CallersData::FctCall>;
 
   filepath = this->fullPath();
-  // the file id results from the base64 encoding of the file path
-  id = encode64(filepath);
 
   // Check whether the related callers'analysis path does already exists or not in the filesystem
   if(!(boost::filesystem::exists(fullpath)))
@@ -305,7 +298,6 @@ CallersData::File::File(const CallersData::File& copy_from_me)
 {
   file = copy_from_me.file;
   path = copy_from_me.path;
-  id = copy_from_me.id;
   filepath = copy_from_me.filepath;
   fullpath = copy_from_me.fullpath;
   jsonfilename = copy_from_me.jsonfilename;
@@ -813,7 +805,7 @@ void CallersData::File::output_json_desc() const
     //<< "{\"eClass\":\"" << CALLERS_TYPE_FILE << "\",\"file\":\"" << file
     << "{\"file\":\"" << file
     << "\",\"path\":\"" << path
-    << "\",\"id\":\"" << id << "\"";
+    << "\"";
 
   if(namespaces->size() > 0)
   {

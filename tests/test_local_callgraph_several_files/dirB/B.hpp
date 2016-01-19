@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 int c();
+int coucou3();
 
 class B
 {

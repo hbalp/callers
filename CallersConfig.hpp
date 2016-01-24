@@ -26,3 +26,5 @@
 #define CALLERS_ERROR_UNSUPPORTED_CASE 17
 
 #define CALLERS_ROOTDIR_PREFIX "/tmp/callers"
+
+#define CALLERS_DEFAULT_RECORD_NAME "noRecord"

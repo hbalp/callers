@@ -1,7 +1,8 @@
 /****
      Copyright (C) 2015 Commissariat à l'Energie Atomique, Thales Communication
        - All Rights Reserved
-     coded by Franck Vedrine, Hugues Balp
+     coded by Hugues Balp
+     initiated by Franck Vedrine
 ****/
 
 //
@@ -916,8 +917,9 @@ CallersAction::Visitor::writeFunction(const clang::FunctionDecl& function, bool 
 
 bool
 CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* constructor) {
-   assert(llvm::dyn_cast<clang::FunctionDecl>(constructor->getConstructor()));
-   const auto& function = *static_cast<const clang ::FunctionDecl*>(constructor->getConstructor());
+   clang::CXXConstructorDecl *constr = constructor->getConstructor();
+   assert(llvm::dyn_cast<clang::FunctionDecl>(constr));
+   const auto& function = *static_cast<const clang ::FunctionDecl*>(constr);
    std::string name = printQualifiedName(function);
    MangledName fct_mangledName;
    this->getMangledName(mangle_context_, &function, &fct_mangledName);
@@ -937,10 +939,16 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
      }
    assert(pfdParent != NULL);
    auto parentMethod = llvm::dyn_cast<clang::CXXMethodDecl>(pfdParent);
+   std::string caller_record = CALLERS_DEFAULT_RECORD_NAME;
+   if((constr != NULL) && (constr->getParent() != NULL))
+   {
+     caller_record = constr->getParent()->getNameAsString();
+   }
+   std::string callee_record = caller_record;
    CallersData::FctCall fc(fct_mangledName, printParentFunction(),
-	(parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
-        printParentFunctionFilePath(), printParentFunctionLine(),
-	fct_mangledName, callee_sign, CallersData::VNoVirtual, callee_filepath, callee_filepos);
+                           (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
+                           printParentFunctionFilePath(), printParentFunctionLine(),
+                           fct_mangledName, callee_sign, CallersData::VNoVirtual, callee_filepath, callee_filepos, caller_record, callee_record);
    currentJsonFile->add_function_call(&fc, &otherJsonFiles);
    return true;
 }
@@ -965,15 +973,25 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
 	  callee_filepos = -1;
 	}
       auto parentMethod = llvm::dyn_cast<clang::CXXMethodDecl>(pfdParent);
+      std::string caller_record = CALLERS_DEFAULT_RECORD_NAME;
+      if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
+      {
+        caller_record = parentMethod->getParent()->getNameAsString();
+      }
       auto calleeMethod = llvm::dyn_cast<clang::CXXMethodDecl>(&function);
+      std::string callee_record = CALLERS_DEFAULT_RECORD_NAME;
+      if((calleeMethod != NULL) && (calleeMethod->getParent() != NULL))
+      {
+        callee_record = calleeMethod->getParent()->getNameAsString();
+      }
       CallersData::FctCall fc(fct_mangledName, printParentFunction(),
-	(parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
-	printParentFunctionFilePath(), printParentFunctionLine(),
-	fct_mangledName, callee_sign,
-	(!calleeMethod || !calleeMethod->isVirtual()) ? CallersData::VNoVirtual
-	  : (calleeMethod->isPure() ? CallersData::VVirtualPure
-	  : (calleeMethod->isThisDeclarationADefinition() ? CallersData::VVirtualDefined : CallersData::VVirtualDeclared)),
-	callee_filepath, callee_filepos);
+          (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
+          printParentFunctionFilePath(), printParentFunctionLine(),
+          fct_mangledName, callee_sign,
+          (!calleeMethod || !calleeMethod->isVirtual()) ? CallersData::VNoVirtual
+            : (calleeMethod->isPure() ? CallersData::VVirtualPure
+            : (calleeMethod->isThisDeclarationADefinition() ? CallersData::VVirtualDefined : CallersData::VVirtualDeclared)),
+          callee_filepath, callee_filepos, caller_record, callee_record);
       currentJsonFile->add_function_call(&fc, &otherJsonFiles);
       return true;
    };
@@ -998,14 +1016,21 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
 	     osOut << inputFile << ":WARNING: unknownFilePath for callee: " << callee_sign << std::endl;
 	     callee_filepos = -1;
 	   }
+         std::string caller_record = CALLERS_DEFAULT_RECORD_NAME;
+         if((destructor != NULL) && (destructor->getParent() != NULL))
+         {
+           caller_record = destructor->getParent()->getNameAsString();
+         }
+         std::string callee_record = caller_record;
 	 CallersData::FctCall fc(fct_mangledName, printParentFunction(),
-	   (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
-	   printParentFunctionFilePath(), printParentFunctionLine(),
-	   fct_mangledName, callee_sign,
-	   (!calleeMethod || !calleeMethod->isVirtual()) ? CallersData::VNoVirtual
-	     : (calleeMethod->isPure() ? CallersData::VVirtualPure
-	     : (calleeMethod->isThisDeclarationADefinition() ? CallersData::VVirtualDefined : CallersData::VVirtualDeclared)),
-	   callee_filepath, callee_filepos);
+                                 (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
+                                 printParentFunctionFilePath(), printParentFunctionLine(),
+                                 fct_mangledName, callee_sign,
+                                 (!calleeMethod || !calleeMethod->isVirtual()) ? CallersData::VNoVirtual
+                                 : (calleeMethod->isPure() ? CallersData::VVirtualPure
+                                 : (calleeMethod->isThisDeclarationADefinition() ? CallersData::VVirtualDefined : CallersData::VVirtualDeclared)),
+                                 callee_filepath, callee_filepos,
+                                 caller_record, callee_record);
 	 currentJsonFile->add_function_call(&fc, &otherJsonFiles);
       };
    };
@@ -1034,10 +1059,16 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
 	  osOut << inputFile << ":WARNING: unknownFilePath for callee: " << callee_sign << std::endl;
 	  callee_filepos = -1;
 	}
+      std::string caller_record = CALLERS_DEFAULT_RECORD_NAME;
+      if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
+      {
+        caller_record = parentMethod->getParent()->getNameAsString();
+      }
+      std::string callee_record = caller_record;
       CallersData::FctCall fc(fct_mangledName, printParentFunction(),
-	(parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
-	printParentFunctionFilePath(), printParentFunctionLine(),
-	fct_mangledName, callee_sign, CallersData::VNoVirtual, callee_filepath, callee_filepos);
+          (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
+          printParentFunctionFilePath(), printParentFunctionLine(),
+          fct_mangledName, callee_sign, CallersData::VNoVirtual, callee_filepath, callee_filepos, caller_record, callee_record);
       currentJsonFile->add_function_call(&fc, &otherJsonFiles);
     }
   else
@@ -1056,25 +1087,28 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
       // It checks whether a json file is already present for the malloc builtin function
       // if true, parse it and add the defined function only when necessary
       // if false, create this json file and add the defined function
+      std::string malloc_record(CALLERS_DEFAULT_RECORD_NAME);
       {
 	boost::filesystem::path p(malloc_filepath);
 	std::string basename = p.filename().string();
 	std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
 	std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
-
-	//CallersData::FctDef fct(malloc_mangled, malloc_sign, CallersData::VNoVirtual, malloc_filepath, malloc_filepos);
-	//file->add_defined_function(&fct);
-
-	CallersData::FctDecl fct(malloc_mangled, malloc_sign, CallersData::VNoVirtual, malloc_filepath, malloc_filepos);
+	CallersData::FctDecl fct(malloc_mangled, malloc_sign, CallersData::VNoVirtual, malloc_filepath, malloc_filepos, malloc_record);
 	file->add_declared_function(&fct, malloc_filepath, &otherJsonFiles);
       }
 
+      std::string caller_record = CALLERS_DEFAULT_RECORD_NAME;
+      if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
+      {
+        caller_record = parentMethod->getParent()->getNameAsString();
+      }
       CallersData::FctCall fc(malloc_mangled, printParentFunction(),
-	(parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
-	printParentFunctionFilePath(), printParentFunctionLine(),
-	malloc_mangled, malloc_sign, CallersData::VNoVirtual, malloc_filepath, malloc_filepos);
-        fc.is_builtin = true;
-        currentJsonFile->add_function_call(&fc, &otherJsonFiles);
+                              (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
+                              printParentFunctionFilePath(), printParentFunctionLine(),
+                              malloc_mangled, malloc_sign, CallersData::VNoVirtual,
+                              malloc_filepath, malloc_filepos, caller_record, malloc_record);
+      fc.is_builtin = true;
+      currentJsonFile->add_function_call(&fc, &otherJsonFiles);
     }
    return true;
 }
@@ -1083,7 +1117,8 @@ bool
 CallersAction::Visitor::VisitBuiltinFunction(const clang::FunctionDecl* fd) {
 
   unsigned builtinID = fd->getBuiltinID();
-  std::string builtinName, headerName = "notFoundBuiltinImpl";
+  std::string builtinName = "notFoundBuiltinName";
+  std::string headerName = "notFoundBuiltinImpl";
 #define BUILTIN(ID, TYPE, ATTRS) case clang::Builtin::BI##ID: builtinName = #ID; break;
   // TODO: tries to get the header file absolute path. This doesn't work with the getCanonicalAbsolutePath() function
   // which concatenates the input path or filename with the current working path; and not the path to the system repository
@@ -1098,6 +1133,7 @@ CallersAction::Visitor::VisitBuiltinFunction(const clang::FunctionDecl* fd) {
   MangledName builtin_mangled;
   this->getMangledName(mangle_context_, fd, &builtin_mangled);
   int builtinPos = printLine(fd->getSourceRange());
+  assert(builtinName != "notFoundBuiltinName");
   std::cout << "DEBUG: builtin name: \"" << builtinName << "\"" << std::endl;
   std::cout << "DEBUG: builtin decl location: " << builtinFile << ":" << builtinPos << std::endl;
   std::cout << "DEBUG: builtin def location (headerName): " << headerName << std::endl;
@@ -1111,7 +1147,7 @@ CallersAction::Visitor::VisitBuiltinFunction(const clang::FunctionDecl* fd) {
       std::cout << "WARNING: visitor.cpp : not found implementation of builtin: \"" << builtinName << "\", headerName: \"" << headerName << "\"" << std::endl;
       //std::cout << "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" << std::endl;
       headerName = builtinFile;
-      // CallersData::FctCall fc = CallersData::FctCall(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(), 
+      // CallersData::FctCall fc = CallersData::FctCall(printParentFunction(), printParentFunctionFilePath(), printParentFunctionLine(),
       // 						     builtinName, printFilePath(fd->getSourceRange()), builtinPos);
       // fc.is_builtin = true;
       // currentJsonFile->add_function_call(&fc, &otherJsonFiles);
@@ -1120,7 +1156,7 @@ CallersAction::Visitor::VisitBuiltinFunction(const clang::FunctionDecl* fd) {
   else
     {
       // Tries to get the full path of the builtin implementation file
-      //if(headerName.length() > 0) 
+      //if(headerName.length() > 0)
 
       clang::SourceLocation FilenameLoc;
       llvm::StringRef Filename(headerName);
@@ -1148,16 +1184,20 @@ CallersAction::Visitor::VisitBuiltinFunction(const clang::FunctionDecl* fd) {
     std::string basename = p.filename().string();
     std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
     std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
-    //CallersData::File file(basename, dirpath);
-    //file.parse_json_file(&otherJsonFiles);
-    CallersData::FctDecl fct(builtin_mangled, builtinName, CallersData::VNoVirtual, headerName, builtinPos);
+    std::string builtin_record(CALLERS_DEFAULT_RECORD_NAME);
+    CallersData::FctDecl fct(builtin_mangled, builtinName, CallersData::VNoVirtual, headerName, builtinPos, builtin_record);
     file->add_declared_function(&fct, headerName, &otherJsonFiles);
-    //file.output_json_desc();
     auto parentMethod = llvm::dyn_cast<clang::CXXMethodDecl>(pfdParent);
+    std::string caller_record(CALLERS_DEFAULT_RECORD_NAME);
+    if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
+    {
+      caller_record = parentMethod->getParent()->getNameAsString();
+    }
     CallersData::FctCall fc = CallersData::FctCall(builtin_mangled, printParentFunction(),
 						   (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
 						   printParentFunctionFilePath(), printParentFunctionLine(),
-						   builtin_mangled, builtinName, CallersData::VNoVirtual, headerName, builtinPos);
+						   builtin_mangled, builtinName, CallersData::VNoVirtual, headerName,
+                                                   builtinPos, caller_record, builtin_record);
     fc.is_builtin = true;
     currentJsonFile->add_function_call(&fc, &otherJsonFiles);
   }
@@ -1189,14 +1229,24 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	}
       auto parentMethod = llvm::dyn_cast<clang::CXXMethodDecl>(pfdParent);
       auto calleeMethod = llvm::dyn_cast<clang::CXXMethodDecl>(callee);
+      std::string caller_record = CALLERS_DEFAULT_RECORD_NAME;
+      if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
+      {
+        caller_record = parentMethod->getParent()->getNameAsString();
+      }
+      std::string callee_record = CALLERS_DEFAULT_RECORD_NAME;
+      if((calleeMethod != NULL) && (calleeMethod->getParent() != NULL))
+      {
+        callee_record = calleeMethod->getParent()->getNameAsString();
+      }
       CallersData::FctCall fc(callee_mangled, printParentFunction(),
-	(parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
-	printParentFunctionFilePath(), printParentFunctionLine(),
-	callee_mangled, calleeName,
-	(!calleeMethod || !calleeMethod->isVirtual()) ? CallersData::VNoVirtual
-	  : (calleeMethod->isPure() ? CallersData::VVirtualPure
-	  : (calleeMethod->isThisDeclarationADefinition() ? CallersData::VVirtualDefined : CallersData::VVirtualDeclared)),
-	callee_filepath, callee_filepos);
+          (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
+          printParentFunctionFilePath(), printParentFunctionLine(),
+          callee_mangled, calleeName,
+          (!calleeMethod || !calleeMethod->isVirtual()) ? CallersData::VNoVirtual
+            : (calleeMethod->isPure() ? CallersData::VVirtualPure
+            : (calleeMethod->isThisDeclarationADefinition() ? CallersData::VVirtualDefined : CallersData::VVirtualDeclared)),
+          callee_filepath, callee_filepos, caller_record, callee_record);
       currentJsonFile->add_function_call(&fc, &otherJsonFiles);
       return true;
    }
@@ -1365,7 +1415,16 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
         MangledName fct_mangledName;
         this->getMangledName(mangle_context_, function, &fct_mangledName);
 
-        CallersData::FctDef fctDef(fct_mangledName, fct_sign, virtualityDef, fct_filepath, fct_line);
+        std::string record = CALLERS_DEFAULT_RECORD_NAME;
+        if(methodDef != NULL)
+        {
+          auto rec = methodDef->getParent();
+          if(rec != NULL)
+          {
+            record = rec->getNameAsString();
+          }
+        }
+        CallersData::FctDef fctDef(fct_mangledName, fct_sign, virtualityDef, fct_filepath, fct_line, record);
 
         // get the function declaration and check it's position
         clang::FunctionDecl* functionDecl = function->getCanonicalDecl();
@@ -1377,7 +1436,16 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
           (methodDecl->isPure() ? CallersData::VVirtualPure : CallersData::VVirtualDeclared)
           : CallersData::VNoVirtual;
 
-        CallersData::FctDecl fctDecl(fct_mangledName, fct_sign, virtualityDecl, fctDecl_file, fctDecl_line);
+        record = CALLERS_DEFAULT_RECORD_NAME;
+        if(methodDecl != NULL)
+        {
+          auto rec_decl = methodDecl->getParent();
+          if(rec_decl != NULL)
+          {
+            record = rec_decl->getNameAsString();
+          }
+        }
+        CallersData::FctDecl fctDecl(fct_mangledName, fct_sign, virtualityDecl, fctDecl_file, fctDecl_line, record);
 
         // Complete the function definition with a new "declaration" entry
 
@@ -1452,7 +1520,13 @@ CallersAction::Visitor::VisitFunctionDeclaration(clang::FunctionDecl* function) 
         this->getMangledName(mangle_context_, function, &fct_mangledName);
         osOut << "Debug mangledName ok: " << fct_mangledName << '\n';
 
-        CallersData::FctDecl fctDecl(fct_mangledName, fct_sign, virtualityDecl, fct_filepath, fct_line);
+        std::string fct_record = CALLERS_DEFAULT_RECORD_NAME;
+        if((methodDecl != NULL) && (methodDecl->getParent() != NULL))
+        {
+          fct_record = methodDecl->getParent()->getNameAsString();
+        }
+
+        CallersData::FctDecl fctDecl(fct_mangledName, fct_sign, virtualityDecl, fct_filepath, fct_line, fct_record);
 
         // check whether the function is really defined in this file
         if(fct_filepath == currentJsonFile->fullPath())
@@ -1582,6 +1656,12 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
             osOut << "visiting record " << recordName
                   << " at " << printLocation(Decl->getSourceRange()) << '\n';
 
+            CallersData::Record record(recordName, tagKind, recordFile, recordBegin, recordEnd);
+
+            osOut << " the record \"" << recordName << "\" inherits from ";
+            VisitInheritanceList(RD, &record);
+            osOut << std::endl;
+
             osOut << " the record \"" << recordName << "\" declares the following methods:" << std::endl;
 
             for(clang::CXXRecordDecl::method_iterator m = RD->method_begin();
@@ -1589,14 +1669,10 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
                 m++)
             {
               clang::FunctionDecl* f = (clang::FunctionDecl*)(*m);
-              osOut << " - " << writeFunction(*f) << std::endl;
+              std::string method_sign = writeFunction(*f);
+              osOut << " - " << method_sign << std::endl;
+              record.add_method(method_sign);
             }
-
-            CallersData::Record record(recordName, tagKind, recordFile, recordBegin, recordEnd);
-
-            osOut << " the record \"" << recordName << "\" inherits from ";
-            VisitInheritanceList(RD, &record);
-            osOut << std::endl;
 
             // check whether the record is really defined in this file
             if(recordFile == currentJsonFile->fullPath())

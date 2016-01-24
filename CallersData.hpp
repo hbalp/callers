@@ -79,7 +79,7 @@ namespace CallersData
       std::set<CallersData::Namespace>::iterator create_or_get_namespace(std::string qualifiers, const clang::NamespaceDecl* nspc);
       //void add_declared_function(std::string sign, Virtuality virtuality, std::string file, int line) const;
       void add_declared_function(FctDecl* fct, std::string filepath, Dir *context) const;
-      void add_defined_function(MangledName mangled, std::string sign, Virtuality virtuality, std::string file, int line, std::string filepath) const;
+      void add_defined_function(MangledName mangled, std::string sign, Virtuality virtuality, std::string file, int line, std::string filepath, std::string record) const;
       void add_defined_function(FctDef* fct, std::string filepath) const;
       void add_namespace(Namespace nspc) const;
       void add_record(Record record) const;
@@ -159,6 +159,12 @@ namespace CallersData
       Record(const Record& copy_from_me);
       ~Record();
       void allocate();
+      // The three methods below are currently useless because I didn't yet found how to check whether a CXXMethodDecl is declared public, private or friend
+      // void add_public_method(std::string name) const;
+      // void add_private_method(std::string name) const;
+      // void add_friend_method(std::string name) const;
+      // For the moment, all methods are considered the same.
+      void add_method(std::string name) const;
       void add_base_class(std::string name, std::string file, int deb, int fin) const;
       void add_base_class(Inheritance inheritance) const;
       // void add_child_class(std::string name, std::string file, int deb, int fin) const;
@@ -173,6 +179,10 @@ namespace CallersData
       std::set<Inheritance> *inherits;
       std::set<Inheritance> *inherited;
     private:
+      std::set<std::string> *methods;
+      // std::set<std::string> *public_methods;
+      // std::set<std::string> *private_methods;
+      // std::set<std::string> *friend_methods;
   };
 
   bool operator< (const Record& record1, const Record& record2);
@@ -185,8 +195,9 @@ namespace CallersData
 
     public:
       FctCall(MangledName caller_mangled, std::string caller_sign, Virtuality caller_virtuality, std::string caller_file,
-            int caller_line, MangledName callee_mangled, std::string callee_sign, Virtuality callee_virtuality,
-	std::string callee_decl_file, int callee_decl_line);
+              int caller_line, MangledName callee_mangled, std::string callee_sign, Virtuality callee_virtuality,
+              std::string callee_decl_file, int callee_decl_line, std::string caller_record,
+              std::string callee_record);
       //FctCall(const FctCall& copy_from_me);
       ~FctCall() {}
       bool is_builtin = false;
@@ -203,6 +214,8 @@ namespace CallersData
       int callee_decl_line = -1;
       std::string callee_def_file = "unknownCalleeDefFile";
       int callee_def_line = -1;
+      std::string caller_record = CALLERS_DEFAULT_RECORD_NAME;
+      std::string callee_record = CALLERS_DEFAULT_RECORD_NAME;
     private:
       std::string id;
   };
@@ -213,7 +226,7 @@ namespace CallersData
     friend bool operator< (const CallersData::ExtFct& fct1, const CallersData::ExtFct& fct2);
 
     public:
-      ExtFct(MangledName mangled, std::string sign, Virtuality is_virtual, std::string fct_loc, FctKind kind);
+      ExtFct(MangledName mangled, std::string sign, Virtuality is_virtual, std::string fct_loc, FctKind kind, std::string record );
       ExtFct(const ExtFct& copy_from_me);
       ~ExtFct() {}
       //void set_file(std::string file);
@@ -224,6 +237,7 @@ namespace CallersData
       Virtuality virtuality = VNoVirtual;
       std::string fct = "unknownExtFctDeclLoc";
       FctKind kind = E_FctDecl;
+      std::string record;
   };
 
   std::ostream &operator<<(std::ostream &output, const ExtFct &fct);
@@ -231,16 +245,16 @@ namespace CallersData
   class FctDecl
   {
     public:
-      FctDecl(const char* mangled, const char* sign, Virtuality is_virtual, const char* filepath, const int line);
-      FctDecl(std::string mangled, std::string sign, Virtuality is_virtual, std::string filepath, int line);
+      FctDecl(const char* mangled, const char* sign, Virtuality is_virtual, const char* filepath, const int line, const char* record);
+      FctDecl(std::string mangled, std::string sign, Virtuality is_virtual, std::string filepath, int line, std::string record);
       FctDecl(const FctDecl& copy_from_me);
       ~FctDecl();
 
-      void add_local_caller(MangledName caller_mangled, std::string caller_sign) const;
-      void add_external_caller(MangledName mangled, std::string sign, Virtuality virtuality, std::string file, int line) const;
-      void add_redeclaration(MangledName fct_mangled, std::string fct_sign, Virtuality redecl_virtuality, std::string redecl_file, int redecl_line) const;
-      void add_definition(MangledName fct_mangled, std::string fct_sign, std::string def_sign, Virtuality def_virtuality, std::string def_file_pos) const;
-      void add_redefinition(MangledName fct_mangled, std::string fct_sign, Virtuality redef_virtuality, std::string redef_file, int redef_line) const;
+      void add_local_caller(MangledName caller_mangled, std::string caller_sign, std::string caller_record) const;
+      void add_external_caller(MangledName mangled, std::string sign, Virtuality virtuality, std::string file, int line, std::string record) const;
+      void add_redeclaration(MangledName fct_mangled, std::string fct_sign, Virtuality redecl_virtuality, std::string redecl_file, int redecl_line, std::string redecl_record) const;
+      void add_definition(MangledName fct_mangled, std::string fct_sign, std::string def_sign, Virtuality def_virtuality, std::string def_file_pos, std::string record) const;
+      void add_redefinition(MangledName fct_mangled, std::string fct_sign, Virtuality redef_virtuality, std::string redef_file, int redef_line, std::string record) const;
 
       void output_local_callers(std::ofstream &js) const;
       void output_external_callers(std::ofstream &js) const;
@@ -261,8 +275,9 @@ namespace CallersData
       std::set<ExtFct> *extcallers;
 
     private:
-      inline void print_cout(std::string sign, Virtuality is_virtual, std::string file, int line);
+      inline void print_cout(std::string sign, Virtuality is_virtual, std::string file, int line, std::string record);
       void allocate();
+      std::string record = CALLERS_DEFAULT_RECORD_NAME;
   };
 
   bool operator< (const FctDecl& fct1, const FctDecl& fct2);
@@ -270,15 +285,13 @@ namespace CallersData
   class FctDef
   {
     public:
-      FctDef(const char* mangled, const char* sign, Virtuality is_virtual, const char* filepath, const int line);
-      FctDef(MangledName mangled, std::string sign, Virtuality is_virtual, std::string filepath, int line);
+      FctDef(const char* mangled, const char* sign, Virtuality is_virtual, const char* filepath, const int line, const char* record);
+      FctDef(MangledName mangled, std::string sign, Virtuality is_virtual, std::string filepath, int line, std::string record);
       FctDef(const FctDef& copy_from_me);
       ~FctDef();
 
-      //void add_local_caller(std::string caller) const;
-      void add_local_callee(MangledName callee_mangled, std::string callee_sign) const;
-      //void add_external_caller(MangledName fct_mangled, std::string sign, Virtuality virtuality, std::string file, int line) const;
-      void add_external_callee(MangledName mangled, std::string sign, Virtuality virtuality, std::string file, int line) const;
+      void add_local_callee(MangledName callee_mangled, std::string callee_sign, std::string record) const;
+      void add_external_callee(MangledName mangled, std::string sign, Virtuality virtuality, std::string file, int line, std::string record) const;
       void add_builtin_callee(MangledName mangled, std::string sign, Virtuality builtin_virtuality, std::string builtin_decl_file, int builtin_decl_line) const;
 
       void output_local_callers(std::ofstream &js) const;
@@ -298,8 +311,9 @@ namespace CallersData
       std::set<ExtFct> *extcallees;
 
     private:
-      inline void print_cout(std::string sign, Virtuality is_virtual, std::string file, int line);
+      inline void print_cout(std::string sign, Virtuality is_virtual, std::string file, int line, std::string record);
       void allocate();
+      std::string record = CALLERS_DEFAULT_RECORD_NAME;
   };
 
   bool operator< (const FctDef& fct1, const FctDef& fct2);

@@ -942,7 +942,7 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
    std::string caller_record = CALLERS_DEFAULT_RECORD_NAME;
    if((constr != NULL) && (constr->getParent() != NULL))
    {
-     caller_record = constr->getParent()->getNameAsString();
+     caller_record = constr->getParent()->getQualifiedNameAsString();
    }
    std::string callee_record = caller_record;
    CallersData::FctCall fc(fct_mangledName, printParentFunction(),
@@ -976,13 +976,13 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
       std::string caller_record = CALLERS_DEFAULT_RECORD_NAME;
       if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
       {
-        caller_record = parentMethod->getParent()->getNameAsString();
+        caller_record = parentMethod->getParent()->getQualifiedNameAsString();
       }
       auto calleeMethod = llvm::dyn_cast<clang::CXXMethodDecl>(&function);
       std::string callee_record = CALLERS_DEFAULT_RECORD_NAME;
       if((calleeMethod != NULL) && (calleeMethod->getParent() != NULL))
       {
-        callee_record = calleeMethod->getParent()->getNameAsString();
+        callee_record = calleeMethod->getParent()->getQualifiedNameAsString();
       }
       CallersData::FctCall fc(fct_mangledName, printParentFunction(),
           (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
@@ -1019,7 +1019,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
          std::string caller_record = CALLERS_DEFAULT_RECORD_NAME;
          if((destructor != NULL) && (destructor->getParent() != NULL))
          {
-           caller_record = destructor->getParent()->getNameAsString();
+           caller_record = destructor->getParent()->getQualifiedNameAsString();
          }
          std::string callee_record = caller_record;
 	 CallersData::FctCall fc(fct_mangledName, printParentFunction(),
@@ -1062,7 +1062,7 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
       std::string caller_record = CALLERS_DEFAULT_RECORD_NAME;
       if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
       {
-        caller_record = parentMethod->getParent()->getNameAsString();
+        caller_record = parentMethod->getParent()->getQualifiedNameAsString();
       }
       std::string callee_record = caller_record;
       CallersData::FctCall fc(fct_mangledName, printParentFunction(),
@@ -1100,7 +1100,7 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
       std::string caller_record = CALLERS_DEFAULT_RECORD_NAME;
       if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
       {
-        caller_record = parentMethod->getParent()->getNameAsString();
+        caller_record = parentMethod->getParent()->getQualifiedNameAsString();
       }
       CallersData::FctCall fc(malloc_mangled, printParentFunction(),
                               (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
@@ -1191,7 +1191,7 @@ CallersAction::Visitor::VisitBuiltinFunction(const clang::FunctionDecl* fd) {
     std::string caller_record(CALLERS_DEFAULT_RECORD_NAME);
     if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
     {
-      caller_record = parentMethod->getParent()->getNameAsString();
+      caller_record = parentMethod->getParent()->getQualifiedNameAsString();
     }
     CallersData::FctCall fc = CallersData::FctCall(builtin_mangled, printParentFunction(),
 						   (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
@@ -1232,12 +1232,12 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
       std::string caller_record = CALLERS_DEFAULT_RECORD_NAME;
       if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
       {
-        caller_record = parentMethod->getParent()->getNameAsString();
+        caller_record = parentMethod->getParent()->getQualifiedNameAsString();
       }
       std::string callee_record = CALLERS_DEFAULT_RECORD_NAME;
       if((calleeMethod != NULL) && (calleeMethod->getParent() != NULL))
       {
-        callee_record = calleeMethod->getParent()->getNameAsString();
+        callee_record = calleeMethod->getParent()->getQualifiedNameAsString();
       }
       CallersData::FctCall fc(callee_mangled, printParentFunction(),
           (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
@@ -1421,7 +1421,7 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
           auto rec = methodDef->getParent();
           if(rec != NULL)
           {
-            record = rec->getNameAsString();
+            record = rec->getQualifiedNameAsString();
           }
         }
         CallersData::FctDef fctDef(fct_mangledName, fct_sign, virtualityDef, fct_filepath, fct_line, record);
@@ -1442,7 +1442,7 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
           auto rec_decl = methodDecl->getParent();
           if(rec_decl != NULL)
           {
-            record = rec_decl->getNameAsString();
+            record = rec_decl->getQualifiedNameAsString();
           }
         }
         CallersData::FctDecl fctDecl(fct_mangledName, fct_sign, virtualityDecl, fctDecl_file, fctDecl_line, record);
@@ -1523,7 +1523,7 @@ CallersAction::Visitor::VisitFunctionDeclaration(clang::FunctionDecl* function) 
         std::string fct_record = CALLERS_DEFAULT_RECORD_NAME;
         if((methodDecl != NULL) && (methodDecl->getParent() != NULL))
         {
-          fct_record = methodDecl->getParent()->getNameAsString();
+          fct_record = methodDecl->getParent()->getQualifiedNameAsString();
         }
 
         CallersData::FctDecl fctDecl(fct_mangledName, fct_sign, virtualityDecl, fct_filepath, fct_line, fct_record);

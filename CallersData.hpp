@@ -74,6 +74,7 @@ namespace CallersData
       File(std::string file, std::string path);
       File(const CallersData::File& copy_from_me);
       ~File();
+      std::string getKind() const;
       std::string fullPath () const;
       void parse_json_file(CallersData::Dir *files) const;
       std::set<CallersData::Namespace>::iterator create_or_get_namespace(std::string qualifiers, const clang::NamespaceDecl* nspc);
@@ -93,6 +94,7 @@ namespace CallersData
   private:
       std::set<FctCall> *calls;
       std::string file = "unknownFileName";
+      std::string kind = "unknownFileKind";
       std::string path = "unknownFileDirPath";
       std::string fullpath = "unknownFileDirFullPath";
       std::string filepath = "unknownFilePath";

@@ -274,6 +274,7 @@ CallersData::File::File(std::string file, std::string path)
   records = new std::set<CallersData::Record>;
   calls = new std::set<CallersData::FctCall>;
 
+  kind = this->getKind();
   filepath = this->fullPath();
 
   // Check whether the related callers'analysis path does already exists or not in the filesystem
@@ -297,6 +298,7 @@ CallersData::File::~File()
 CallersData::File::File(const CallersData::File& copy_from_me)
 {
   file = copy_from_me.file;
+  kind = copy_from_me.kind;
   path = copy_from_me.path;
   filepath = copy_from_me.filepath;
   fullpath = copy_from_me.fullpath;
@@ -496,6 +498,29 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
 	  exit(3);
 	}
     }
+}
+
+std::string CallersData::File::getKind() const
+{
+  std::string ext = boost::filesystem::extension(this->file);
+  std::string kind = "none";
+  boost::regex headers(".h|.hpp");
+  boost::regex sources(".c|.cpp");
+  //boost::cmatch m;
+  if(boost::regex_match(ext,/*m,*/ headers))
+  {
+      kind = "inc";
+  }
+  else if(boost::regex_match(ext,/*m,*/ sources))
+  {
+      kind = "src";
+  }
+  if(kind == "none")
+  {
+    std::cout << "WARNING: Unsupported file extension \"" << ext << "\"\n" << std::endl;
+    assert(kind != "none");
+  }
+  return kind;
 }
 
 std::string CallersData::File::fullPath() const
@@ -815,6 +840,7 @@ void CallersData::File::output_json_desc() const
   js.out
     //<< "{\"eClass\":\"" << CALLERS_TYPE_FILE << "\",\"file\":\"" << file
     << "{\"file\":\"" << file
+    << "\",\"kind\":\"" << kind
     << "\",\"path\":\"" << path
     << "\"";
 

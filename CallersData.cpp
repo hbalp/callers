@@ -404,7 +404,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
 
                   MangledName mangled = mangledName.GetString();
                   std::string symbol = sign.GetString();
-                  std::string record = CALLERS_DEFAULT_RECORD_NAME;
+                  std::string record = CALLERS_DEFAULT_NO_RECORD_NAME;
                   if(symb.HasMember("record"))
                   {
                     const rapidjson::Value& rec = symb["record"];
@@ -452,7 +452,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                   const rapidjson::Value& line = symb["line"];
                   const rapidjson::Value& mangledName = symb["mangled"];
 
-                  std::string record = CALLERS_DEFAULT_RECORD_NAME;
+                  std::string record = CALLERS_DEFAULT_NO_RECORD_NAME;
                   if(symb.HasMember("record"))
                   {
                     const rapidjson::Value& rec = symb["record"];
@@ -1951,7 +1951,7 @@ void CallersData::FctDef::add_builtin_callee(MangledName builtin_mangled, std::s
 	    << " at line: " << builtin_decl_line
 	    << std::endl;
 
-  std::string record(CALLERS_DEFAULT_RECORD_NAME);
+  std::string record(CALLERS_DEFAULT_NO_RECORD_NAME);
   ExtFct extfct (builtin_mangled, builtin_sign, builtin_virtuality, builtin_decl_location, E_FctDecl, record);
   extcallees->insert(extfct);
 }

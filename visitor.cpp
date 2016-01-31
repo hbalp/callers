@@ -939,7 +939,7 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
      }
    assert(pfdParent != NULL);
    auto parentMethod = llvm::dyn_cast<clang::CXXMethodDecl>(pfdParent);
-   std::string caller_record = CALLERS_DEFAULT_RECORD_NAME;
+   std::string caller_record = CALLERS_DEFAULT_NO_RECORD_NAME;
    if((constr != NULL) && (constr->getParent() != NULL))
    {
      caller_record = constr->getParent()->getQualifiedNameAsString();
@@ -973,13 +973,13 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
 	  callee_filepos = -1;
 	}
       auto parentMethod = llvm::dyn_cast<clang::CXXMethodDecl>(pfdParent);
-      std::string caller_record = CALLERS_DEFAULT_RECORD_NAME;
+      std::string caller_record = CALLERS_DEFAULT_NO_RECORD_NAME;
       if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
       {
         caller_record = parentMethod->getParent()->getQualifiedNameAsString();
       }
       auto calleeMethod = llvm::dyn_cast<clang::CXXMethodDecl>(&function);
-      std::string callee_record = CALLERS_DEFAULT_RECORD_NAME;
+      std::string callee_record = CALLERS_DEFAULT_NO_RECORD_NAME;
       if((calleeMethod != NULL) && (calleeMethod->getParent() != NULL))
       {
         callee_record = calleeMethod->getParent()->getQualifiedNameAsString();
@@ -1016,7 +1016,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
 	     osOut << inputFile << ":WARNING: unknownFilePath for callee: " << callee_sign << std::endl;
 	     callee_filepos = -1;
 	   }
-         std::string caller_record = CALLERS_DEFAULT_RECORD_NAME;
+         std::string caller_record = CALLERS_DEFAULT_NO_RECORD_NAME;
          if((destructor != NULL) && (destructor->getParent() != NULL))
          {
            caller_record = destructor->getParent()->getQualifiedNameAsString();
@@ -1059,7 +1059,7 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
 	  osOut << inputFile << ":WARNING: unknownFilePath for callee: " << callee_sign << std::endl;
 	  callee_filepos = -1;
 	}
-      std::string caller_record = CALLERS_DEFAULT_RECORD_NAME;
+      std::string caller_record = CALLERS_DEFAULT_NO_RECORD_NAME;
       if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
       {
         caller_record = parentMethod->getParent()->getQualifiedNameAsString();
@@ -1087,7 +1087,7 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
       // It checks whether a json file is already present for the malloc builtin function
       // if true, parse it and add the defined function only when necessary
       // if false, create this json file and add the defined function
-      std::string malloc_record(CALLERS_DEFAULT_RECORD_NAME);
+      std::string malloc_record(CALLERS_DEFAULT_RECORD_BUILTIN);
       {
 	boost::filesystem::path p(malloc_filepath);
 	std::string basename = p.filename().string();
@@ -1097,7 +1097,7 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
 	file->add_declared_function(&fct, malloc_filepath, &otherJsonFiles);
       }
 
-      std::string caller_record = CALLERS_DEFAULT_RECORD_NAME;
+      std::string caller_record = CALLERS_DEFAULT_NO_RECORD_NAME;
       if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
       {
         caller_record = parentMethod->getParent()->getQualifiedNameAsString();
@@ -1184,11 +1184,11 @@ CallersAction::Visitor::VisitBuiltinFunction(const clang::FunctionDecl* fd) {
     std::string basename = p.filename().string();
     std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
     std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
-    std::string builtin_record(CALLERS_DEFAULT_RECORD_NAME);
+    std::string builtin_record(CALLERS_DEFAULT_RECORD_BUILTIN);
     CallersData::FctDecl fct(builtin_mangled, builtinName, CallersData::VNoVirtual, headerName, builtinPos, builtin_record);
     file->add_declared_function(&fct, headerName, &otherJsonFiles);
     auto parentMethod = llvm::dyn_cast<clang::CXXMethodDecl>(pfdParent);
-    std::string caller_record(CALLERS_DEFAULT_RECORD_NAME);
+    std::string caller_record(CALLERS_DEFAULT_NO_RECORD_NAME);
     if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
     {
       caller_record = parentMethod->getParent()->getQualifiedNameAsString();
@@ -1229,12 +1229,12 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	}
       auto parentMethod = llvm::dyn_cast<clang::CXXMethodDecl>(pfdParent);
       auto calleeMethod = llvm::dyn_cast<clang::CXXMethodDecl>(callee);
-      std::string caller_record = CALLERS_DEFAULT_RECORD_NAME;
+      std::string caller_record = CALLERS_DEFAULT_NO_RECORD_NAME;
       if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
       {
         caller_record = parentMethod->getParent()->getQualifiedNameAsString();
       }
-      std::string callee_record = CALLERS_DEFAULT_RECORD_NAME;
+      std::string callee_record = CALLERS_DEFAULT_NO_RECORD_NAME;
       if((calleeMethod != NULL) && (calleeMethod->getParent() != NULL))
       {
         callee_record = calleeMethod->getParent()->getQualifiedNameAsString();
@@ -1415,7 +1415,7 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
         MangledName fct_mangledName;
         this->getMangledName(mangle_context_, function, &fct_mangledName);
 
-        std::string record = CALLERS_DEFAULT_RECORD_NAME;
+        std::string record = CALLERS_DEFAULT_NO_RECORD_NAME;
         if(methodDef != NULL)
         {
           auto rec = methodDef->getParent();
@@ -1436,7 +1436,7 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
           (methodDecl->isPure() ? CallersData::VVirtualPure : CallersData::VVirtualDeclared)
           : CallersData::VNoVirtual;
 
-        record = CALLERS_DEFAULT_RECORD_NAME;
+        record = CALLERS_DEFAULT_NO_RECORD_NAME;
         if(methodDecl != NULL)
         {
           auto rec_decl = methodDecl->getParent();
@@ -1520,7 +1520,7 @@ CallersAction::Visitor::VisitFunctionDeclaration(clang::FunctionDecl* function) 
         this->getMangledName(mangle_context_, function, &fct_mangledName);
         osOut << "Debug mangledName ok: " << fct_mangledName << '\n';
 
-        std::string fct_record = CALLERS_DEFAULT_RECORD_NAME;
+        std::string fct_record = CALLERS_DEFAULT_NO_RECORD_NAME;
         if((methodDecl != NULL) && (methodDecl->getParent() != NULL))
         {
           fct_record = methodDecl->getParent()->getQualifiedNameAsString();

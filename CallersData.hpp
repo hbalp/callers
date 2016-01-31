@@ -214,8 +214,8 @@ namespace CallersData
       int callee_decl_line = -1;
       std::string callee_def_file = "unknownCalleeDefFile";
       int callee_def_line = -1;
-      std::string caller_record = CALLERS_DEFAULT_RECORD_NAME;
-      std::string callee_record = CALLERS_DEFAULT_RECORD_NAME;
+      std::string caller_record = CALLERS_DEFAULT_NO_RECORD_NAME;
+      std::string callee_record = CALLERS_DEFAULT_NO_RECORD_NAME;
     private:
       std::string id;
   };
@@ -277,7 +277,7 @@ namespace CallersData
     private:
       inline void print_cout(std::string sign, Virtuality is_virtual, std::string file, int line, std::string record);
       void allocate();
-      std::string record = CALLERS_DEFAULT_RECORD_NAME;
+      std::string record = CALLERS_DEFAULT_NO_RECORD_NAME;
   };
 
   bool operator< (const FctDecl& fct1, const FctDecl& fct2);
@@ -313,7 +313,7 @@ namespace CallersData
     private:
       inline void print_cout(std::string sign, Virtuality is_virtual, std::string file, int line, std::string record);
       void allocate();
-      std::string record = CALLERS_DEFAULT_RECORD_NAME;
+      std::string record = CALLERS_DEFAULT_NO_RECORD_NAME;
   };
 
   bool operator< (const FctDef& fct1, const FctDef& fct2);

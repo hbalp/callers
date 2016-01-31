@@ -28,3 +28,7 @@
 #define CALLERS_ROOTDIR_PREFIX "/tmp/callers"
 
 #define CALLERS_DEFAULT_RECORD_NAME "noRecord"
+
+#define CALLERS_DEFAULT_NO_RECORD_NAME "C_code"
+
+#define CALLERS_DEFAULT_RECORD_BUILTIN "env"

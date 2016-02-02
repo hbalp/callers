@@ -1619,11 +1619,12 @@ CallersAction::Visitor::VisitInheritanceList(clang::CXXRecordDecl* cxxDecl,
          // exit(2);
       };
       if (!isFirst)
-         osOut << ",\n                  ";
+         osOut << ",\n";
       else
          isFirst = false;
 
-      std::string baseName = printQualifiedName(*base);
+      //std::string baseName = printQualifiedName(*base);
+      std::string baseName = base->getQualifiedNameAsString();
       std::string baseFile = printFilePath(base->getSourceRange());
       int baseBegin = printLine(base->getLocStart());
       int baseEnd = printLine(base->getLocEnd());
@@ -1645,7 +1646,8 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
      clang::TagTypeKind tagKind = Decl->getTagKind();
       if (tagKind == clang::TTK_Struct || tagKind == clang::TTK_Class) { // avoid unions
          bool isAnonymousRecord = false;
-         std::string recordName = printQualifiedName(*Decl, &isAnonymousRecord);
+         //std::string recordName = printQualifiedName(*Decl, &isAnonymousRecord);
+         std::string recordName = Decl->getQualifiedNameAsString();
          std::string recordFile = printFilePath(Decl->getSourceRange());
          int recordBegin = printLine(Decl->getLocStart());
          int recordEnd = printLine(Decl->getLocEnd());

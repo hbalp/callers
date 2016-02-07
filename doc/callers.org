@@ -1763,3 +1763,64 @@ and add the path work_dir/callgraph to the PATH environment variable.
       1. [ ] void CallersData::FctDecl::add_local_caller
       2. [ ] complete local info with caller_mangled in method void CallersData::FctDecl::add_local_callee
 
+* COTS
+  $ Eclipse-Mars + Sirius
+
+  $ opam version
+  1.2.2
+
+  $ cmake --version
+  cmake version 2.8.12.2
+
+  $ ocaml -version
+  The OCaml toplevel, version 4.02.0
+
+  $ clang --version
+  clang version 3.8.0 (trunk 254623) (llvm/trunk 254621)
+  Target: x86_64-unknown-linux-gnu
+  Thread model: posix
+
+  # Installed packages for 4.02.0:
+  atd                1.1.2  Parser for the ATD data format description language
+  atdgen             1.7.1  Generates efficient JSON serializers, deserializers and validators
+  base-bigarray       base  Bigarray library distributed with the OCaml compiler
+  base-bytes          base  Bytes library distributed with the OCaml compiler
+  base-threads        base  Threads library distributed with the OCaml compiler
+  base-unix           base  Unix library distributed with the OCaml compiler
+  base64             2.0.0  Base64 encoding and decoding library
+  batteries          2.3.1  Community-maintained foundation library
+  bin_prot       112.01.00  A binary protocol generator
+  biniou             1.0.9  Binary data format designed for speed, safety, ease of use and backward compatibility as protocols evolve
+  caml-mode           4.02  OCaml code editing commands for Emacs
+  camlp4            4.02+6  Camlp4 is a system for writing extensible parsers for programming languages
+  camomile           0.8.5  A comprehensive Unicode library
+  comparelib     109.60.00  Part of Jane Street\u2019s Core library
+  core           112.01.01  Industrial strength alternative to OCaml's standard library
+  core_kernel    112.01.00  Industrial strength alternative to OCaml's standard library
+  cppo               1.3.1  Equivalent of the C preprocessor for OCaml programs
+  custom_printf  112.01.00  Extension for printf format strings
+  easy-format        1.1.0  High-level and functional interface to the Format module of the OCaml standard library
+  enumerate      111.08.00  Quotation expanders for enumerating finite types.
+  fieldslib      109.20.03  Syntax extension to define first class values representing record fields, to get and set record fields, iterate and fold over all fields of a record and create new re
+  herelib        109.35.02  Part of Jane Street\u2019s Core library
+  lambda-term          1.9  Terminal manipulation library for OCaml
+  lwt                2.4.5  A cooperative threads library for OCaml
+  menhir          20151112  LR(1) parser generator
+  ocamlbuild             0  Build system distributed with the OCaml compiler since OCaml 3.10.0
+  ocamlfind          1.5.6  A library manager for OCaml
+  ocamlgraph         1.8.6  A generic graph library for OCaml
+  ounit              2.0.0  Unit testing framework loosely based on HUnit. It is similar to JUnit, and other XUnit testing frameworks
+  pa_bench       111.28.00  Syntax extension for inline benchmarks
+  pa_ounit       111.28.00  Syntax extension for oUnit
+  pa_test        111.08.01  Quotation expander for assertions.
+  pipebang       110.01.00  Part of Jane Street\u2019s Core library
+  react              1.2.0  Declarative events and signals for OCaml
+  sexplib        112.01.00  Library for serializing OCaml values to and from S-expressions
+  tuareg             2.0.9  OCaml mode for GNU Emacs and XEmacs.
+  type_conv      112.01.02  Library for building type-driven syntax extensions
+  typerep        111.17.00  typerep is a library for runtime types.
+  utop              1.18.1  Universal toplevel for OCaml
+  variantslib    109.15.03  Part of Jane Street\u2019s Core library
+  xml-light            2.4  Xml-Light is a minimal XML parser & printer for OCaml 
+  yojson             1.2.3  Yojson is an optimized parsing and printing library for the JSON format 
+  zed                  1.3  Abstract engine for text edition in OCaml

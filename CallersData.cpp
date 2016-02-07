@@ -272,6 +272,7 @@ CallersData::File::File(std::string file, std::string path)
   declared = new std::set<CallersData::FctDecl>;
   defined = new std::set<CallersData::FctDef>;
   records = new std::set<CallersData::Record>;
+  threads = new std::set<CallersData::Thread>;
   calls = new std::set<CallersData::FctCall>;
 
   kind = this->getKind();
@@ -292,6 +293,7 @@ CallersData::File::~File()
   delete declared;
   delete defined;
   delete records;
+  delete threads;
   delete calls;
 }
 
@@ -308,6 +310,7 @@ CallersData::File::File(const CallersData::File& copy_from_me)
   declared = new std::set<CallersData::FctDecl>;
   defined = new std::set<CallersData::FctDef>;
   records = new std::set<CallersData::Record>;
+  threads = new std::set<CallersData::Thread>;
   calls = new std::set<CallersData::FctCall>;
 
   std::cout << "File Copy Constructor of file \"" << file
@@ -349,6 +352,13 @@ CallersData::File::File(const CallersData::File& copy_from_me)
   for(c=copy_from_me.calls->begin(); c!=copy_from_me.calls->end(); ++c)
     {
       calls->insert(*c);
+    }
+
+  // copy threads definitions
+  std::set<Thread>::const_iterator thr;
+  for(thr=copy_from_me.threads->begin(); thr!=copy_from_me.threads->end(); ++thr)
+    {
+      threads->insert(*thr);
     }
 }
 
@@ -560,17 +570,17 @@ void CallersData::File::add_namespace(CallersData::Namespace nspc) const
   namespaces->insert(nspc);
 }
 
-void CallersData::File::add_record(CallersData::Record rec) const
+void CallersData::File::add_record(CallersData::Record *rec) const
 {
-  std::string kind = ((rec.kind == clang::TTK_Struct) ? "struct"
-		      : ((rec.kind == clang::TTK_Class) ? "class"
+  std::string kind = ((rec->kind == clang::TTK_Struct) ? "struct"
+		      : ((rec->kind == clang::TTK_Class) ? "class"
 			 : "anonym"));
-  int nb_base_classes = rec.inherits->size();
-  std::cout << "Register " << kind << " record \"" << rec.name
+  int nb_base_classes = rec->inherits->size();
+  std::cout << "Register " << kind << " record \"" << rec->name
 	    << "\" with " << nb_base_classes << " base classes, "
 	    << "defined in file \"" << this->fullPath() << ":"
-	    << rec.begin << ":" << rec.end << "\"" << std::endl;
-  records->insert(rec);
+	    << rec->begin << ":" << rec->end << "\"" << std::endl;
+  records->insert(*rec);
 }
 
 void CallersData::File::add_record(std::string name, clang::TagTypeKind kind, int begin, int end) const
@@ -583,6 +593,47 @@ void CallersData::File::add_record(std::string name, clang::TagTypeKind kind, in
 	    << "\" with " << nb_base_classes << " base classes, "
 	    << "located in file \"" << this->fullPath()
 	    << ":" << begin << ":" << end << "\"" << std::endl;
+}
+
+// Add a thread to the current file
+// Do not add the thread if it already exist in the file
+void CallersData::File::add_thread(CallersData::Thread *thr, CallersData::Dir *files) const
+{
+  std::cout << "Register thread instance \"" << thr->inst_name
+	    << "\" executing the routine \"" << thr->routine_sign
+             << "\"" << std::endl;
+  threads->insert(*thr);
+
+  //std::set<CallersData::FctDef>::const_iterator caller_def;
+  std::set<CallersData::FctDecl>::const_iterator routine_decl;
+
+  // Register the thread instance in the caller function def
+  assert(thr->caller_file == this->filepath);
+  // get a reference to the thread caller definition (if well present as expected)
+  CallersData::FctDef thr_caller_def(thr->caller_mangled, thr->caller_sign, thr->caller_virtuality, thr->caller_file, thr->caller_line, thr->caller_record);
+  auto caller_def = defined->find(thr_caller_def);
+  // ensure caller def has really been found
+  assert(caller_def != defined->end());
+  caller_def->add_thread(thr->id);
+
+  // add the thread to the routine decl
+  assert(thr->routine_file == this->filepath);
+  // get a reference to the thread routine declaration (if well present as expected)
+  CallersData::FctDecl thr_routine_decl(thr->routine_mangled, thr->routine_sign, thr->routine_virtuality,
+                                        thr->routine_file, thr->routine_line, thr->routine_record);
+  routine_decl = declared->find(thr_routine_decl);
+  // ensure routine decl has really been found
+  assert(routine_decl != declared->end());
+  routine_decl->add_thread(thr->id);
+
+  // // add the thread to the routine definition
+  // // get a reference to the thread routine definition (if well present as expected)
+  // CallersData::FctDef thr_routine_def(thr->routine_mangled, thr->routine_sign, thr->routine_def_virtuality,
+  //                                      thr->routine_def_file, thr->routine_def_line, thr->routine_record);
+  // routine_def = defined->find(thr_routine_def);
+  // // ensure routine decl has really been found
+  // assert(routine_def != defined->end());
+  // routine_def->add_thread(thr->id);
 }
 
 void CallersData::File::add_declared_function(CallersData::FctDecl* fct, std::string filepath, CallersData::Dir *files) const
@@ -725,15 +776,39 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 	{
 	  std::cout << "The callee function is defined externally" << std::endl;
 
-	  // add the external callee to the local caller
+	  // check first whether a json file is already present for the callee function
+	  // if true, parse it and add the defined function only when necessary
+	  // if false, create the callee json file and add the defined function
+	  boost::filesystem::path p(fc->callee_decl_file);
+	  std::string callee_basename = p.filename().string();
+	  std::string callee_dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+	  std::set<CallersData::File>::iterator callee_file = files->create_or_get_file(callee_basename, callee_dirpath);
+	  //CallersData::File callee_file(callee_basename, callee_dirpath);
+	  //callee_file.parse_json_file();
+	  CallersData::FctDecl callee_decl(fc->callee_mangled, fc->callee_sign, fc->callee_virtuality, fc->callee_decl_file, fc->callee_decl_line, fc->callee_record);
+	  callee_file->add_declared_function(&callee_decl, fc->callee_decl_file, files);
+
+	  // get a reference to the related defined function
+	  callee = callee_file->declared->find(callee_decl);
+	  // ensure callee has really been found
+	  assert(callee != callee_file->declared->end());
+
 	  if(fc->is_builtin == true)
 	    {
+              // add the builtin callee to the local caller
 	      caller->add_builtin_callee(fc->callee_mangled, fc->callee_sign, fc->callee_virtuality, fc->callee_decl_file, fc->callee_decl_line);
+
+	      // add the local caller to the builtin callee
+	      callee->add_external_caller(fc->caller_mangled, fc->caller_sign, fc->callee_virtuality, fc->caller_file, fc->caller_line, fc->caller_record);
 	    }
 	  else
-	    {
-	      caller->add_external_callee(fc->callee_mangled, fc->callee_sign, fc->callee_virtuality, fc->callee_decl_file, fc->callee_decl_line, fc->callee_record);
-	    }
+            {
+              // add the external callee to the local caller
+              caller->add_external_callee(fc->callee_mangled, fc->callee_sign, fc->callee_virtuality, fc->callee_decl_file, fc->callee_decl_line, fc->callee_record);
+
+	      // add the local caller to the external callee
+	      callee->add_external_caller(fc->caller_mangled, fc->caller_sign, fc->callee_virtuality, fc->caller_file, fc->caller_line, fc->caller_record);
+            }
 	}
     }
 
@@ -882,6 +957,26 @@ void CallersData::File::output_json_desc() const
 			}
 	   }
 	  js.out << "]";
+  }
+
+  if(threads->size() > 0)
+  {
+    js.out << ",\"threads\":[";
+    std::set<Thread>::const_iterator thr, last_thr;
+    last_thr = threads->empty() ? threads->end() : --threads->end();
+    for(thr=threads->begin(); thr!=threads->end(); ++thr)
+    {
+      if(thr != last_thr)
+      {
+        thr->output_json_desc(js.out);
+        js.out << ",";
+      }
+      else
+      {
+        thr->output_json_desc(js.out);
+      }
+    }
+    js.out << "]";
   }
 
   if(declared->size() > 0)
@@ -1036,7 +1131,7 @@ void CallersData::Namespace::print_cout() const
 {
   std::cout << "{\"name\": \"" << name
 	    << "\",\"qualifier\": \"" << qualifier << "\"";
-  
+
   // std::cout << ",\"namespaces\":[";
   // std::set<Namespace>::const_iterator n, last_nspc;
   // last_nspc = namespaces->empty() ? namespaces->end() : --namespaces->end();
@@ -1415,10 +1510,156 @@ bool CallersData::operator< (const CallersData::Record& record1, const CallersDa
   return record1.name < record2.name;
 }
 
+/***************************************** class Thread ****************************************/
+
+/*
+void CallersData::Thread::allocate()
+{
+}
+*/
+
+CallersData::Thread::~Thread()
+{
+}
+
+CallersData::Thread::Thread(std::string inst_name,
+                            std::string routine_name,
+                            std::string routine_sign,
+                            std::string routine_mangled,
+                            Virtuality routine_virtuality,
+                            std::string routine_file,
+                            int routine_line,
+                            // Virtuality routine_def_virtuality,
+                            // std::string routine_def_file,
+                            // int routine_def_line,
+                            std::string routine_record,
+                            std::string create_location,
+                            std::string caller_mangled,
+                            std::string caller_sign,
+                            Virtuality caller_virtuality,
+                            std::string caller_filepath,
+                            int caller_filepos,
+                            std::string caller_record)
+  : inst_name(inst_name),
+    routine_name(routine_name),
+    routine_sign(routine_sign),
+    routine_mangled(routine_mangled),
+    routine_virtuality(routine_virtuality),
+    routine_file(routine_file),
+    routine_line(routine_line),
+    // routine_def_virtuality(routine_def_virtuality),
+    // routine_def_file(routine_def_file),
+    // routine_def_line(routine_def_line),
+    routine_record(routine_record),
+    create_location(create_location),
+    caller_mangled(caller_mangled),
+    caller_sign(caller_sign),
+    caller_virtuality(caller_virtuality),
+    caller_file(caller_filepath),
+    caller_line(caller_filepos),
+    caller_record(caller_record)
+{
+  assert(this->inst_name != "unknownThreadInstanceName");
+  assert(this->routine_name != "unknownThreadRoutineName");
+  assert(this->routine_sign != "unknownThreadRoutineSign");
+  assert(this->routine_mangled != "unknownThreadRoutineMangled");
+  // assert(this->routine_virtuality != CallersData::VNoVirtual);
+  assert(this->routine_file != "unknownThreadRoutineDeclFile");
+  assert(this->routine_line != -1);
+  // // assert(this->routine_def_virtuality != CallersData::VNoVirtual);
+  // assert(this->routine_def_file != "unknownThreadRoutineDefFile");
+  // assert(this->routine_def_line != -1);
+  assert(this->routine_record != CALLERS_DEFAULT_RECORD_NAME);
+  assert(this->create_location != "unknownThreadCreateLocation");
+  assert(this->caller_sign != "unknownThreadCallerSign");
+  assert(this->caller_mangled != "unknownThreadCallerMangled");
+
+  // allocate();
+  std::cout << "Create thread: " << std::endl;
+  this->id = this->inst_name + this->routine_mangled;
+  this->print_cout();
+}
+
+CallersData::Thread::Thread(const CallersData::Thread& copy_from_me)
+{
+  // allocate();
+  std::cout << "Thread copy constructor" << std::endl;
+  inst_name = copy_from_me.inst_name;
+  id = copy_from_me.id;
+  routine_sign = copy_from_me.routine_sign;
+  routine_name = copy_from_me.routine_name;
+  routine_mangled = copy_from_me.routine_mangled;
+  routine_virtuality = copy_from_me.routine_virtuality;
+  routine_file = copy_from_me.routine_file;
+  routine_line = copy_from_me.routine_line;
+  // routine_def_virtuality = copy_from_me.routine_def_virtuality;
+  // routine_def_file = copy_from_me.routine_def_file;
+  // routine_def_line = copy_from_me.routine_def_line;
+  routine_record = copy_from_me.routine_record;
+  create_location = copy_from_me.create_location;
+  caller_sign = copy_from_me.caller_sign;
+  caller_mangled = copy_from_me.caller_mangled;
+}
+
+void CallersData::Thread::print_cout() const
+{
+  std::string decl_virtuality = ((routine_virtuality == CallersData::VNoVirtual) ? "no"
+	    	: ((routine_virtuality == CallersData::VVirtualDeclared) ? "declared"
+	    	: ((routine_virtuality == CallersData::VVirtualDefined) ? "defined"
+		: "pure")));
+
+  std::cout
+    << "{\"inst\":\"" << inst_name
+    << "\",\"routine_name\":\"" << routine_name
+    << "\",\"routine_sign\":\"" << routine_sign
+    << "\",\"routine_mangled\":\"" << routine_mangled
+    << "\",\"routine_virtuality\":\"" << decl_virtuality
+    << "\",\"routine_file\":\"" << routine_file
+    << "\",\"routine_line\":" << routine_line
+    // << ",\"routine_def_virtuality\":\"" << routine_def_virtuality
+    // << "\",\"routine_def_file\":\"" << routine_def_file
+    // << "\",\"routine_def_line\":" << routine_def_line
+    << ",\"routine_record\":\"" << routine_record
+    << "\",\"caller_sign\":\"" << caller_sign
+    << "\",\"caller_mangled\":\"" << caller_mangled
+    << "\",\"id\":\"" << id
+    << "\",\"loc\":\"" << create_location << "\"}";
+}
+
+void CallersData::Thread::output_json_desc(std::ofstream &js) const
+{
+  std::string decl_virtuality = ((routine_virtuality == CallersData::VNoVirtual) ? "no"
+	    	: ((routine_virtuality == CallersData::VVirtualDeclared) ? "declared"
+	    	: ((routine_virtuality == CallersData::VVirtualDefined) ? "defined"
+		: "pure")));
+
+  js  << "{\"inst\": \"" << inst_name
+      << "\",\"routine_name\":\"" << routine_name
+      << "\",\"routine_sign\":\"" << routine_sign
+      << "\",\"routine_mangled\":\"" << routine_mangled
+      << "\",\"routine_virtuality\":\"" << decl_virtuality
+      << "\",\"routine_file\":\"" << routine_file
+      << "\",\"routine_line\":" << routine_line
+      // << ",\"routine_def_virtuality\":\"" << routine_def_virtuality
+      // << "\",\"routine_def_file\":\"" << routine_def_file
+      // << "\",\"routine_def_line\":" << routine_def_line
+      << ",\"routine_record\":\"" << routine_record
+      << "\",\"caller_sign\":\"" << caller_sign
+      << "\",\"caller_mangled\":\"" << caller_mangled
+      << "\",\"id\":\"" << id
+      << "\",\"loc\":\"" << create_location << "\"}";
+}
+
+bool CallersData::operator< (const CallersData::Thread& thread1, const CallersData::Thread& thread2)
+{
+  return thread1.id < thread2.id;
+}
+
 /***************************************** class FctDecl ****************************************/
 
 void CallersData::FctDecl::allocate()
 {
+  threads = new std::set<std::string>;
   redeclarations = new std::set<ExtFct>;
   definitions = new std::set<ExtFct>;
   redefinitions = new std::set<ExtFct>;
@@ -1428,6 +1669,7 @@ void CallersData::FctDecl::allocate()
 
 CallersData::FctDecl::~FctDecl()
 {
+  delete threads;
   delete redeclarations;
   delete definitions;
   delete redefinitions;
@@ -1435,7 +1677,8 @@ CallersData::FctDecl::~FctDecl()
   delete extcallers;
 }
 
-CallersData::FctDecl::FctDecl(const char* mangled, const char* sign, Virtuality is_virtual, const char* filepath, const int line, const char* record)
+CallersData::FctDecl::FctDecl(const char* mangled, const char* sign, Virtuality is_virtual,
+                              const char* filepath, const int line, const char* record)
   : mangled(mangled),
     sign(sign),
     file(filepath),
@@ -1459,7 +1702,8 @@ CallersData::FctDecl::FctDecl(const char* mangled, const char* sign, Virtuality 
   this->print_cout(sign, is_virtual, file, line, rec);
 }
 
-CallersData::FctDecl::FctDecl(MangledName mangled, std::string sign, Virtuality is_virtual, std::string filepath, int line, std::string record)
+CallersData::FctDecl::FctDecl(MangledName mangled, std::string sign, Virtuality is_virtual,
+                              std::string filepath, int line, std::string record)
   : mangled(mangled),
     sign(sign),
     file(filepath),
@@ -1491,16 +1735,22 @@ CallersData::FctDecl::FctDecl(const CallersData::FctDecl& copy_from_me)
   line = copy_from_me.line;
   record = copy_from_me.record;
 
-  // copy local callers
-  std::set<std::string>::const_iterator l;
-  for(l=copy_from_me.locallers->begin(); l!=copy_from_me.locallers->end(); ++l)
+  // copy threads
+  std::set<std::string>::const_iterator i;
+  for(i=copy_from_me.threads->begin(); i!=copy_from_me.threads->end(); ++i )
     {
-      locallers->insert(*l);
+      threads->insert(*i);
+    };
+
+  // copy local callers
+  for(i=copy_from_me.locallers->begin(); i!=copy_from_me.locallers->end(); ++i)
+    {
+      locallers->insert(*i);
     };
 
   // copy redeclarations
   std::set<ExtFct>::const_iterator x;
-  for( x=copy_from_me.redeclarations->begin(); x!=copy_from_me.redeclarations->end(); ++x )
+  for(x=copy_from_me.redeclarations->begin(); x!=copy_from_me.redeclarations->end(); ++x )
     {
       redeclarations->insert(*x);
     };
@@ -1521,7 +1771,14 @@ CallersData::FctDecl::FctDecl(const CallersData::FctDecl& copy_from_me)
   for( x=copy_from_me.redefinitions->begin(); x!=copy_from_me.redefinitions->end(); ++x )
     {
       redefinitions->insert(*x);
-    };
+    }
+}
+
+void CallersData::FctDecl::add_thread(std::string thread_id) const
+{
+  assert(thread_id != CALLERS_DEFAULT_NO_THREAD_ID);
+  std::cout << "Add thread id \"" << thread_id << "\" to function declaration \"" << this->sign << "\"" << std::endl;
+  this->threads->insert(thread_id);
 }
 
 void CallersData::FctDecl::add_local_caller(MangledName mangled, std::string sign, std::string record) const
@@ -1630,6 +1887,29 @@ void CallersData::FctDecl::add_redefinition(MangledName redef_mangled, std::stri
 
   ExtFct extfct (redef_mangled, redef_sign, redef_virtuality, redef_decl_location, E_FctDef, redef_record);
   redefinitions->insert(extfct);
+}
+
+void CallersData::FctDecl::output_threads(std::ofstream &js) const
+{
+  if (not threads->empty())
+    {
+      js << ", \"threads\": [";
+      std::set<std::string>::const_iterator i, last;
+      //last = std::prev(threads.end(); // requires C++ 11
+      last = --threads->end();
+      for( i=threads->begin(); i!=threads->end(); ++i )
+	{
+	  if(i != last)
+	    {
+	      js << "\"" << *i << "\", ";
+	    }
+	  else
+	    {
+	      js << "\"" << *i << "\"";
+	    }
+	};
+      js << "]";
+    }
 }
 
 void CallersData::FctDecl::output_local_callers(std::ofstream &js) const
@@ -1773,6 +2053,7 @@ void CallersData::FctDecl::output_json_desc(std::ofstream &js) const
     js << ", \"record\": \"" << record << "\"";
   }
 
+  this->output_threads(js);
   this->output_redeclarations(js);
   this->output_definitions(js);
   this->output_redefinitions(js);
@@ -1818,17 +2099,19 @@ bool CallersData::operator< (const CallersData::FctDecl& fct1, const CallersData
 
 void CallersData::FctDef::allocate()
 {
-  locallers  = new std::set<std::string>;
+  threads = new std::set<std::string>;
+  // locallers  = new std::set<std::string>;
   locallees  = new std::set<std::string>;
-  extcallers = new std::set<ExtFct>;
+  // extcallers = new std::set<ExtFct>;
   extcallees = new std::set<ExtFct>;
 }
 
 CallersData::FctDef::~FctDef()
 {
-  delete locallers;
+  delete threads;
+  // delete locallers;
   delete locallees;
-  delete extcallers;
+  // delete extcallers;
   delete extcallees;
 }
 
@@ -1888,12 +2171,18 @@ CallersData::FctDef::FctDef(const CallersData::FctDef& copy_from_me)
   line = copy_from_me.line;
   record = copy_from_me.record;
 
-  // copy local callers
+  // copy threads
   std::set<std::string>::const_iterator i;
-  for( i=copy_from_me.locallers->begin(); i!=copy_from_me.locallers->end(); ++i )
+  for( i=copy_from_me.threads->begin(); i!=copy_from_me.threads->end(); ++i )
     {
-      locallers->insert(*i);
+      threads->insert(*i);
     };
+
+  // // copy local callers
+  // for( i=copy_from_me.locallers->begin(); i!=copy_from_me.locallers->end(); ++i )
+  //   {
+  //     locallers->insert(*i);
+  //   };
 
   // copy local callees
   for( i=copy_from_me.locallees->begin(); i!=copy_from_me.locallees->end(); ++i )
@@ -1901,18 +2190,26 @@ CallersData::FctDef::FctDef(const CallersData::FctDef& copy_from_me)
       locallees->insert(*i);
     };
 
-  // copy external callers
-  std::set<ExtFct>::const_iterator x;
-  for( x=copy_from_me.extcallers->begin(); x!=copy_from_me.extcallers->end(); ++x )
-    {
-      extcallers->insert(*x);
-    };
+  // // copy external callers
+  // std::set<ExtFct>::const_iterator x;
+  // for( x=copy_from_me.extcallers->begin(); x!=copy_from_me.extcallers->end(); ++x )
+  //   {
+  //     extcallers->insert(*x);
+  //   };
 
   // copy external callees
-  for( x=copy_from_me.extcallees->begin(); x!=copy_from_me.extcallees->end(); ++x )
+  std::set<ExtFct>::const_iterator x;
+  for(x=copy_from_me.extcallees->begin(); x!=copy_from_me.extcallees->end(); ++x )
     {
       extcallees->insert(*x);
     };
+}
+
+void CallersData::FctDef::add_thread(std::string thread_id) const
+{
+  assert(thread_id != CALLERS_DEFAULT_NO_THREAD_ID);
+  std::cout << "Add thread id \"" << thread_id << "\" to function definition \"" << this->sign << "\"" << std::endl;
+  this->threads->insert(thread_id);
 }
 
 // void CallersData::FctDef::add_local_caller(MangledName mangled, std::string sign) const
@@ -1982,15 +2279,38 @@ void CallersData::FctDef::add_builtin_callee(MangledName builtin_mangled, std::s
   extcallees->insert(extfct);
 }
 
-void CallersData::FctDef::output_local_callers(std::ofstream &js) const
+// void CallersData::FctDef::output_local_callers(std::ofstream &js) const
+// {
+//   if (not locallers->empty())
+//     {
+//       js << ", \"locallers\": [";
+//       std::set<std::string>::const_iterator i, last;
+//       //last = std::prev(locallers.end(); // requires C++ 11
+//       last = --locallers->end();
+//       for( i=locallers->begin(); i!=locallers->end(); ++i)
+//       {
+//         if(i != last)
+//         {
+//           js << "\"" << *i << "\", ";
+//         }
+//         else
+//         {
+//          js << "\"" << *i << "\"";
+//         }
+//       };
+//       js << "]";
+//     }
+// }
+
+void CallersData::FctDef::output_threads(std::ofstream &js) const
 {
-  if (not locallers->empty())
+  if (not threads->empty())
     {
-      js << ", \"locallers\": [";
+      js << ", \"threads\": [";
       std::set<std::string>::const_iterator i, last;
-      //last = std::prev(locallers.end(); // requires C++ 11
-      last = --locallers->end();
-      for( i=locallers->begin(); i!=locallers->end(); ++i )
+      //last = std::prev(threads.end(); // requires C++ 11
+      last = --threads->end();
+      for( i=threads->begin(); i!=threads->end(); ++i )
 	{
 	  if(i != last)
 	    {
@@ -2001,7 +2321,6 @@ void CallersData::FctDef::output_local_callers(std::ofstream &js) const
 	      js << "\"" << *i << "\"";
 	    }
 	};
-
       js << "]";
     }
 }
@@ -2014,7 +2333,7 @@ void CallersData::FctDef::output_local_callees(std::ofstream &js) const
       std::set<std::string>::const_iterator i, last;
       //last = std::prev(locallees.end(); // requires C++ 11
       last = --locallees->end();
-      for( i=locallees->begin(); i!=locallees->end(); ++i )
+      for(i=locallees->begin(); i!=locallees->end(); ++i)
 	{
 	  if(i != last)
 	    {
@@ -2027,33 +2346,32 @@ void CallersData::FctDef::output_local_callees(std::ofstream &js) const
 	};
 
       js << "]";
-
     }
 }
 
-void CallersData::FctDef::output_external_callers(std::ofstream &js) const
-{
-  if( not extcallers->empty())
-    {
-      js << ", \"extcallers\": [";
+// void CallersData::FctDef::output_external_callers(std::ofstream &js) const
+// {
+//   if( not extcallers->empty())
+//     {
+//       js << ", \"extcallers\": [";
 
-      std::set<ExtFct>::const_iterator x, extlast;
-      //last = std::prev(extcallers.end(); // requires C++ 11
-      extlast = extcallers->empty() ? extcallers->end() : --extcallers->end();
-      for( x=extcallers->begin(); x!=extcallers->end(); ++x )
-	{
-	  if(x != extlast)
-	    {
-	      js << *x << ", ";
-	    }
-	  else
-	    {
-	      js << *x;
-	    }
-	};
-      js << "]";
-    }
-}
+//       std::set<ExtFct>::const_iterator x, extlast;
+//       //last = std::prev(extcallers.end(); // requires C++ 11
+//       extlast = extcallers->empty() ? extcallers->end() : --extcallers->end();
+//       for( x=extcallers->begin(); x!=extcallers->end(); ++x )
+// 	{
+// 	  if(x != extlast)
+// 	    {
+// 	      js << *x << ", ";
+// 	    }
+// 	  else
+// 	    {
+// 	      js << *x;
+// 	    }
+// 	};
+//       js << "]";
+//     }
+// }
 
 void CallersData::FctDef::output_external_callees(std::ofstream &js) const
 {
@@ -2099,9 +2417,10 @@ void CallersData::FctDef::output_json_desc(std::ofstream &js) const
     js << ", \"record\": \"" << record << "\"";
   }
 
-  this->output_local_callers(js);
+  this->output_threads(js);
+  // this->output_local_callers(js);
   this->output_local_callees(js);
-  this->output_external_callers(js);
+  // this->output_external_callers(js);
   this->output_external_callees(js);
 
   js << "}";

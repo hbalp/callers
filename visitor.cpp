@@ -1,8 +1,8 @@
 /****
-     Copyright (C) 2015 Commissariat à l'Energie Atomique, Thales Communication
+     Copyright (C) 2015 Thales Communication & Security
        - All Rights Reserved
-     coded by Hugues Balp
-     initiated by Franck Vedrine
+     coded by Hugues Balp (Thales Communication & Security)
+     initiated by Franck Vedrine (Commissariat à l'Energie Atomique)
 ****/
 
 //
@@ -199,7 +199,7 @@ CallersAction::Visitor::printFilePath(const clang::SourceRange& rangeLocation) c
 }
 
 std::string CallersAction::Visitor::printCurrentPath() const
-{  
+{
   boost::filesystem::path current_path = boost::filesystem::current_path();
   std::string path = boost::filesystem::canonical(current_path).string();
   return path;
@@ -1207,8 +1207,10 @@ CallersAction::Visitor::VisitBuiltinFunction(const clang::FunctionDecl* fd) {
 bool
 CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
    const clang::FunctionDecl* callee = callExpr->getDirectCallee();
-   MangledName callee_mangled;
+   MangledName caller_mangled, callee_mangled;
    this->getMangledName(mangle_context_, callee, &callee_mangled);
+   this->getMangledName(mangle_context_, pfdParent, &caller_mangled);
+   std::string caller_sign = printParentFunction();
    if (callee) {
       if (callee->getBuiltinID() > 0)
        {
@@ -1219,8 +1221,9 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
        {
          callee = callee->getCanonicalDecl();
        }
-      std::string calleeName = writeFunction(*callee);
-      osOut << inputFile << ": " << printParentFunction() << " -7-> " << calleeName << '\n';
+      std::string callee_sign = writeFunction(*callee);
+      std::string callee_name = callee->getNameAsString();
+      osOut << inputFile << ": " << caller_sign << ":" << caller_mangled << " -7-> " << callee_name << ":" << callee_sign << '\n';
       std::string callee_filepath = printFilePath(callee->getSourceRange());
       int callee_filepos = printLine(callee->getSourceRange());
       if(callee_filepath == "unknownFilePath")
@@ -1239,21 +1242,112 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
       {
         callee_record = calleeMethod->getParent()->getQualifiedNameAsString();
       }
-      CallersData::FctCall fc(callee_mangled, printParentFunction(),
-          (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
-          printParentFunctionFilePath(), printParentFunctionLine(),
-          callee_mangled, calleeName,
-          (!calleeMethod || !calleeMethod->isVirtual()) ? CallersData::VNoVirtual
-            : (calleeMethod->isPure() ? CallersData::VVirtualPure
-            : (calleeMethod->isThisDeclarationADefinition() ? CallersData::VVirtualDefined : CallersData::VVirtualDeclared)),
-          callee_filepath, callee_filepos, caller_record, callee_record);
+      CallersData::Virtuality caller_virtuality = (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual;
+      std::string caller_filepath = printParentFunctionFilePath();
+      int caller_filepos = printParentFunctionLine();
+      CallersData::Virtuality callee_virtuality = (!calleeMethod || !calleeMethod->isVirtual()) ? CallersData::VNoVirtual
+           : (calleeMethod->isPure() ? CallersData::VVirtualPure
+           : (calleeMethod->isThisDeclarationADefinition() ? CallersData::VVirtualDefined : CallersData::VVirtualDeclared));
+      CallersData::FctCall fc(caller_mangled, caller_sign, caller_virtuality, caller_filepath, caller_filepos,
+                              callee_mangled, callee_sign, callee_virtuality, callee_filepath, callee_filepos,
+                              caller_record, callee_record);
       currentJsonFile->add_function_call(&fc, &otherJsonFiles);
+
+      // Specific add-ons for particular builtin callees
+
+      // case of thread creation
+      if(callee_name == "pthread_create")
+      {
+        std::string thr_inst_name = "unknownThreadInstanceVarName";
+        std::string thr_routine_name = "unknownThreadRoutineName";
+        std::string thr_routine_sign = "unknownThreadRoutineSign";
+        std::string thr_routine_mangled = "unknownThreadRoutineMangled";
+        // Virtuality thr_routine_virtuality = "unknownThreadRoutineDeclVirtuality";
+        CallersData::Virtuality thr_routine_virtuality = CallersData::VNoVirtual;
+        std::string thr_routine_file = "unknownThreadRoutineDeclFile";
+        int thr_routine_line = -1;
+        // // Virtuality thr_routine_def_virtuality = "unknownThreadRoutineDefVirtuality";
+        // CallersData::Virtuality thr_routine_def_virtuality = CallersData::VNoVirtual;
+        // std::string thr_routine_def_file = "unknownThreadRoutineDefFile";
+        // int thr_routine_def_line = -1;
+        std::string thr_routine_record = CALLERS_DEFAULT_NO_RECORD_NAME;
+        std::string thr_create_location = "unknownThreadCreateLocation";
+
+        auto thr_routine_method = llvm::dyn_cast<clang::CXXMethodDecl>(callee);
+        thr_routine_virtuality =
+          (!thr_routine_method || !thr_routine_method->isVirtual()) ? CallersData::VNoVirtual
+          : (thr_routine_method->isPure() ? CallersData::VVirtualPure
+          : (thr_routine_method->isThisDeclarationADefinition() ? CallersData::VVirtualDefined : CallersData::VVirtualDeclared));
+
+        auto argIter = callExpr->arg_begin(),
+        argIterEnd = callExpr->arg_end();
+        osOut << "THREAD:";
+        for (; argIter != argIterEnd; ++argIter) {
+          osOut << " debug";
+          if(auto ICE = llvm::dyn_cast<clang::ImplicitCastExpr>(*argIter)) {
+            osOut << " ice";
+            if(auto DRE = llvm::dyn_cast<clang::DeclRefExpr>(ICE->getSubExpr())) {
+              // it's a reference to a declaration
+              if(auto FD = llvm::dyn_cast<clang::FunctionDecl>(DRE->getDecl())) {
+                // it's a reference to a function
+                thr_routine_name = FD->getNameAsString();
+                thr_routine_sign = writeFunction(*FD);
+                thr_routine_file = printFilePath(FD->getSourceRange());
+                thr_routine_line = printLine(FD->getSourceRange());
+                // thr_routine_def_file = thr_routine_file;
+                // thr_routine_def_line = thr_routine_line;
+                if(thr_routine_method != NULL)
+                {
+                  auto rec = thr_routine_method->getParent();
+                  if(rec != NULL)
+                  {
+                    thr_routine_record = rec->getQualifiedNameAsString();
+                  }
+                }
+                this->getMangledName(mangle_context_, FD, &thr_routine_mangled);
+                osOut << " thread routine name: " << thr_routine_name << ", sign: " << writeFunction(*FD)
+                      << ", mangled:" << thr_routine_mangled << std::endl;
+                // get the location of the caller function
+                thr_create_location = callExpr->getRParenLoc().printToString(ciCompilerInstance.getSourceManager());
+                osOut << "thread instantiation location: " << thr_create_location << std::endl;
+              }
+              // else
+              // {
+              //   osOut << " other_decl";
+              // }
+            }
+          }
+          else if(auto UO = llvm::dyn_cast<clang::UnaryOperator>(*argIter)) {
+            osOut << " uo";
+            if(auto DRE = llvm::dyn_cast<clang::DeclRefExpr>(UO->getSubExpr())) {
+              // it's a reference to a declaration
+              if(auto VD = llvm::dyn_cast<clang::VarDecl>(DRE->getDecl())) {
+                // it's a reference to a variable
+                thr_inst_name = VD->getNameAsString();
+                osOut << " thread instance: " << thr_inst_name;
+              }
+              // else
+              // {
+              //   osOut << " other_decl";
+              // }
+            }
+          }
+        }
+
+        // Create the thread instance
+        CallersData::Thread thread(thr_inst_name, thr_routine_name, thr_routine_sign, thr_routine_mangled,
+                                   thr_routine_virtuality, thr_routine_file, thr_routine_line,
+                                   // thr_routine_def_virtuality, thr_routine_def_file, thr_routine_def_line,
+                                   thr_routine_record, thr_create_location, caller_mangled, caller_sign,
+                                   caller_virtuality, caller_filepath, caller_filepos, caller_record);
+        currentJsonFile->add_thread(&thread, &otherJsonFiles);
+      }
       return true;
    }
 
    if (callExpr->getCallee()->getStmtClass() == clang::Stmt::CXXPseudoDestructorExprClass)
       return true;
-   osOut << "  " << printParentFunction() << " -> dynamic call\n";
+   osOut << "  " << caller_sign << " -> dynamic call\n";
    return true;
 }
 
@@ -1269,14 +1363,14 @@ CallersAction::Visitor::VisitMemberCallExpr(const clang::CXXMemberCallExpr* call
    if (isVirtualCall) {
       clang::CXXRecordDecl* baseClass = callExpr->getMethodDecl()->getParent();
       // _callersAction->registerDerivedCalls(sParent, baseClass, callExpr->getMethodDecl());
-      std::string calleeName = writeFunction(*directCall);
+      std::string calleeSign = writeFunction(*directCall);
       osOut << printParentFunction() << " -> derived of class "
          << printQualifiedName(*baseClass) << printTemplateKind(*baseClass)
-         << " method " << calleeName << '\n';
+         << " method " << calleeSign << '\n';
    }
    else {
-      std::string calleeName = writeFunction(*directCall);
-      osOut << "  " << printParentFunction() << " -8-> " << calleeName << '\n';
+      std::string calleeSign = writeFunction(*directCall);
+      osOut << "  " << printParentFunction() << " -8-> " << calleeSign << '\n';
    };
    return true;
 }
@@ -1682,7 +1776,7 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
               {
                 osOut << "the record \"" << recordName << "\" is well defined in current file \""
                       << recordFile << "\"" << std::endl;
-                currentJsonFile->add_record(record);
+                currentJsonFile->add_record(&record);
               }
             else
               // otherwise, check whether a json file is already present for the visited record
@@ -1698,7 +1792,7 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
                 std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
                 std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
 
-                file->add_record(record);
+                file->add_record(&record);
               }
 
             osOut << '\n';

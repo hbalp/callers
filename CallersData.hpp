@@ -63,6 +63,7 @@ namespace CallersData
   class FctDecl;
   class FctDef;
   class FctCall;
+  class Thread;
 
   enum Virtuality { VNoVirtual, VVirtualDeclared, VVirtualDefined, VVirtualPure };
   enum FctKind { E_FctDecl, E_FctDef };
@@ -83,12 +84,14 @@ namespace CallersData
       void add_defined_function(MangledName mangled, std::string sign, Virtuality virtuality, std::string file, int line, std::string filepath, std::string record) const;
       void add_defined_function(FctDef* fct, std::string filepath) const;
       void add_namespace(Namespace nspc) const;
-      void add_record(Record record) const;
+      void add_record(Record *record) const;
       void add_record(std::string name, clang::TagTypeKind kind, int begin, int end) const;
+      void add_thread(Thread* thread, CallersData::Dir *files) const;
       void add_function_call(FctCall* fc, Dir *context) const;
       void output_json_desc() const;
       std::set<Namespace> *namespaces;
       std::set<Record>  *records;
+      std::set<Thread>  *threads;
       std::set<FctDecl> *declared;
       std::set<FctDef>  *defined;
   private:
@@ -189,12 +192,63 @@ namespace CallersData
 
   bool operator< (const Record& record1, const Record& record2);
 
+  /* Thread class */
+  class Thread
+  {
+    friend std::ostream &operator<<(std::ostream &output, const Thread &thr);
+    friend bool operator< (const CallersData::Thread& thr1, const CallersData::Thread& thr2);
+    public:
+    Thread(std::string inst_name,
+           std::string routine_name,
+           std::string routine_sign,
+           std::string routine_mangled,
+           Virtuality routine_virtuality,
+           std::string routine_file,
+           int routine_line,
+           std::string routine_record,
+           std::string create_location,
+           std::string caller_mangled,
+           std::string caller_sign,
+           Virtuality caller_virtuality,
+           std::string caller_file,
+           int caller_line,
+           std::string caller_record
+      );
+      Thread(const Thread& copy_from_me);
+      ~Thread();
+      // void allocate();
+      void output_json_desc(std::ofstream &js) const;
+      void print_cout() const;
+      std::string id = "unknownThreadId";
+      std::string inst_name = "unknownThreadInstanceName";
+      std::string routine_name = "unknownThreadRoutineName";
+      std::string routine_sign = "unknownThreadRoutineSign";
+      std::string routine_mangled = "unknownThreadRoutineMangled";
+      Virtuality routine_virtuality = CallersData::VNoVirtual;
+      std::string routine_file = "unknownThreadRoutineDeclFile";
+      int routine_line = -1;
+      // Virtuality routine_def_virtuality = CallersData::VNoVirtual;
+      // std::string routine_def_file = "unknownThreadRoutineDefFile";
+      // int routine_def_line = -1;
+      std::string routine_record = "unknownThreadRoutineRecord";
+      std::string create_location = "unknownThreadCreateLocation";
+      std::string caller_mangled = "unknownThreadCallerMangled";
+      std::string caller_sign = "unknownThreadCallerSign";
+      Virtuality caller_virtuality = CallersData::VNoVirtual;
+      std::string caller_file = "unknownThreadCallerFile";
+      int caller_line = -1;
+      std::string caller_record = "unknownThreadCallerRecord";
+    private:
+      //
+  };
+
+  bool operator< (const Thread& thread1, const Thread& thread2);
+
   /* Used to store function call before knowing if it's a local or an external call */
   class FctCall
   {
     friend bool operator< (const CallersData::FctCall& fc1, const CallersData::FctCall& fc2);
     friend void File::add_function_call(FctCall* fc, Dir* context) const;
-
     public:
       FctCall(MangledName caller_mangled, std::string caller_sign, Virtuality caller_virtuality, std::string caller_file,
               int caller_line, MangledName callee_mangled, std::string callee_sign, Virtuality callee_virtuality,
@@ -226,7 +280,6 @@ namespace CallersData
   {
     friend std::ostream &operator<<(std::ostream &output, const ExtFct &fct);
     friend bool operator< (const CallersData::ExtFct& fct1, const CallersData::ExtFct& fct2);
-
     public:
       ExtFct(MangledName mangled, std::string sign, Virtuality is_virtual, std::string fct_loc, FctKind kind, std::string record );
       ExtFct(const ExtFct& copy_from_me);
@@ -257,7 +310,9 @@ namespace CallersData
       void add_redeclaration(MangledName fct_mangled, std::string fct_sign, Virtuality redecl_virtuality, std::string redecl_file, int redecl_line, std::string redecl_record) const;
       void add_definition(MangledName fct_mangled, std::string fct_sign, std::string def_sign, Virtuality def_virtuality, std::string def_file_pos, std::string record) const;
       void add_redefinition(MangledName fct_mangled, std::string fct_sign, Virtuality redef_virtuality, std::string redef_file, int redef_line, std::string record) const;
+      void add_thread(std::string thread) const;
 
+      void output_threads(std::ofstream &js) const;
       void output_local_callers(std::ofstream &js) const;
       void output_external_callers(std::ofstream &js) const;
       void output_redeclarations(std::ofstream &js) const;
@@ -270,6 +325,7 @@ namespace CallersData
       std::string file = "unknownFctDeclFile";
       Virtuality virtuality = VNoVirtual;
       int line = -1;
+      std::set<std::string> *threads;
       std::set<ExtFct> *redeclarations;
       std::set<ExtFct> *definitions;
       std::set<ExtFct> *redefinitions;
@@ -295,8 +351,10 @@ namespace CallersData
       void add_local_callee(MangledName callee_mangled, std::string callee_sign, std::string record) const;
       void add_external_callee(MangledName mangled, std::string sign, Virtuality virtuality, std::string file, int line, std::string record) const;
       void add_builtin_callee(MangledName mangled, std::string sign, Virtuality builtin_virtuality, std::string builtin_decl_file, int builtin_decl_line) const;
+      void add_thread(std::string thread) const;
 
       void output_local_callers(std::ofstream &js) const;
+      void output_threads(std::ofstream &js) const;
       void output_local_callees(std::ofstream &js) const;
       void output_external_callers(std::ofstream &js) const;
       void output_external_callees(std::ofstream &js) const;
@@ -307,9 +365,10 @@ namespace CallersData
       std::string file = "unknownFctFile";
       Virtuality virtuality = VNoVirtual;
       int line = -1;
-      std::set<std::string> *locallers;
+      std::set<std::string> *threads;
+      // std::set<std::string> *locallers;
       std::set<std::string> *locallees;
-      std::set<ExtFct> *extcallers;
+      // std::set<ExtFct> *extcallers;
       std::set<ExtFct> *extcallees;
 
     private:

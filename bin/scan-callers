@@ -30,6 +30,7 @@ use Sys::Hostname;
 Devel::Trace::trace('on');
 
 my $Verbose = 0;       # Verbose output from this script.
+#my $Verbose = 4;       # Verbose output from this script.
 my $Prog = "scan-build";
 my $BuildName;
 my $BuildDate;

@@ -861,6 +861,9 @@ CallersAction::Visitor::getMangledName(clang::MangleContext* ctx,
                                        const clang::FunctionDecl* nd,
                                        MangledName* result)
 {
+  assert(nd != NULL);
+  assert(ctx != NULL);
+
   llvm::SmallVector<char, 512> output;
   llvm::raw_svector_ostream out(output);
   switch(nd->getKind())
@@ -1207,11 +1210,12 @@ CallersAction::Visitor::VisitBuiltinFunction(const clang::FunctionDecl* fd) {
 bool
 CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
    const clang::FunctionDecl* callee = callExpr->getDirectCallee();
-   MangledName caller_mangled, callee_mangled;
-   this->getMangledName(mangle_context_, callee, &callee_mangled);
-   this->getMangledName(mangle_context_, pfdParent, &caller_mangled);
    std::string caller_sign = printParentFunction();
    if (callee) {
+      MangledName caller_mangled, callee_mangled;
+      this->getMangledName(mangle_context_, callee, &callee_mangled);
+      this->getMangledName(mangle_context_, pfdParent, &caller_mangled);
+
       if (callee->getBuiltinID() > 0)
        {
 	  this->VisitBuiltinFunction(callee);

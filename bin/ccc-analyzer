@@ -26,7 +26,7 @@ function func_usage ()
 
 case "$1" in
     --help | --hel | --he | --h )
-	func_usage $provided_cmds 
+	func_usage $provided_cmds
 	;;
     --version | --versio | --versi | --vers | --ver | --ve | --v )
 	func_version
@@ -36,6 +36,7 @@ esac
 
 build_args=$@
 #echo "ccc-analyzer arguments are: $@"
+default_analysis_compiler=clang
 
 #################################################################################
 # build the source file to enable link edition and to be sure output directories are well created 
@@ -51,7 +52,17 @@ build_args=$@
 file=`get_file .c ${build_args}`
 if [ -z "${file}" ]
 then
-    echo "# No .c source file has been found in arguments, so we bypass the callers analysis"
+#    echo "# No .c source file has been found in arguments, so we bypass the callers analysis"
+    echo "# ccc-analyzer: No .c source file has been found in arguments"
+    # we check whether the input file is a .s assembly file
+    s_file=`get_file .s ${build_args}`
+    if [ -z "${s_file}" ]
+    then
+        echo "# ccc-analyzer: we do not handle and forward as is this unrecognized build command: ${build_args}"
+    else
+        echo "# ccc-analyzer: we do not handle and forward as is this assembly file build command: ${build_args}"
+    fi
+    ${default_analysis_compiler} ${build_args}
 else
 
     # get the analysis_type = callers | frama-clang | framaCIRGen | all

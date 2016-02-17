@@ -47,7 +47,7 @@ function launch_frama_clang ()
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $cabs_stderr"
     echo "    return 10"
     echo "fi"
-    echo "gzip -f ${cabs_file}"    
+    echo "gzip -f ${cabs_file}"
 }
 
 function launch_frama_c ()
@@ -321,13 +321,13 @@ function launch_callers_cpp ()
     #callers_cpp_options="-I. -I.. --disable-extern-template"
     callers_cpp_options="-I. -I.. "
 
-    # build the callers analysis command    
+    # build the callers analysis command
     callers_cpp_analysis="${callers_cpp} ${callers_cpp_options} \${system_includes} ${file_analysis_options} -o ${callers_cpp_stdout_file} ${cpp_file}"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch callers++ analysis of file: ${cpp_file}\""
     echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
-    echo "mkdir -p $stderr_dir"
+    echo "mkdir -p ${stderr_dir}"
     echo "touch $callers_cpp_stderr_file"
     echo "#gdb --args "
     echo "#valgrind --tool=callgrind "
@@ -340,7 +340,7 @@ function launch_callers_cpp ()
     echo "    return 17"
     echo "fi"
     echo "gzip -f ${callers_cpp_stdout_file}"
-    echo "gzip -f /tmp/callers${cpp_file}.file.callers.gen.json"
+    echo "gzip -f /tmp/callers${stderr_dir}/${cpp_file}.file.callers.gen.json"
 }
 
 function launch_callers_c ()
@@ -361,13 +361,13 @@ function launch_callers_c ()
     #callers_c_options="-I. -I.. --disable-extern-template"
     callers_c_options="-I. -I.. "
 
-    # build the callers analysis command    
+    # build the callers analysis command
     callers_c_analysis="${callers_c} ${callers_c_options} \${system_includes} ${file_analysis_options} -o ${callers_c_stdout_file} ${c_file}"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch callers analysis of file: ${c_file}\""
     echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
-    echo "mkdir -p $stderr_dir"
+    echo "mkdir -p ${stderr_dir}"
     echo "touch $callers_c_stderr_file"
     echo "#gdb --args "
     echo "#valgrind --tool=callgrind "
@@ -380,7 +380,7 @@ function launch_callers_c ()
     echo "    return 18"
     echo "fi"
     echo "gzip -f ${callers_c_stdout_file}"
-    echo "gzip -f /tmp/callers${c_file}.file.callers.gen.json"
+    echo "gzip -f /tmp/callers${stderr_dir}/${c_file}.file.callers.gen.json"
 }
 
 function prepare_frama_clang_analysis_from_compile_command()
@@ -470,108 +470,127 @@ function prepare_frama_clang_analysis_from_compile_command()
 	debug_options=""
     fi
 
-    # get the analysis_type = callers | frama-clang | framaCIRGen | all
-    analysis_type=${CALLERS_ANALYSIS_TYPE}
-    #echo "c++-analysis type is: ${analysis_type}" 
-
-    case $analysis_type in
-
-	"callers" )
-	    #echo "activates callers analysis";
-	    run_callers="true"
-	    ;;
-
-	"frama-c" )
-	    #echo "activates frama-c analysis";
-	    run_frama_clang="true"
-	    ;;
-
-	"frama-clang" )
-	    #echo "activates frama-clang analysis";
-	    run_frama_clang="true"
-	    ;;
-
-	"framaCIRGen" )
-	    #echo "activates framaCIRGen analysis";
-	    run_framaCIRGen="true"
-	    ;;
-
-	"all" )
-	    #echo "activates all kind of analysis: callers, frama_clang and framaCIRGen";
-	    #run_gcc="true"
-	    run_clang="true"
-	    run_callers="true"
-	    run_frama_clang="true"
-	    run_framaCIRGen="true"
-	    ;;
-
-	*)
-	    #echo "builds the input file without any analysis..."
-	    ;;
-    esac
+    # check whether this command is a link edition one ore not
+    # precondition:
+    # if the option -c is present, we consider it is a compilation command
+    # else we consider it is a link edition command and we do not try to launch the callers analysis
+    file_build_options=""
+    is_build_command="false"
 
     # get source file's specific build options
     file_build_options=""
     for a in $args
     do
-	if  [ ${a} != -c ]          && 
-	    [ ${a} != -o ]          && 
+	if [ ${a} == -c ]
+	then
+	    is_build_command="true"
+	fi
+	if  [ ${a} != -c ]          &&
+	    [ ${a} != -o ]          &&
 	    [ ${a} != "-nostdinc" ] &&
-	    [ ${a} != ${src_file} ] && 
+	    [ ${a} != ${src_file} ] &&
 	    [ ${a} != ${obj_file} ]
 	then
 	    file_build_options="${file_build_options} $a "
 	fi
     done
 
+    # get the analysis_type = callers | frama-clang | framaCIRGen | all
+    analysis_type=${CALLERS_ANALYSIS_TYPE}
+    #echo "c++-analysis type is: ${analysis_type}"
+
+    echo "DEBUG: is_build_command: ${is_build_command}" >> $stderr_file
+    if [ ${is_build_command} == "true" ]
+    then
+        case $analysis_type in
+
+	    "callers" )
+	        #echo "activates callers analysis";
+	        run_callers="true"
+	        ;;
+
+	    "frama-c" )
+	        #echo "activates frama-c analysis";
+	        run_frama_clang="true"
+	        ;;
+
+	    "frama-clang" )
+	        #echo "activates frama-clang analysis";
+	        run_frama_clang="true"
+	        ;;
+
+	    "framaCIRGen" )
+	        #echo "activates framaCIRGen analysis";
+	        run_framaCIRGen="true"
+	        ;;
+
+	    "all" )
+	        #echo "activates all kind of analysis: callers, frama_clang and framaCIRGen";
+	        #run_gcc="true"
+	        run_clang="true"
+	        run_callers="true"
+	        run_frama_clang="true"
+	        run_framaCIRGen="true"
+	        ;;
+
+	    *)
+	        #echo "builds the input file without any analysis..."
+	        ;;
+        esac
+    else
+	echo "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG" >> $stderr_file
+	echo "prepare_frama_clang_analysis::IGNORE:: ignore this link edition step during ${analysis_type} analyzis : ${file_build_options}" >> $stderr_file
+	echo "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG" >> $stderr_file
+    fi
+
     if [ $fileext == "cpp" ]
     then
-	if [ $run_gcc == "true" ] 
+	if [ $run_gcc == "true" ]
 	then
 	    launch_gcc_cpp ${src_file} ${gcc_stdout_file} ${gcc_stderr_file} ${file_build_options}
 	fi
-	if [ $run_clang == "true" ] 
+	if [ $run_clang == "true" ]
 	then
 	    launch_clang_cpp ${src_file} ${clang_stdout_file} ${clang_stderr_file} ${file_build_options}
 	fi
-	if [ $run_callers == "true" ] 
+	if [ $run_callers == "true" ]
 	then
 	    launch_callers_cpp ${src_file} ${callers_stdout_file} ${callers_stderr_file} ${file_build_options}
 	fi
-	if [ $run_framaCIRGen == "true" ] 
+	if [ $run_framaCIRGen == "true" ]
 	then
 	    launch_framaCIRGen ${src_file} ${fir_file} ${fir_stderr_file} ${file_build_options}
 	fi
-	if [ $run_frama_clang == "true" ] 
+	if [ $run_frama_clang == "true" ]
 	then
 	    launch_frama_clang ${src_file} ${cabs_file} ${cabs_stderr_file} ${file_build_options}
 	fi
     elif [ $fileext == "c" ]
     then
-	if [ $run_gcc == "true" ] 
+	if [ $run_gcc == "true" ]
 	then
 	    launch_gcc_c ${src_file} ${gcc_stdout_file} ${gcc_stderr_file} ${file_build_options}
 	fi
-	if [ $run_clang == "true" ] 
+	if [ $run_clang == "true" ]
 	then
 	    launch_clang_c ${src_file} ${clang_stdout_file} ${clang_stderr_file} ${file_build_options}
 	fi
-	if [ $run_callers == "true" ] 
+	if [ $run_callers == "true" ]
 	then
 	    launch_callers_c ${src_file} ${callers_stdout_file} ${callers_stderr_file} ${file_build_options}
 	fi
-	if [ $run_framaCIRGen == "true" ] 
+	if [ $run_framaCIRGen == "true" ]
 	then
 	    launch_framaCIRGen ${src_file} ${fir_file} ${fir_stderr_file} ${file_build_options}
 	fi
-	if [ $run_frama_clang == "true" ] 
+	if [ $run_frama_clang == "true" ]
 	then
 	    launch_frama_c ${src_file} ${cabs_file} ${cabs_stderr_file} ${file_build_options}
 	fi
     else
-	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
-	echo "prepare_frama_clang_analysis::ERROR::internal error: unreachable state !"
-	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" >> $stderr_file
+	echo "prepare_frama_clang_analysis::ERROR::internal error: unreachable state !" >> $stderr_file
+	echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" >> $stderr_file
     fi
     #echo "# DEBUG: output file build options: ${file_build_options}"
 }
@@ -609,7 +628,7 @@ function prepare_analysis_from_scan_build_command()
     build_command=$@
 
     echo "#!/bin/bash"
-    echo "#set -x"
+    echo "set -x"
     system_includes ${src_file}
 
     # prepare the analysis launch script from the build command

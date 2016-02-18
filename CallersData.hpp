@@ -172,7 +172,7 @@ namespace CallersData
       void add_method(std::string name) const;
       void add_base_class(std::string name, std::string file, int deb, int fin) const;
       void add_base_class(Inheritance inheritance) const;
-      // void add_child_class(std::string name, std::string file, int deb, int fin) const;
+      void add_child_class(std::string name, std::string file, int deb, int fin) const;
       // void add_child_class(Inheritance inheritance) const;
       void output_json_desc(std::ofstream &js) const;
       void print_cout() const;

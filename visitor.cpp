@@ -1592,11 +1592,49 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
 bool
 CallersAction::Visitor::VisitFunctionDeclaration(clang::FunctionDecl* function) {
 
+      assert(function != NULL);
       std::string fct_sign = writeFunction(*function);
       std::string fct_filepath = printFilePath(function->getSourceRange());
       int fct_line = printLine(function->getSourceRange());
 
-        auto methodDecl = llvm::dyn_cast<clang::CXXMethodDecl>(function);
+        auto virtualityDecl = CallersData::VNoVirtual;
+
+        MangledName fct_mangledName;
+        this->getMangledName(mangle_context_, function, &fct_mangledName);
+        osOut << "Debug mangledName ok: " << fct_mangledName << '\n';
+
+        std::string fct_record = CALLERS_DEFAULT_NO_RECORD_NAME;
+
+        CallersData::FctDecl fctDecl(fct_mangledName, fct_sign, virtualityDecl, fct_filepath, fct_line, fct_record);
+
+        // check whether the function is really defined in this file
+        if(fct_filepath == currentJsonFile->fullPath())
+          // if true, add the function to the current json file
+          {
+            currentJsonFile->add_declared_function(&fctDecl, fct_filepath, &otherJsonFiles);
+          }
+        else
+          // otherwise, check whether a json file is already present for the visited function
+          // if true, parse it and add the defined function only when necessary
+          // if false, create this json file and add the defined function
+          {
+            boost::filesystem::path p(fct_filepath);
+            std::string basename = p.filename().string();
+            std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+            std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
+            file->add_declared_function(&fctDecl, fct_filepath, &otherJsonFiles);
+          }
+    return true;
+}
+
+bool
+CallersAction::Visitor::VisitMethodDeclaration(clang::CXXMethodDecl* methodDecl) {
+
+      assert(methodDecl != NULL);
+      std::string fct_sign = writeFunction(*methodDecl);
+      std::string fct_filepath = printFilePath(methodDecl->getSourceRange());
+      int fct_line = printLine(methodDecl->getSourceRange());
+
         auto virtualityDecl = (methodDecl && methodDecl->isVirtual()) ?
           (methodDecl->isPure() ? CallersData::VVirtualPure : CallersData::VVirtualDeclared)
           : CallersData::VNoVirtual;
@@ -1615,7 +1653,7 @@ CallersAction::Visitor::VisitFunctionDeclaration(clang::FunctionDecl* function) 
 		  }
 
         MangledName fct_mangledName;
-        this->getMangledName(mangle_context_, function, &fct_mangledName);
+        this->getMangledName(mangle_context_, methodDecl, &fct_mangledName);
         osOut << "Debug mangledName ok: " << fct_mangledName << '\n';
 
         std::string fct_record = CALLERS_DEFAULT_NO_RECORD_NAME;
@@ -1656,9 +1694,9 @@ CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
    sParent = writeFunction(*Decl);
 
    bool isDefinition = Decl->isThisDeclarationADefinition();
-   auto methodDecl = llvm::dyn_cast<clang::CXXMethodDecl>(Decl);
-   bool isDeclarationOfInterest = !isDefinition && methodDecl;
-   // && (methodDecl->isVirtual() || methodDecl->isPure());
+   auto isMethodDecl = llvm::dyn_cast<clang::CXXMethodDecl>(Decl);
+   // bool isDeclarationOfInterest = !isDefinition && isMethodDecl;
+   // && (isMethodDecl->isVirtual() || isMethodDecl->isPure());
 
    if (isDefinition) {
 
@@ -1667,16 +1705,27 @@ CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
 
      this->VisitFunctionDefinition(Decl);
    }
-   else if (isDeclarationOfInterest) {
-
-    osOut << "visiting method \"" << sParent
-           << "\" declared at " << fct_filepath << ':' << fct_line << std::endl;
-
-     this->VisitFunctionDeclaration(Decl);
-   }
+   //else if (isDeclarationOfInterest) {
    else {
-     osOut << "ignore function \"" << sParent
-            << "\" declared at " << fct_filepath << ':' << fct_line << std::endl;
+
+    if (isMethodDecl) {
+        osOut << "visiting method \"" << sParent
+               << "\" declared at " << fct_filepath << ':' << fct_line << std::endl;
+       this->VisitMethodDeclaration(isMethodDecl);
+    }
+    else {
+        osOut << "visiting function \"" << sParent
+               << "\" declared at " << fct_filepath << ':' << fct_line << std::endl;
+        if(fct_filepath != "unknownFilePath")
+        {
+          this->VisitFunctionDeclaration(Decl);
+        }
+        else
+        {
+          osOut << "ignore function \"" << sParent
+                 << "\" declared at " << fct_filepath << ':' << fct_line << std::endl;
+        }
+    }
    }
    return true;
 }
@@ -1726,7 +1775,14 @@ CallersAction::Visitor::VisitInheritanceList(clang::CXXRecordDecl* cxxDecl,
       std::string baseFile = printFilePath(base->getSourceRange());
       int baseBegin = printLine(base->getLocStart());
       int baseEnd = printLine(base->getLocEnd());
+      // clang::TagTypeKind baseTagKind = base->getTagKind();
+
       record->add_base_class(baseName, baseFile, baseBegin, baseEnd);
+
+      // CallersData::Record parent(baseName, baseTagKind, baseFile, baseBegin, baseEnd);
+
+      // osOut << " the base record \"" << baseName << "\" is inherited by child record \"" << recordName << "\"" << std::endl;
+
 
       osOut << baseName;
       osOut << printTemplateKind(*base);

@@ -329,6 +329,7 @@ function launch_callers_cpp ()
     echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
     echo "mkdir -p ${stderr_dir}"
     echo "touch $callers_cpp_stderr_file"
+    stderr_file_dir=`dirname ${callers_cpp_stderr_file}`
     echo "#gdb --args "
     echo "#valgrind --tool=callgrind "
     echo "#valgrind "
@@ -340,7 +341,13 @@ function launch_callers_cpp ()
     echo "    return 17"
     echo "fi"
     echo "gzip -f ${callers_cpp_stdout_file}"
-    echo "gzip -f /tmp/callers${stderr_dir}/${cpp_file}.file.callers.gen.json"
+    #echo "gzip -f /tmp/callers\${file_dir}/${cpp_file}.file.callers.gen.json"
+    if [ ${stderr_file_dir} == "." ]
+    then
+        echo "gzip -f /tmp/callers${cpp_file}.file.callers.gen.json"
+    else
+        echo "gzip -f /tmp/callers${stderr_file_dir}/${cpp_file}.file.callers.gen.json"
+    fi
 }
 
 function launch_callers_c ()
@@ -369,6 +376,8 @@ function launch_callers_c ()
     echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
     echo "mkdir -p ${stderr_dir}"
     echo "touch $callers_c_stderr_file"
+    #echo "file_dir=`dirname ${c_file}`"
+    stderr_file_dir=`dirname ${callers_c_stderr_file}`
     echo "#gdb --args "
     echo "#valgrind --tool=callgrind "
     echo "#valgrind "
@@ -380,7 +389,12 @@ function launch_callers_c ()
     echo "    return 18"
     echo "fi"
     echo "gzip -f ${callers_c_stdout_file}"
-    echo "gzip -f /tmp/callers${stderr_dir}/${c_file}.file.callers.gen.json"
+    if [ ${stderr_file_dir} == "." ]
+    then
+        echo "gzip -f /tmp/callers${c_file}.file.callers.gen.json"
+    else
+        echo "gzip -f /tmp/callers${stderr_file_dir}/${c_file}.file.callers.gen.json"
+    fi
 }
 
 function prepare_frama_clang_analysis_from_compile_command()
@@ -456,8 +470,8 @@ function prepare_frama_clang_analysis_from_compile_command()
     debug="true"
     #debug="false"
 
-    #run_gcc="false"
-    run_gcc="true"
+    run_gcc="false"
+    #run_gcc="true"
     run_clang="true"
     run_callers="false"
     run_frama_clang="false"
@@ -499,7 +513,7 @@ function prepare_frama_clang_analysis_from_compile_command()
     analysis_type=${CALLERS_ANALYSIS_TYPE}
     #echo "c++-analysis type is: ${analysis_type}"
 
-    echo "DEBUG: is_build_command: ${is_build_command}" >> $stderr_file
+    # echo "DEBUG: is_build_command: ${is_build_command}" >> $stderr_file
     if [ ${is_build_command} == "true" ]
     then
         case $analysis_type in

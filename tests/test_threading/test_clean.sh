@@ -5,9 +5,7 @@ rm -f *.gen.callgraph
 rm -f *.gen.dot
 rm -f .debug_launch.std*
 find . -name "*.debug.json" -exec rm {} \;
-find . -name "*.gen.aird" -exec rm {} \;
-find . -name "*.gen.json" -exec rm {} \;
-find . -name "*.gen.json.gz" -exec rm {} \;
+find . -name "*.gen.*" -exec rm {} \;
 rm -rf analysis
 rm -rf build
 rm -f defined_symbols.json

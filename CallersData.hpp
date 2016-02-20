@@ -81,7 +81,8 @@ namespace CallersData
       std::set<CallersData::Namespace>::iterator create_or_get_namespace(std::string qualifiers, const clang::NamespaceDecl* nspc);
       //void add_declared_function(std::string sign, Virtuality virtuality, std::string file, int line) const;
       void add_declared_function(FctDecl* fct, std::string filepath, Dir *context) const;
-      void add_defined_function(MangledName mangled, std::string sign, Virtuality virtuality, std::string file, int line, std::string filepath, std::string record) const;
+      void add_defined_function(MangledName mangled, std::string sign, Virtuality virtuality, std::string file,
+                                int line, std::string filepath, std::string decl_pos, std::string record) const;
       void add_defined_function(FctDef* fct, std::string filepath) const;
       void add_namespace(Namespace nspc) const;
       void add_record(Record *record) const;
@@ -212,6 +213,7 @@ namespace CallersData
            Virtuality caller_virtuality,
            std::string caller_file,
            int caller_line,
+           std::string caller_decl,
            std::string caller_record
       );
       Thread(const Thread& copy_from_me);
@@ -237,6 +239,7 @@ namespace CallersData
       Virtuality caller_virtuality = CallersData::VNoVirtual;
       std::string caller_file = "unknownThreadCallerFile";
       int caller_line = -1;
+      std::string caller_decl = CALLERS_NO_FCT_DECL_LOC;
       std::string caller_record = "unknownThreadCallerRecord";
     private:
       //
@@ -250,10 +253,9 @@ namespace CallersData
     friend bool operator< (const CallersData::FctCall& fc1, const CallersData::FctCall& fc2);
     friend void File::add_function_call(FctCall* fc, Dir* context) const;
     public:
-      FctCall(MangledName caller_mangled, std::string caller_sign, Virtuality caller_virtuality, std::string caller_file,
-              int caller_line, MangledName callee_mangled, std::string callee_sign, Virtuality callee_virtuality,
-              std::string callee_decl_file, int callee_decl_line, std::string caller_record,
-              std::string callee_record);
+      FctCall(MangledName caller_mangled, std::string caller_sign, Virtuality caller_virtuality, std::string caller_file, int caller_line, std::string caller_decl,
+              MangledName callee_mangled, std::string callee_sign, Virtuality callee_virtuality, std::string callee_decl_file, int callee_decl_line,
+              std::string caller_record, std::string callee_record);
       //FctCall(const FctCall& copy_from_me);
       ~FctCall() {}
       bool is_builtin = false;
@@ -263,6 +265,7 @@ namespace CallersData
       Virtuality caller_virtuality = VNoVirtual;
       std::string caller_file = "unknownCallerFile";
       int caller_line = -1;
+      std::string caller_decl = CALLERS_NO_FCT_DECL_LOC;
       std::string callee_mangled = "unknownCalleeMangled";
       std::string callee_sign = "unknownCalleeSign";
       Virtuality callee_virtuality = VNoVirtual;
@@ -343,8 +346,8 @@ namespace CallersData
   class FctDef
   {
     public:
-      FctDef(const char* mangled, const char* sign, Virtuality is_virtual, const char* filepath, const int line, const char* record);
-      FctDef(MangledName mangled, std::string sign, Virtuality is_virtual, std::string filepath, int line, std::string record);
+      FctDef(const char* mangled, const char* sign, Virtuality is_virtual, const char* filepath, const int line, const char* decl, const char* record);
+      FctDef(MangledName mangled, std::string sign, Virtuality is_virtual, std::string filepath, int line, std::string decl, std::string record);
       FctDef(const FctDef& copy_from_me);
       ~FctDef();
 
@@ -362,9 +365,10 @@ namespace CallersData
 
       MangledName mangled = "unknownFctDefMangledName";
       std::string sign = "unknownFctSign";
-      std::string file = "unknownFctFile";
       Virtuality virtuality = VNoVirtual;
+      std::string file = "unknownFctFile";
       int line = -1;
+      std::string decl = CALLERS_NO_FCT_DECL_LOC;
       std::set<std::string> *threads;
       // std::set<std::string> *locallers;
       std::set<std::string> *locallees;

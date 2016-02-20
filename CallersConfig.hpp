@@ -34,3 +34,5 @@
 #define CALLERS_DEFAULT_NO_THREAD_ID "noThread"
 
 #define CALLERS_DEFAULT_RECORD_BUILTIN "env"
+
+#define CALLERS_NO_FCT_DECL_LOC "unknownFctDecl"

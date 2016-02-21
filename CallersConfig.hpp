@@ -12,15 +12,10 @@
 //
 
 #define CALLERS_TYPE_DIR "http://com.thalesgroup.fr/tcs/callers/1.0.0#//dir"
-
 #define CALLERS_TYPE_DIR_SYMBOLS "http://com.thalesgroup.fr/tcs/callers/1.0.0#//dir_symbols"
-
 #define CALLERS_TYPE_FILE "http://com.thalesgroup.fr/tcs/callers/1.0.0#//file"
-
 #define CALLERS_TYPE_RECORD "http://com.thalesgroup.fr/tcs/callers/1.0.0#//record"
-
 #define CALLERS_TYPE_FCT_DECL "http://com.thalesgroup.fr/tcs/callers/1.0.0#//fct_decl"
-
 #define CALLERS_TYPE_FCT_DEF "http://com.thalesgroup.fr/tcs/callers/1.0.0#//fct_def"
 
 #define CALLERS_ERROR_UNSUPPORTED_CASE 17
@@ -28,11 +23,10 @@
 #define CALLERS_ROOTDIR_PREFIX "/tmp/callers"
 
 #define CALLERS_DEFAULT_RECORD_NAME "noRecord"
-
 #define CALLERS_DEFAULT_NO_RECORD_NAME "C_code"
-
 #define CALLERS_DEFAULT_NO_THREAD_ID "noThread"
-
 #define CALLERS_DEFAULT_RECORD_BUILTIN "env"
 
-#define CALLERS_NO_FCT_DECL_LOC "unknownFctDecl"
+#define CALLERS_NO_FCT_DEF_FILE  "unknownFctDef"
+#define CALLERS_NO_FCT_DECL_FILE "unknownFctDecl"
+#define CALLERS_LOCAL_FCT_DECL   "local"

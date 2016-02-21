@@ -81,9 +81,11 @@ namespace CallersData
       std::set<CallersData::Namespace>::iterator create_or_get_namespace(std::string qualifiers, const clang::NamespaceDecl* nspc);
       //void add_declared_function(std::string sign, Virtuality virtuality, std::string file, int line) const;
       void add_declared_function(FctDecl* fct, std::string filepath, Dir *context) const;
+      bool add_definition_to_declaration(std::string def_pos, std::string decl_sign, std::string decl_filepath) const;
+      bool add_definition_to_declaration(std::string def_pos, std::string decl_sign, std::string decl_filepath, Dir* otherFiles) const;
       void add_defined_function(MangledName mangled, std::string sign, Virtuality virtuality, std::string file,
-                                int line, std::string filepath, std::string decl_pos, std::string record) const;
-      void add_defined_function(FctDef* fct, std::string filepath) const;
+                                int line, std::string filepath, std::string decl_file, int decl_line, std::string record, Dir *context) const;
+      void add_defined_function(FctDef* fct, std::string filepath, Dir *otherFiles) const;
       void add_namespace(Namespace nspc) const;
       void add_record(Record *record) const;
       void add_record(std::string name, clang::TagTypeKind kind, int begin, int end) const;
@@ -213,7 +215,8 @@ namespace CallersData
            Virtuality caller_virtuality,
            std::string caller_file,
            int caller_line,
-           std::string caller_decl,
+           std::string caller_decl_file,
+           int caller_decl_line,
            std::string caller_record
       );
       Thread(const Thread& copy_from_me);
@@ -239,7 +242,8 @@ namespace CallersData
       Virtuality caller_virtuality = CallersData::VNoVirtual;
       std::string caller_file = "unknownThreadCallerFile";
       int caller_line = -1;
-      std::string caller_decl = CALLERS_NO_FCT_DECL_LOC;
+      std::string caller_decl_file = CALLERS_NO_FCT_DECL_FILE;
+      int caller_decl_line = -1;
       std::string caller_record = "unknownThreadCallerRecord";
     private:
       //
@@ -253,8 +257,10 @@ namespace CallersData
     friend bool operator< (const CallersData::FctCall& fc1, const CallersData::FctCall& fc2);
     friend void File::add_function_call(FctCall* fc, Dir* context) const;
     public:
-      FctCall(MangledName caller_mangled, std::string caller_sign, Virtuality caller_virtuality, std::string caller_file, int caller_line, std::string caller_decl,
-              MangledName callee_mangled, std::string callee_sign, Virtuality callee_virtuality, std::string callee_decl_file, int callee_decl_line,
+      FctCall(MangledName caller_mangled, std::string caller_sign, Virtuality caller_virtuality,
+              std::string caller_file, int caller_line, std::string caller_decl_file, int caller_decl_line,
+              MangledName callee_mangled, std::string callee_sign, Virtuality callee_virtuality,
+              std::string callee_decl_file, int callee_decl_line,
               std::string caller_record, std::string callee_record);
       //FctCall(const FctCall& copy_from_me);
       ~FctCall() {}
@@ -265,7 +271,8 @@ namespace CallersData
       Virtuality caller_virtuality = VNoVirtual;
       std::string caller_file = "unknownCallerFile";
       int caller_line = -1;
-      std::string caller_decl = CALLERS_NO_FCT_DECL_LOC;
+      std::string caller_decl_file = CALLERS_NO_FCT_DECL_FILE;
+      int caller_decl_line = -1;
       std::string callee_mangled = "unknownCalleeMangled";
       std::string callee_sign = "unknownCalleeSign";
       Virtuality callee_virtuality = VNoVirtual;
@@ -305,13 +312,15 @@ namespace CallersData
     public:
       FctDecl(const char* mangled, const char* sign, Virtuality is_virtual, const char* filepath, const int line, const char* record);
       FctDecl(std::string mangled, std::string sign, Virtuality is_virtual, std::string filepath, int line, std::string record);
+      FctDecl(std::string sign, std::string filepath);
       FctDecl(const FctDecl& copy_from_me);
       ~FctDecl();
 
       void add_local_caller(MangledName caller_mangled, std::string caller_sign, std::string caller_record) const;
       void add_external_caller(MangledName mangled, std::string sign, Virtuality virtuality, std::string file, int line, std::string record) const;
       void add_redeclaration(MangledName fct_mangled, std::string fct_sign, Virtuality redecl_virtuality, std::string redecl_file, int redecl_line, std::string redecl_record) const;
-      void add_definition(MangledName fct_mangled, std::string fct_sign, std::string def_sign, Virtuality def_virtuality, std::string def_file_pos, std::string record) const;
+      void add_definition(std::string fct_sign, std::string def_file_pos) const;
+      // void add_definition(MangledName fct_mangled, std::string fct_sign, std::string def_sign, Virtuality def_virtuality, std::string def_file_pos, std::string record) const;
       void add_redefinition(MangledName fct_mangled, std::string fct_sign, Virtuality redef_virtuality, std::string redef_file, int redef_line, std::string record) const;
       void add_thread(std::string thread) const;
 
@@ -330,7 +339,8 @@ namespace CallersData
       int line = -1;
       std::set<std::string> *threads;
       std::set<ExtFct> *redeclarations;
-      std::set<ExtFct> *definitions;
+      std::set<std::string> *definitions;
+      // std::set<ExtFct> *definitions;
       std::set<ExtFct> *redefinitions;
       std::set<std::string> *locallers;
       std::set<ExtFct> *extcallers;
@@ -346,8 +356,12 @@ namespace CallersData
   class FctDef
   {
     public:
-      FctDef(const char* mangled, const char* sign, Virtuality is_virtual, const char* filepath, const int line, const char* decl, const char* record);
-      FctDef(MangledName mangled, std::string sign, Virtuality is_virtual, std::string filepath, int line, std::string decl, std::string record);
+      FctDef(const char* mangled, const char* sign, Virtuality is_virtual,
+             const char* def_filepath, const int def_line,
+             const char* decl_filepath, const int decl_line, const char* record);
+      FctDef(MangledName mangled, std::string sign, Virtuality is_virtual,
+             std::string def_filepath, int def_line,
+             std::string decl_file, int decl_line, std::string record);
       FctDef(const FctDef& copy_from_me);
       ~FctDef();
 
@@ -366,9 +380,10 @@ namespace CallersData
       MangledName mangled = "unknownFctDefMangledName";
       std::string sign = "unknownFctSign";
       Virtuality virtuality = VNoVirtual;
-      std::string file = "unknownFctFile";
-      int line = -1;
-      std::string decl = CALLERS_NO_FCT_DECL_LOC;
+      std::string def_file = CALLERS_NO_FCT_DEF_FILE;
+      int def_line = -1;
+      std::string decl_file = CALLERS_NO_FCT_DECL_FILE;
+      int decl_line = -1;
       std::set<std::string> *threads;
       // std::set<std::string> *locallers;
       std::set<std::string> *locallees;

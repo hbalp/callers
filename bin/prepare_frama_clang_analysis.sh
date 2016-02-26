@@ -130,7 +130,7 @@ function launch_framaCIRGen ()
     echo "    return 12"
     #echo "    exit 12"
     echo "fi"
-    echo "gzip -f ${fir_file}"    
+    echo "gzip -f ${fir_file}"
 }
 
 function launch_gcc_cpp ()
@@ -214,12 +214,15 @@ function launch_clang_cpp ()
     cpp_file=$1
     clang_cpp_stdout_file=$2
     clang_cpp_stderr_file=$3
+    clang_cpp_app_cmd=$4
+    clang_cpp_app_dbg=$5
     stderr_dir=`dirname $clang_cpp_stderr_file`
     shift
     shift
     shift
-    file_build_options=$@
-    clang_cpp_astout_file="${clang_cpp_stdout_file}.ast"
+    shift
+    shift
+    clang_cpp_app_includes="$@"
 
     # localize clang_cpp
     clang_cpp=`which clang++ 2> /dev/null`
@@ -227,14 +230,27 @@ function launch_clang_cpp ()
     # add some options when required
     #clang_cpp_options="-std=c++11 -I. -I.."
     clang_cpp_build_options="-I. -I.. -c"
+
+    # build the clang_cpp ast command
     #clang_cpp_ast_options="-I. -I.. -Xclang -ast-dump -fsyntax-only --disable-extern-template"
     clang_cpp_ast_options="-I. -I.. -Xclang -ast-dump -fsyntax-only "
+    clang_cpp_astout_file="${clang_cpp_stdout_file}.ast"
+    clang_cpp_ast="${clang_cpp} ${clang_cpp_ast_options} ${debug_options} \${system_includes} \${app_includes} ${cpp_file} > ${clang_cpp_astout_file}"
 
-    # build the clang_cpp ast command    
-    clang_cpp_ast="${clang_cpp} ${debug_options} ${clang_cpp_ast_options} \${system_includes} ${file_build_options} ${cpp_file} > ${clang_cpp_astout_file}"
+    # build the clang_cpp dump_cfg command
+    clang_cpp_dump_cfg_options="-cc1 -analyze -analyzer-checker=debug.DumpCFG"
+    clang_cpp_dump_cfg_file="${clang_cpp_stdout_file}.cfg.dump"
+    clang_cpp_dump_cfg="${clang_cpp} ${clang_cpp_dump_cfg_options} \${system_includes} \${app_includes} ${cpp_file} 2> ${clang_cpp_dump_cfg_file}"
 
-    # build the clang_cpp build command    
-    clang_cpp_build="${clang_cpp} ${debug_options} ${clang_cpp_build_options} \${system_includes} ${file_build_options} -o ${clang_cpp_stdout_file} ${cpp_file}"
+    # build the clang_cpp view_cfg command
+    clang_cpp_view_cfg_options="-cc1 -analyze -analyzer-checker=debug.ViewCFG"
+    clang_cpp_view_cfg_file="${clang_cpp_stdout_file}.cfg.view"
+    clang_cpp_view_cfg1="${clang_cpp} ${clang_cpp_view_cfg_options} \${system_includes} \${app_includes} ${cpp_file}"
+    #clang_cpp_view_cfg3="for f in `ls /tmp/CFG-*.dot`; do dot -Tsvg $f > $f.svg; done"
+    clang_cpp_view_cfg2="tar -zcf ${clang_cpp_view_cfg_file}.tgz /tmp/CFG-*.dot; rm /tmp/CFG-*.*"
+
+    # build the clang_cpp build command
+    clang_cpp_build="${clang_cpp} ${clang_cpp_app_dbg} ${clang_cpp_build_options} ${debug_options} \${system_includes} \${app_includes} -o ${clang_cpp_stdout_file} ${cpp_file}"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch clang++ build of file: ${cpp_file}\""
@@ -244,7 +260,11 @@ function launch_clang_cpp ()
     echo "#gdb --args "
     echo "#valgrind --tool=callgrind "
     echo "#valgrind "
+    echo "app_includes=\"${clang_cpp_app_includes}\""
     echo "${clang_cpp_ast}"
+    echo "${clang_cpp_dump_cfg}"
+    echo "${clang_cpp_view_cfg1}"
+    echo "${clang_cpp_view_cfg2}"
     echo "${clang_cpp_build}"
     echo "if [ \$? -ne 0 ]; then"
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $clang_cpp_stderr_file"
@@ -253,7 +273,7 @@ function launch_clang_cpp ()
     echo "    return 15"
     echo "fi"
     echo "gzip -f ${clang_cpp_astout_file}"
-    echo "gzip -f ${clang_cpp_stdout_file}"
+    echo "#gzip -f ${clang_cpp_stdout_file}"
 }
 
 function launch_clang_c ()
@@ -266,21 +286,33 @@ function launch_clang_c ()
     shift
     shift
     file_build_options=$@
-    clang_c_astout_file="${clang_c_stdout_file}.ast"
 
     # localize clang
     clang_c=`which clang 2> /dev/null`
 
     # add some options when required
     clang_c_build_options="-I. -I.. -c"
+
+    # build the clang ast command
     #clang_c_ast_options="-I. -I.. -Xclang -ast-dump -fsyntax-only --disable-extern-template"
     clang_c_ast_options="-I. -I.. -Xclang -ast-dump -fsyntax-only "
+    clang_c_astout_file="${clang_c_stdout_file}.ast"
+    clang_c_ast="${clang_c} ${clang_c_ast_options} ${debug_options} \${system_includes} ${app_includes} ${c_file} > ${clang_c_astout_file}"
 
-    # build the clang ast command    
-    clang_c_ast="${clang_c} ${debug_options} ${clang_c_ast_options} \${system_includes} ${file_build_options} ${c_file} > ${clang_c_astout_file}"
+    # build the clang_cpp dump_cfg command
+    clang_c_dump_cfg_options="-cc1 -analyze -analyzer-checker=debug.DumpCFG"
+    clang_c_dump_cfg_file="${clang_c_stdout_file}.cfg.dump"
+    clang_c_dump_cfg="${clang_cpp} ${clang_c_dump_cfg_options} \${system_includes} \${app_includes} ${cpp_file} 2> ${clang_c_dump_cfg_file}"
 
-    # build the clang build command    
-    clang_c_build="${clang_c} ${debug_options} ${clang_c_build_options} \${system_includes} ${file_build_options} -o ${clang_c_stdout_file} ${c_file}"
+    # build the clang_cpp view_cfg command
+    clang_c_view_cfg_options="-cc1 -analyze -analyzer-checker=debug.ViewCFG"
+    clang_c_view_cfg_file="${clang_c_stdout_file}.cfg.view"
+    clang_c_view_cfg1="${clang_cpp} ${clang_c_view_cfg_options} \${system_includes} \${app_includes} ${cpp_file}"
+    #clang_c_view_cfg3="for f in `ls /tmp/CFG-*.dot`; do dot -Tsvg $f > $f.svg; done"
+    clang_c_view_cfg2="tar -zcf ${clang_c_view_cfg_file}.tgz /tmp/CFG-*.dot; rm /tmp/CFG-*.*"
+
+    # build the clang build command
+    clang_c_build="${clang_c} ${clang_c_build_options} ${debug_options} \${system_includes} ${app_includes} -o ${clang_c_stdout_file} ${c_file}"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch clang build of file: ${c_file}\""
@@ -290,8 +322,11 @@ function launch_clang_c ()
     echo "#gdb --args "
     echo "#valgrind --tool=callgrind "
     echo "#valgrind "
+    echo "app_includes=${file_build_options}"
     echo "${clang_c_ast}"
-    echo "${clang_c_build}"
+    echo "${clang_cpp_dump_cfg}"
+    echo "${clang_cpp_view_cfg1}"
+    echo "${clang_cpp_view_cfg2}"
     echo "if [ \$? -ne 0 ]; then"
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $clang_c_stderr_file"
     echo "    echo \"ERROR:launch_clang:FAILED to build the file: $c_file\" >> $clang_c_stderr_file"
@@ -299,7 +334,7 @@ function launch_clang_c ()
     echo "    return 16"
     echo "fi"
     echo "gzip -f ${clang_c_astout_file}"
-    echo "gzip -f ${clang_c_stdout_file}"
+    echo "#gzip -f ${clang_c_stdout_file}"
 }
 
 function launch_callers_cpp ()
@@ -307,7 +342,7 @@ function launch_callers_cpp ()
     cpp_file=$1
     callers_cpp_stdout_file=$2
     callers_cpp_stderr_file=$3
-    stderr_dir=`dirname $callers_cpp_stderr_file` 
+    stderr_dir=`dirname $callers_cpp_stderr_file`
     shift
     shift
     shift
@@ -450,7 +485,8 @@ function prepare_frama_clang_analysis_from_compile_command()
 
     #gcc_stdout_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.gcc.out/g`
     gcc_stdout_file=${obj_file}
-    clang_stdout_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.clang.out/g`
+    clang_stdout_file=${obj_file}
+    #clang_stdout_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.clang.out/g`
     callers_stdout_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.callers.stdout/g`
     cabs_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.cabs.c/g`
     fir_file=`echo ${obj_file} | sed -e s/\\.o$/.gen.fir/g`

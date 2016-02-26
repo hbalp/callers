@@ -75,11 +75,11 @@ then
     # # add extcallers to json files
     # source add_extcallers.sh $callers_json_rootdir
 
-    # # add inherited to json files
-    # source add_inherited.sh $callers_json_rootdir
+    # add inherited to json files
+    source add_inherited.sh $callers_json_rootdir
 
-    # # add virtual function calls to json files
-    # source add_virtual_function_calls.sh $callers_json_rootdir
+    # add virtual function calls to json files
+    source add_virtual_function_calls.sh $callers_json_rootdir
 
     # generate callee's tree from main entry point
     # source extract_fcg.sh callees "$canonical_pwd/test_threading.c" "main" "int main()" files

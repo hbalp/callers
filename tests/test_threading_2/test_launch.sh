@@ -62,18 +62,18 @@ then
     # List all defined symbols in file defined_symbols.all.gen.json
     list_defined_symbols defined_symbols.all.gen.json
 
-    # add declarations to json files
-    source add_declarations.sh $callers_json_rootdir
+    # # add declarations to json files
+    # source add_declarations.sh $callers_json_rootdir
 
-    # add definitions to json files
-    source add_definitions.sh $callers_json_rootdir
+    # # add definitions to json files
+    # source add_definitions.sh $callers_json_rootdir
 
-    # add extcallees to json files
-    source add_extcallees.sh $callers_json_rootdir
-    #source add_extcallees.sh $callers_json_rootdir broken_symbols.json
+    # # add extcallees to json files
+    # source add_extcallees.sh $callers_json_rootdir
+    # #source add_extcallees.sh $callers_json_rootdir broken_symbols.json
 
-    # add extcallers to json files
-    source add_extcallers.sh $callers_json_rootdir
+    # # add extcallers to json files
+    # source add_extcallers.sh $callers_json_rootdir
 
     # add inherited to json files
     source add_inherited.sh $callers_json_rootdir

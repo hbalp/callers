@@ -17,6 +17,13 @@ void *Thread1(void *x)
   b->b();
   b->coucou2();
   a->c();
+  delete a;
+  return x;
+}
+
+void *Thread2(void *x)
+{
+  Global = 47;
   // C* d = new C();
   // ::Newly::Added::D* d = new ::Newly::Added::D();
   C* d = new ::Newly::Added::D();
@@ -27,7 +34,6 @@ void *Thread1(void *x)
     @ */
   d->c();
   delete d;
-  delete a;
   return x;
 }
 
@@ -36,7 +42,7 @@ int main() {
   pthread_t t1, t2;
   pthread_create(&t1, NULL, Thread1, NULL);
   Global = 43;
-  pthread_create(&t2, NULL, Thread1, NULL);
+  pthread_create(&t2, NULL, Thread2, NULL);
   pthread_join(t1, NULL);
   pthread_join(t2, NULL);
   return Global;
@@ -53,7 +59,6 @@ int coucou1()
   printf("coucou1()\n");
   return 0;
 }
-
 
 /* Local Variables: */
 /* compile-command: "clang++ -g  -I /c/ProgramFiles/MinGW/include -o test_local_callgraph_cpp test_local_callgraph.cpp" */

@@ -1723,7 +1723,7 @@ CallersData::Thread::Thread(std::string inst_name,
   assert(this->create_location != "unknownThreadCreateLocation");
   assert(this->caller_sign != "unknownThreadCallerSign");
   assert(this->caller_mangled != "unknownThreadCallerMangled");
-  assert(this->caller_decl_file != CALLERS_NO_FCT_DECL_FILE);
+  // assert(this->caller_decl_file != CALLERS_NO_FCT_DECL_FILE);
 
   // allocate();
   std::cout << "Create thread: " << std::endl;

@@ -678,7 +678,7 @@ function prepare_analysis_from_scan_build_command()
     build_command=$@
 
     echo "#!/bin/bash"
-    echo "set -x"
+    echo "#set -x"
     system_includes ${src_file}
 
     # prepare the analysis launch script from the build command

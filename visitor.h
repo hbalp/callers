@@ -83,7 +83,7 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   std::string printLocation(const clang::SourceRange& rangeLocation) const;
   int printLine(const clang::SourceRange& rangeLocation) const;
   std::string printFileName(const clang::SourceRange& rangeLocation) const;
-  std::string printFilePath(const clang::SourceRange& rangeLocation) const;
+  std::string printFilePath(const clang::SourceRange& rangeLocation, std::string defaultFilePath = CALLERS_NO_FILE_PATH) const;
   std::string printCurrentPath(const clang::SourceRange& rangeLocation) const;
   std::string printTemplateExtension(const clang::TemplateArgumentList& arguments) const;
   std::string printTemplateKind(const clang::FunctionDecl& function) const;

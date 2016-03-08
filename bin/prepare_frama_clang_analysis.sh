@@ -248,6 +248,7 @@ function launch_clang_cpp ()
     clang_cpp_view_cfg1="${clang_cpp} ${clang_cpp_view_cfg_options} \${system_includes} \${app_includes} ${cpp_file}"
     #clang_cpp_view_cfg3="for f in `ls /tmp/CFG-*.dot`; do dot -Tsvg $f > $f.svg; done"
     clang_cpp_view_cfg2="tar -zcf ${clang_cpp_view_cfg_file}.tgz /tmp/CFG-*.dot; rm /tmp/CFG-*.*"
+    #clang_cpp_view_cfg2="tar -zcf ${clang_cpp_view_cfg_file}.tgz /tmp/CFG-*.dot"
 
     # build the clang_cpp build command
     clang_cpp_build="${clang_cpp} ${clang_cpp_app_dbg} ${clang_cpp_build_options} ${debug_options} \${system_includes} \${app_includes} -o ${clang_cpp_stdout_file} ${cpp_file}"
@@ -263,8 +264,8 @@ function launch_clang_cpp ()
     echo "app_includes=\"${clang_cpp_app_includes}\""
     echo "${clang_cpp_ast}"
     echo "${clang_cpp_dump_cfg}"
-    echo "${clang_cpp_view_cfg1}"
-    echo "${clang_cpp_view_cfg2}"
+    echo "# ${clang_cpp_view_cfg1}"
+    echo "# ${clang_cpp_view_cfg2}"
     echo "${clang_cpp_build}"
     echo "if [ \$? -ne 0 ]; then"
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $clang_cpp_stderr_file"
@@ -297,7 +298,7 @@ function launch_clang_c ()
     #clang_c_ast_options="-I. -I.. -Xclang -ast-dump -fsyntax-only --disable-extern-template"
     clang_c_ast_options="-I. -I.. -Xclang -ast-dump -fsyntax-only "
     clang_c_astout_file="${clang_c_stdout_file}.ast"
-    clang_c_ast="${clang_c} ${clang_c_ast_options} ${debug_options} \${system_includes} ${app_includes} ${c_file} > ${clang_c_astout_file}"
+    clang_c_ast="${clang_c} ${clang_c_ast_options} ${debug_options} \${system_includes} \${app_includes} ${c_file} > ${clang_c_astout_file}"
 
     # build the clang_cpp dump_cfg command
     clang_c_dump_cfg_options="-cc1 -analyze -analyzer-checker=debug.DumpCFG"
@@ -312,7 +313,7 @@ function launch_clang_c ()
     clang_c_view_cfg2="tar -zcf ${clang_c_view_cfg_file}.tgz /tmp/CFG-*.dot; rm /tmp/CFG-*.*"
 
     # build the clang build command
-    clang_c_build="${clang_c} ${clang_c_build_options} ${debug_options} \${system_includes} ${app_includes} -o ${clang_c_stdout_file} ${c_file}"
+    clang_c_build="${clang_c} ${clang_c_build_options} ${debug_options} \${system_includes} \${app_includes} -o ${clang_c_stdout_file} ${c_file}"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch clang build of file: ${c_file}\""
@@ -322,11 +323,12 @@ function launch_clang_c ()
     echo "#gdb --args "
     echo "#valgrind --tool=callgrind "
     echo "#valgrind "
-    echo "app_includes=${file_build_options}"
+    echo "app_includes=\"${file_build_options}\""
     echo "${clang_c_ast}"
     echo "${clang_cpp_dump_cfg}"
-    echo "${clang_cpp_view_cfg1}"
-    echo "${clang_cpp_view_cfg2}"
+    echo "# ${clang_cpp_view_cfg1}"
+    echo "# ${clang_cpp_view_cfg2}"
+    echo "${clang_c_build}"
     echo "if [ \$? -ne 0 ]; then"
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $clang_c_stderr_file"
     echo "    echo \"ERROR:launch_clang:FAILED to build the file: $c_file\" >> $clang_c_stderr_file"

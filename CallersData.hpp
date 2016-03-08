@@ -103,7 +103,7 @@ namespace CallersData
       std::string kind = "unknownFileKind";
       std::string path = "unknownFileDirPath";
       std::string fullpath = "unknownFileDirFullPath";
-      std::string filepath = "unknownFilePath";
+      std::string filepath = CALLERS_NO_FILE_PATH;
       std::string jsonfilename = "unknownJsonFileName";
   };
 
@@ -334,7 +334,7 @@ namespace CallersData
 
       MangledName mangled = "unknownFctDeclMangledName";
       std::string sign = "unknownFctDeclSign";
-      std::string file = "unknownFctDeclFile";
+      std::string file = CALLERS_NO_FCT_DECL_FILE;
       Virtuality virtuality = VNoVirtual;
       int line = -1;
       std::set<std::string> *threads;

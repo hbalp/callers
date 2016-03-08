@@ -571,12 +571,16 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
     }
 }
 
+/* WARNING: some file may not have any extension while being a valid file.
+   This is the case for the header file /usr/include/c++/4.8/exception
+ */
 std::string CallersData::File::getKind() const
 {
+  assert(this->file != CALLERS_NO_FILE_PATH);
   std::string ext = boost::filesystem::extension(this->file);
   std::string kind = "none";
   boost::regex headers(".h|.hpp");
-  boost::regex sources(".c|.cpp");
+  boost::regex sources(".c|.cpp|.tcc");
   //boost::cmatch m;
   if(boost::regex_match(ext,/*m,*/ headers))
   {
@@ -586,9 +590,16 @@ std::string CallersData::File::getKind() const
   {
       kind = "src";
   }
+
+  if(ext == "")
+  {
+    std::cout << "CallersData.cpp:WARNING: file without any extension \"" << this->file << "\". We suppose here this is a valid header file !\n" << std::endl;
+    kind = "inc";
+  }
+
   if(kind == "none")
   {
-    std::cout << "WARNING: Unsupported file extension \"" << ext << "\"\n" << std::endl;
+    std::cout << "CallersData.cpp:WARNING: Unsupported file extension \"" << ext << "\"\n" << std::endl;
     assert(kind != "none");
   }
   return kind;
@@ -749,8 +760,11 @@ bool CallersData::File::add_definition_to_declaration(std::string def_pos, std::
 bool CallersData::File::add_definition_to_declaration(std::string def_pos, std::string decl_sign,
                                                       std::string decl_filepath, CallersData::Dir *other_files) const
 {
+  std::cout << "CallersData::File::add_definition_to_declaration:BEGIN: sign=\"" << decl_sign << "\" defined in \"" << def_pos << "\" is declared in file \"" << decl_filepath << "\"" << std::endl;
+  assert(def_pos != CALLERS_NO_FILE_PATH);
+  assert(def_pos != CALLERS_NO_FCT_DEF_FILE);
+  assert(decl_filepath != CALLERS_NO_FILE_PATH);
   assert(decl_filepath != CALLERS_NO_FCT_DECL_FILE);
-  std::cout << "add_def_to_decl: Lookup for function \"" << decl_sign << "\" declared in file \"" << decl_filepath << "\"" << std::endl;
 
   // Check whether the declared function belongs to the current file
   if( decl_filepath == this->fullPath() )
@@ -2685,15 +2699,15 @@ bool CallersData::operator< (const CallersData::FctDef& fct1, const CallersData:
 /**************************************** class FctCall ***************************************/
 
 CallersData::FctCall::FctCall(MangledName caller_mangled, std::string caller_sign, Virtuality is_caller_virtual,
-                              std::string caller_file, int caller_line, std::string caller_decl_file, int caller_decl_line,
+                              std::string caller_def_file, int caller_def_line, std::string caller_decl_file, int caller_decl_line,
 			      MangledName callee_mangled, std::string callee_sign, Virtuality is_callee_virtual,
                               std::string callee_decl_file, int callee_decl_line,
                               std::string caller_record, std::string callee_record)
   : caller_mangled(caller_mangled),
     caller_sign(caller_sign),
     caller_virtuality(is_caller_virtual),
-    caller_file(caller_file),
-    caller_line(caller_line),
+    caller_file(caller_def_file),
+    caller_line(caller_def_line),
     caller_decl_file(caller_decl_file),
     caller_decl_line(caller_decl_line),
     callee_mangled(callee_mangled),
@@ -2705,6 +2719,15 @@ CallersData::FctCall::FctCall(MangledName caller_mangled, std::string caller_sig
     callee_record(callee_record),
     id(caller_sign + " -> " + callee_sign)
 {
+  assert(caller_def_file != CALLERS_NO_FILE_PATH);
+  assert(caller_def_file != CALLERS_NO_FCT_DEF_FILE);
+
+  assert(caller_decl_file != CALLERS_NO_FILE_PATH);
+  assert(caller_decl_file != CALLERS_NO_FCT_DECL_FILE);
+
+  assert(callee_decl_file != CALLERS_NO_FILE_PATH);
+  assert(callee_decl_file != CALLERS_NO_FCT_DECL_FILE);
+
   {
     // for debug only
     // std::ostringstream def_line, decl_line;
@@ -2747,7 +2770,11 @@ CallersData::ExtFct::ExtFct(MangledName mangled, std::string sign, Virtuality is
     kind(kind),
     record(record)
 {
-  std::cout << "Create external function: " << std::endl;
+  // std::cout << "Create external function: " << std::endl;
+  // if(mangled == "_Z17EVP_DecryptUpdate")
+  // {
+  //   std::cout << "TO_BE_DEBUUGED..." << std::endl;
+  // }
   this->print_cout(mangled, sign, is_virtual, fct, kind);
 }
 

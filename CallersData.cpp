@@ -579,7 +579,7 @@ std::string CallersData::File::getKind() const
   assert(this->file != CALLERS_NO_FILE_PATH);
   std::string ext = boost::filesystem::extension(this->file);
   std::string kind = "none";
-  boost::regex headers(".h|.hpp");
+  boost::regex headers(".h|.hh|.hpp");
   boost::regex sources(".c|.cpp|.tcc");
   //boost::cmatch m;
   if(boost::regex_match(ext,/*m,*/ headers))

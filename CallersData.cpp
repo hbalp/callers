@@ -494,6 +494,29 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                     }
                   }
 
+                  if(symb.HasMember("redeclarations"))
+                  {
+                    const rapidjson::Value& redeclarations = symb["redeclarations"];
+                    if(redeclarations.IsArray())
+                    {
+                      // rapidjson uses SizeType instead of size_t
+                      for (rapidjson::SizeType s = 0; s < redeclarations.Size(); s++)
+                        {
+                          const rapidjson::Value& redeclaration = redeclarations[s];
+                          const rapidjson::Value& sgn = redeclaration["sign"];
+                          const rapidjson::Value& mgl = redeclaration["mangled"];
+                          const rapidjson::Value& def = redeclaration["decl"];
+
+                          std::string sign = sgn.GetString();
+                          MangledName mangled = mgl.GetString();
+                          std::string extfct_decl_loc = def.GetString();
+
+                          std::cout << "Parsed function redeclaration: sign=\"" << sign << "\", def=" << extfct_decl_loc << "\"" << std::endl;
+                          fctDecl.add_external_caller(mangled, sign, extfct_decl_loc);
+                        }
+                    }
+                  }
+
                   if(symb.HasMember("locallers"))
                   {
                     const rapidjson::Value& locallers = symb["locallers"];
@@ -593,8 +616,49 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                   // sdef_pos << def_pos;
                   // std::string def_location(filepath + ":" + sdef_pos.str());
                   // symbol_location.insert(SymbLoc::value_type(symbol, def_location));
+                  CallersData::FctDef fctDef(mangled, symbol, virtuality, this->file, def_pos, decl_file, decl_line,  record);
 
-                  this->add_defined_function(mangled, symbol, virtuality, this->file, def_pos, filepath, decl_file, decl_line, record, files);
+                  if(symb.HasMember("locallees"))
+                  {
+                    const rapidjson::Value& locallees = symb["locallees"];
+                    if(locallees.IsArray())
+                    {
+                      // rapidjson uses SizeType instead of size_t.
+                      for (rapidjson::SizeType s = 0; s < locallees.Size(); s++)
+                        {
+                          const rapidjson::Value& def = locallees[s];
+                          std::string locallee = def.GetString();
+                          std::cout << "Parsed function locallee: \"" << locallee << std::endl;
+                          fctDef.add_local_callee(locallee);
+                        }
+                    }
+                  }
+
+                  if(symb.HasMember("extcallees"))
+                  {
+                    const rapidjson::Value& extcallees = symb["extcallees"];
+                    if(extcallees.IsArray())
+                    {
+                      // rapidjson uses SizeType instead of size_t
+                      for (rapidjson::SizeType s = 0; s < extcallees.Size(); s++)
+                        {
+                          const rapidjson::Value& extcallee = extcallees[s];
+                          const rapidjson::Value& sgn = extcallee["sign"];
+                          const rapidjson::Value& mgl = extcallee["mangled"];
+                          const rapidjson::Value& def = extcallee["decl"];
+
+                          std::string sign = sgn.GetString();
+                          MangledName mangled = mgl.GetString();
+                          std::string extfct_decl_loc = def.GetString();
+
+                          std::cout << "Parsed function extcallee: sign=\"" << sign << "\", def=" << extfct_decl_loc << "\"" << std::endl;
+                          fctDef.add_external_callee(mangled, sign, extfct_decl_loc);
+                        }
+                    }
+                  }
+
+                  this->add_defined_function(&fctDef, filepath, files);
+                  // this->add_defined_function(mangled, symbol, virtuality, this->file, def_pos, filepath, decl_file, decl_line, record, files);
                   std::cout << "Parsed symbol s[" << s << "]:\"" << symbol << "\"" << std::endl;
                 }
             }
@@ -2547,6 +2611,17 @@ void CallersData::FctDef::add_local_callee(std::string callee_sign) const
 //   ExtFctDef extfct(sign, virtuality, caller_file);
 //   extcallers->insert(extfct);
 // }
+
+void CallersData::FctDef::add_external_callee(MangledName callee_builtin, std::string callee_sign, std::string callee_decl_file_pos) const
+{
+  std::cout << "Add external callee \"" << callee_sign
+	    << "\" to function \"" << sign << "\". "
+	    << "Callee is declared in file: " << callee_decl_file_pos
+	    << std::endl;
+
+  ExtFctDecl extfct (callee_builtin, callee_sign, callee_decl_file_pos);
+  extcallees->insert(extfct);
+}
 
 void CallersData::FctDef::add_external_callee(MangledName callee_builtin, std::string callee_sign, std::string callee_decl_file, int callee_decl_line) const
 {

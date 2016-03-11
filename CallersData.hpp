@@ -384,6 +384,7 @@ namespace CallersData
       ~FctDef();
 
       void add_local_callee(std::string callee_sign) const;
+      void add_external_callee(MangledName mangled, std::string sign, std::string file_pos) const;
       void add_external_callee(MangledName mangled, std::string sign, std::string file, int line) const;
       void add_builtin_callee(MangledName mangled, std::string sign, Virtuality builtin_virtuality, std::string builtin_decl_file, int builtin_decl_line) const;
       void add_thread(std::string thread) const;

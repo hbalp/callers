@@ -379,12 +379,12 @@ function launch_callers_cpp ()
     echo "fi"
     echo "gzip -f ${callers_cpp_stdout_file}"
     #echo "gzip -f /tmp/callers\${file_dir}/${cpp_file}.file.callers.gen.json"
-    if [ ${stderr_file_dir} == "." ]
-    then
-        echo "gzip -f /tmp/callers${cpp_file}.file.callers.gen.json"
-    else
-        echo "gzip -f /tmp/callers${stderr_file_dir}/${cpp_file}.file.callers.gen.json"
-    fi
+    # if [ ${stderr_file_dir} == "." ]
+    # then
+    #     echo "gzip -f /tmp/callers${cpp_file}.file.callers.gen.json"
+    # else
+    #     echo "gzip -f /tmp/callers${stderr_file_dir}/${cpp_file}.file.callers.gen.json"
+    # fi
 }
 
 function launch_callers_c ()
@@ -426,12 +426,12 @@ function launch_callers_c ()
     echo "    return 18"
     echo "fi"
     echo "gzip -f ${callers_c_stdout_file}"
-    if [ ${stderr_file_dir} == "." ]
-    then
-        echo "gzip -f /tmp/callers${c_file}.file.callers.gen.json"
-    else
-        echo "gzip -f /tmp/callers${stderr_file_dir}/${c_file}.file.callers.gen.json"
-    fi
+    # if [ ${stderr_file_dir} == "." ]
+    # then
+    #     echo "gzip -f /tmp/callers${c_file}.file.callers.gen.json"
+    # else
+    #     echo "gzip -f /tmp/callers${stderr_file_dir}/${c_file}.file.callers.gen.json"
+    # fi
 }
 
 function prepare_frama_clang_analysis_from_compile_command()

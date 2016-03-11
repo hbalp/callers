@@ -64,7 +64,7 @@ elif test $# = 3; then
     files=$3
 
     json_filename=`basename ${compile_commands_json}`
-    
+
     case $json_filename in
 
 	"compile_commands.json" )
@@ -84,7 +84,8 @@ elif test $# = 3; then
     # make VERBOSE=yes
 
     # prepare launch analysis script
-    launch_script=.tmp.gen.analysis.launch.cmake.sh
+    launch_script=".${json_filename}.gen.analysis.launch.cmake.sh"
+    # launch_script=".tmp.gen.analysis.launch.cmake.sh"
     stderr_file="${launch_script}.stderr"
     prepare_analysis_from_cmake_compile_commands $stderr_file $compile_commands_json > ${launch_script}
     echo "generated launch script: ${launch_script}"

@@ -288,21 +288,37 @@ namespace CallersData
 
   class ExtFct
   {
-    friend std::ostream &operator<<(std::ostream &output, const ExtFct &fct);
     friend bool operator< (const CallersData::ExtFct& fct1, const CallersData::ExtFct& fct2);
     public:
-      ExtFct(MangledName mangled, std::string sign, Virtuality is_virtual, std::string fct_loc, FctKind kind, std::string record );
+      ExtFct(MangledName mangled, std::string sign, std::string fct_loc);
       ExtFct(const ExtFct& copy_from_me);
       ~ExtFct() {}
-      //void set_file(std::string file);
-    private:
-      inline void print_cout(MangledName mangled, std::string sign, Virtuality is_virtual, std::string fct, FctKind kind);
+    protected:
       MangledName mangled = "unknownExtFctMangled";
       std::string sign = "unknownExtFctSign";
-      Virtuality virtuality = VNoVirtual;
       std::string fct = "unknownExtFctDeclLoc";
-      FctKind kind = E_FctDecl;
-      std::string record;
+  };
+
+  class ExtFctDecl : public ExtFct
+  {
+    friend std::ostream &operator<<(std::ostream &output, const ExtFctDecl &fct);
+    public:
+      ExtFctDecl(MangledName mangled, std::string sign, std::string fct_loc) : ExtFct(mangled, sign, fct_loc) { print_cout(mangled, sign, fct); };
+      ExtFctDecl(const ExtFct& copy_from_me) : ExtFct(copy_from_me) { print_cout(mangled, sign, fct); };
+      ~ExtFctDecl() {}
+    private:
+      void print_cout(MangledName mangled, std::string sign, std::string fct);
+  };
+
+  class ExtFctDef : public ExtFct
+  {
+    friend std::ostream &operator<<(std::ostream &output, const ExtFctDef &fct);
+    public:
+      ExtFctDef(MangledName mangled, std::string sign, std::string fct_loc) : ExtFct(mangled, sign, fct_loc) { print_cout(mangled, sign, fct); };
+      ExtFctDef(const ExtFct& copy_from_me) : ExtFct(copy_from_me) { print_cout(mangled, sign, fct); };
+      ~ExtFctDef() {}
+    private:
+      void print_cout(MangledName mangled, std::string sign, std::string fct);
   };
 
   std::ostream &operator<<(std::ostream &output, const ExtFct &fct);
@@ -316,21 +332,22 @@ namespace CallersData
       FctDecl(const FctDecl& copy_from_me);
       ~FctDecl();
 
-      void add_local_caller(MangledName caller_mangled, std::string caller_sign, std::string caller_record) const;
-      void add_external_caller(MangledName mangled, std::string sign, Virtuality virtuality, std::string file, int line, std::string record) const;
+      void add_local_caller(std::string caller_sign) const;
+      void add_external_caller(MangledName mangled, std::string sign, std::string file_pos) const;
+      void add_external_caller(MangledName mangled, std::string sign, std::string file, int line) const;
       void add_redeclaration(MangledName fct_mangled, std::string fct_sign, Virtuality redecl_virtuality, std::string redecl_file, int redecl_line, std::string redecl_record) const;
       void add_definition(std::string fct_sign, std::string def_file_pos) const;
       // void add_definition(MangledName fct_mangled, std::string fct_sign, std::string def_sign, Virtuality def_virtuality, std::string def_file_pos, std::string record) const;
       void add_redefinition(MangledName fct_mangled, std::string fct_sign, Virtuality redef_virtuality, std::string redef_file, int redef_line, std::string record) const;
       void add_thread(std::string thread) const;
 
-      void output_threads(std::ofstream &js) const;
-      void output_local_callers(std::ofstream &js) const;
-      void output_external_callers(std::ofstream &js) const;
-      void output_redeclarations(std::ofstream &js) const;
-      void output_definitions(std::ofstream &js) const;
-      void output_redefinitions(std::ofstream &js) const;
-      void output_json_desc(std::ofstream &js) const;
+      void output_threads(std::ostream &js) const;
+      void output_local_callers(std::ostream &js) const;
+      void output_external_callers(std::ostream &js) const;
+      void output_redeclarations(std::ostream &js) const;
+      void output_definitions(std::ostream &js) const;
+      void output_redefinitions(std::ostream &js) const;
+      void output_json_desc(std::ostream &js) const;
 
       MangledName mangled = "unknownFctDeclMangledName";
       std::string sign = "unknownFctDeclSign";
@@ -338,15 +355,16 @@ namespace CallersData
       Virtuality virtuality = VNoVirtual;
       int line = -1;
       std::set<std::string> *threads;
-      std::set<ExtFct> *redeclarations;
+      std::set<ExtFctDecl> *redeclarations;
       std::set<std::string> *definitions;
-      // std::set<ExtFct> *definitions;
-      std::set<ExtFct> *redefinitions;
+      // std::set<ExtFctDef> *definitions;
+      std::set<ExtFctDef> *redefinitions;
       std::set<std::string> *locallers;
-      std::set<ExtFct> *extcallers;
+      std::set<ExtFctDef> *extcallers;
 
     private:
-      inline void print_cout(std::string sign, Virtuality is_virtual, std::string file, int line, std::string record);
+      inline void print_cout() const;
+      //inline void print_cout(std::string sign, Virtuality is_virtual, std::string file, int line, std::string record);
       void allocate();
       std::string record = CALLERS_DEFAULT_NO_RECORD_NAME;
   };
@@ -365,8 +383,8 @@ namespace CallersData
       FctDef(const FctDef& copy_from_me);
       ~FctDef();
 
-      void add_local_callee(MangledName callee_mangled, std::string callee_sign, std::string record) const;
-      void add_external_callee(MangledName mangled, std::string sign, Virtuality virtuality, std::string file, int line, std::string record) const;
+      void add_local_callee(std::string callee_sign) const;
+      void add_external_callee(MangledName mangled, std::string sign, std::string file, int line) const;
       void add_builtin_callee(MangledName mangled, std::string sign, Virtuality builtin_virtuality, std::string builtin_decl_file, int builtin_decl_line) const;
       void add_thread(std::string thread) const;
 
@@ -385,10 +403,8 @@ namespace CallersData
       std::string decl_file = CALLERS_NO_FCT_DECL_FILE;
       int decl_line = -1;
       std::set<std::string> *threads;
-      // std::set<std::string> *locallers;
       std::set<std::string> *locallees;
-      // std::set<ExtFct> *extcallers;
-      std::set<ExtFct> *extcallees;
+      std::set<ExtFctDecl> *extcallees;
 
     private:
       inline void print_cout(std::string sign, Virtuality is_virtual, std::string file, int line, std::string record);

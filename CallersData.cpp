@@ -770,6 +770,39 @@ void CallersData::File::add_record(std::string name, clang::TagTypeKind kind, in
 	    << ":" << begin << ":" << end << "\"" << std::endl;
 }
 
+void CallersData::File::get_record(std::string name, Dir* allJsonFiles) const
+{
+  std::cout << "Lookup for record \"" << name << "\"" << std::endl;
+  std::cout << "...first in file \"" << this->fullPath() << "\"" << std::endl;
+  
+  std::cout << "...then in all other files \"" << std::endl;
+
+/*
+  TBC
+  // Check whether the declared function belongs to the current file.
+  if( filepath == this->fullPath() )
+    // the declared function belongs to the current file
+    {
+      std::cout << "The declared function belongs to the current file, so we add it directly\n" << std::endl;
+      declared->insert(*fct);
+    }
+  else
+    // the declared function doesn't belong to the current file
+    {
+      std::cout << "The declared function doesn't belong to the current file" << std::endl;
+      // check first whether a json file is already present for the declared function
+      // if true, parse it and add the declared function only when necessary
+      // if false, create the json file and add the declared function
+      boost::filesystem::path p(fct->file);
+      std::string fct_decl_basename = p.filename().string();
+      std::string fct_decl_dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+      assert(files != NULL);
+      std::set<CallersData::File>::iterator fct_decl_file = files->create_or_get_file(fct_decl_basename, fct_decl_dirpath);
+      fct_decl_file->add_declared_function(fct, filepath, files);
+    }
+*/
+}
+
 // Add a thread to the current file
 // Do not add the thread if it already exist in the file
 void CallersData::File::add_thread(CallersData::Thread *thr, CallersData::Dir *files) const
@@ -1545,6 +1578,7 @@ void CallersData::Record::allocate()
   inherits = new std::set<CallersData::Inheritance>;
   inherited = new std::set<CallersData::Inheritance>;
   methods = new std::set<std::string>;
+  redeclared_methods = new std::vector<std::pair<std::string, std::string>>;
 }
 
 CallersData::Record::~Record()
@@ -1552,6 +1586,7 @@ CallersData::Record::~Record()
   delete inherits;
   delete inherited;
   delete methods;
+  delete redeclared_methods;
 }
 
 CallersData::Record::Record(const char* name, clang::TagTypeKind kind, const std::string file, const int begin, const int end)
@@ -1609,6 +1644,44 @@ void CallersData::Record::add_method(std::string method) const
   std::cout << "Add method \"" << method
 	    << " to class " << this->name
 	    << std::endl;
+}
+
+void CallersData::Record::add_redeclared_method(std::string baseRecordName, std::string method_sign) const
+{
+  redeclared_methods->push_back(std::make_pair(baseRecordName, method_sign));
+  std::cout << "Add virtual method \"" << method_sign
+            << "\" defined in base record \"" << baseRecordName
+            << "\" and probably redeclared in class \"" << this->name
+	    << "\"" << std::endl;
+}
+
+// return "none" if not found
+std::string CallersData::Record::get_redeclared_method(std::string baseRecordName, std::string method_sign) const
+{
+  std::string searched_method = "none";
+
+  // replace the current record name by its base class in the method_sign
+  std::string baseMethodSign(method_sign);
+  boost::replace_first(baseMethodSign, this->name + "::", baseRecordName + "::");
+
+  std::cout << "Lookup for virtual method \"" << baseMethodSign << "\" in base record \"" << baseRecordName << "\"" << std::endl;
+
+  // lookup for the virtual base method within the list of probably redeclared methods
+  std::vector<std::pair<std::string, std::string>>::const_iterator rd;
+  for(rd=redeclared_methods->begin(); rd!=redeclared_methods->end(); ++rd)
+    {
+      std::string base_record = rd->first;
+      std::string redecl_method = rd->second;
+      std::cout << "- base record: " << base_record << std::endl;
+      std::cout << "- probably redeclared method: " << redecl_method << std::endl;
+      if((base_record == baseRecordName) && (redecl_method == baseMethodSign))
+      {
+        std::cout << "=> Found base virtual method: " << redecl_method << std::endl;
+        searched_method = baseMethodSign;
+      }
+    }
+
+  return searched_method;
 }
 
 /*
@@ -1952,6 +2025,7 @@ CallersData::FctDecl::~FctDecl()
   delete extcallers;
 }
 
+/*
 CallersData::FctDecl::FctDecl(const char* mangled, const char* sign, Virtuality is_virtual,
                               const char* filepath, const int line, const char* record)
   : mangled(mangled),
@@ -1965,7 +2039,7 @@ CallersData::FctDecl::FctDecl(const char* mangled, const char* sign, Virtuality 
   std::string sgn(sign);
   std::string rec(record);
   if(sgn.find("::") != std::string::npos)
-    assert(rec != CALLERS_DEFAULT_RECORD_NAME);
+  assert(rec != CALLERS_DEFAULT_RECORD_NAME);
   if(rec == CALLERS_DEFAULT_RECORD_NAME)
   {
     std::cout << "Create function declaration: " << std::endl;
@@ -1977,30 +2051,34 @@ CallersData::FctDecl::FctDecl(const char* mangled, const char* sign, Virtuality 
   this->print_cout();
   // this->print_cout(sign, is_virtual, file, line, rec);
 }
+*/
 
 CallersData::FctDecl::FctDecl(MangledName mangled, std::string sign, Virtuality is_virtual,
-                              std::string filepath, int line, std::string record)
+                              std::string filepath, int line, std::string recordName, std::string recordFilePath)
   : mangled(mangled),
     sign(sign),
     file(filepath),
     virtuality(is_virtual),
     line(line),
-    record(record)
+    recordName(recordName),
+    recordFilePath(recordFilePath)
 {
   allocate();
   if(sign.find("::") != std::string::npos)
-    assert(record != CALLERS_DEFAULT_RECORD_NAME);
-  if(record == CALLERS_DEFAULT_RECORD_NAME)
+  assert(recordName != CALLERS_DEFAULT_RECORD_NAME);
+  if(recordName == CALLERS_DEFAULT_RECORD_NAME)
   {
     std::cout << "Create function declaration: " << std::endl;
   }
   else
   {
-    if(sign == "printf")
-    {
-      std::cout << "to_be_debugged_1" << std::endl;
-    }
-    std::cout << "Create " << record << "'s method declaration: " << std::endl;
+    std::cout << "Create \"" << recordName << "\"'s method declaration: " << std::endl;
+    std::cout << "Record \"" << recordName << "\" is declared in file \"" << recordFilePath << "\"" << std::endl;
+/*
+    TBC
+    1) get record
+    2) call record->get_redeclared_method()
+*/
   }
   this->print_cout();
   // this->print_cout(sign, is_virtual, file, line, record);
@@ -2022,7 +2100,7 @@ CallersData::FctDecl::FctDecl(const CallersData::FctDecl& copy_from_me)
   sign = copy_from_me.sign;
   virtuality = copy_from_me.virtuality;
   line = copy_from_me.line;
-  record = copy_from_me.record;
+  recordName = copy_from_me.recordName;
 
   // copy threads
   std::set<std::string>::const_iterator i;
@@ -2074,7 +2152,7 @@ void CallersData::FctDecl::add_thread(std::string thread_id) const
 
 void CallersData::FctDecl::add_local_caller(std::string caller_sign) const
 {
-  if(record == CALLERS_DEFAULT_RECORD_NAME)
+  if(recordName == CALLERS_DEFAULT_RECORD_NAME)
   {
     std::cout << "Add local caller \"" << caller_sign << "\" to callee function declaration \"" << this->sign << "\"" << std::endl;
   }
@@ -2209,7 +2287,7 @@ void CallersData::FctDecl::add_redefinition(MangledName redef_mangled, std::stri
   redef_decl_location += ":";
   redef_decl_location += out.str();
 
-  if(record == CALLERS_DEFAULT_RECORD_NAME)
+  if(recordName == CALLERS_DEFAULT_RECORD_NAME)
   {
     std::cout << "Add redefinition \"" << redef_sign
               << "\" to function \"" << sign << "\". "
@@ -2389,9 +2467,10 @@ void CallersData::FctDecl::output_json_desc(std::ostream &js) const
 	       : /* virtuality == VVirtualPure */ "pure")))
      << "\", \"mangled\": \"" << mangled << "\"";
 
-  if(record != CALLERS_DEFAULT_RECORD_NAME )
+  if(recordName != CALLERS_DEFAULT_RECORD_NAME )
   {
-    js << ", \"record\": \"" << record << "\"";
+    js << ", \"recordName\": \"" << recordName << "\"";
+    js << ", \"recordPath\": \"" << recordFilePath << "\"";
   }
 
   this->output_threads(js);

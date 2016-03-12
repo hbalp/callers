@@ -89,6 +89,7 @@ namespace CallersData
       void add_namespace(Namespace nspc) const;
       void add_record(Record *record) const;
       void add_record(std::string name, clang::TagTypeKind kind, int begin, int end) const;
+      void get_record(std::string name, Dir* allJsonFiles) const;
       void add_thread(Thread* thread, CallersData::Dir *files) const;
       void add_function_call(FctCall* fc, Dir *context) const;
       void output_json_desc() const;
@@ -173,6 +174,8 @@ namespace CallersData
       // void add_friend_method(std::string name) const;
       // For the moment, all methods are considered the same.
       void add_method(std::string name) const;
+      void add_redeclared_method(std::string base_class, std::string name) const;
+      std::string get_redeclared_method(std::string baseRecordName, std::string method_sign) const;
       void add_base_class(std::string name, std::string file, int deb, int fin) const;
       void add_base_class(Inheritance inheritance) const;
       void add_child_class(std::string name, std::string file, int deb, int fin) const;
@@ -188,6 +191,7 @@ namespace CallersData
       std::set<Inheritance> *inherited;
     private:
       std::set<std::string> *methods;
+      std::vector<std::pair<std::string, std::string>> *redeclared_methods;
       // std::set<std::string> *public_methods;
       // std::set<std::string> *private_methods;
       // std::set<std::string> *friend_methods;
@@ -326,8 +330,9 @@ namespace CallersData
   class FctDecl
   {
     public:
-      FctDecl(const char* mangled, const char* sign, Virtuality is_virtual, const char* filepath, const int line, const char* record);
-      FctDecl(std::string mangled, std::string sign, Virtuality is_virtual, std::string filepath, int line, std::string record);
+      // FctDecl(const char* mangled, const char* sign, Virtuality is_virtual, const char* filepath, const int line, const char* record);
+      FctDecl(std::string mangled, std::string sign, Virtuality is_virtual, std::string filepath, int line,
+              std::string recordName = CALLERS_DEFAULT_RECORD_NAME, std::string recordFilePath = CALLERS_DEFAULT_RECORD_PATH);
       FctDecl(std::string sign, std::string filepath);
       FctDecl(const FctDecl& copy_from_me);
       ~FctDecl();
@@ -366,7 +371,8 @@ namespace CallersData
       inline void print_cout() const;
       //inline void print_cout(std::string sign, Virtuality is_virtual, std::string file, int line, std::string record);
       void allocate();
-      std::string record = CALLERS_DEFAULT_NO_RECORD_NAME;
+      std::string recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
+      std::string recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
   };
 
   bool operator< (const FctDecl& fct1, const FctDecl& fct2);

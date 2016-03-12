@@ -1145,7 +1145,7 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
       // It checks whether a json file is already present for the malloc builtin function
       // if true, parse it and add the defined function only when necessary
       // if false, create this json file and add the defined function
-      std::string malloc_record(CALLERS_DEFAULT_RECORD_BUILTIN);
+      std::string malloc_record = CALLERS_DEFAULT_NO_RECORD_NAME;
       {
 	boost::filesystem::path p(malloc_filepath);
 	std::string basename = p.filename().string();
@@ -1878,10 +1878,25 @@ CallersAction::Visitor::VisitInheritanceList(clang::CXXRecordDecl* cxxDecl,
 
       record->add_base_class(baseName, baseFile, baseBegin, baseEnd);
 
+      osOut << " the base record \"" << baseName << "\" of record \"" << record->name << "\" declares the following methods:" << std::endl;
+
+      for(clang::CXXRecordDecl::method_iterator mi = base->method_begin();
+          mi != base->method_end();
+          mi++)
+      {
+        clang::CXXMethodDecl* m = (clang::CXXMethodDecl*)(*mi);
+        std::string method_sign = writeFunction(*m);
+        osOut << " - " << method_sign << std::endl;
+        // check if this method is virtual or not
+        if(m->isVirtual())
+        {
+          record->add_redeclared_method(baseName, method_sign);
+        }
+      }
+
       // CallersData::Record parent(baseName, baseTagKind, baseFile, baseBegin, baseEnd);
 
       // osOut << " the base record \"" << baseName << "\" is inherited by child record \"" << recordName << "\"" << std::endl;
-
 
       osOut << baseName;
       osOut << printTemplateKind(*base);

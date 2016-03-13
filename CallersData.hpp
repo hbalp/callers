@@ -80,7 +80,9 @@ namespace CallersData
       void parse_json_file(CallersData::Dir *files) const;
       std::set<CallersData::Namespace>::iterator create_or_get_namespace(std::string qualifiers, const clang::NamespaceDecl* nspc);
       //void add_declared_function(std::string sign, Virtuality virtuality, std::string file, int line) const;
-      void add_declared_function(FctDecl* fct, std::string filepath, Dir *context) const;
+      void add_declared_function(CallersData::FctDecl* fct, std::string fct_filepath) const;
+      std::set<CallersData::FctDecl>::const_iterator get_or_create_declared_function(FctDecl* fct, std::string filepath, Dir *context) const;
+      std::set<CallersData::FctDecl>::const_iterator get_declared_function(std::string decl_sign, std::string decl_filepath) const;
       bool add_definition_to_declaration(std::string def_pos, std::string decl_sign, std::string decl_filepath) const;
       bool add_definition_to_declaration(std::string def_pos, std::string decl_sign, std::string decl_filepath, Dir* otherFiles) const;
       void add_defined_function(MangledName mangled, std::string sign, Virtuality virtuality, std::string file,
@@ -90,7 +92,7 @@ namespace CallersData
       void add_record(Record *record) const;
       void add_record(std::string name, clang::TagTypeKind kind, int begin, int end) const;
       std::set<CallersData::Record>::iterator get_record(std::string recordName) const;
-      void add_redeclared_method(FctDecl* fct_decl, Dir* allJsonFiles) const;
+      void add_redeclared_method(FctDecl* fct_decl, std::string fct_filepath, Dir* allJsonFiles) const;
       void add_thread(Thread* thread, CallersData::Dir *files) const;
       void add_function_call(FctCall* fc, Dir *context) const;
       void output_json_desc() const;
@@ -319,7 +321,7 @@ namespace CallersData
       void add_local_caller(std::string caller_sign) const;
       void add_external_caller(MangledName mangled, std::string sign, std::string file_pos) const;
       void add_external_caller(MangledName mangled, std::string sign, std::string file, int line) const;
-      void add_redeclaration(const ExtFctDecl& redeclared_method);
+      void add_redeclaration(const ExtFctDecl& redeclared_method) const;
       // void add_redeclaration(MangledName fct_mangled, std::string fct_sign, Virtuality redecl_virtuality, std::string redecl_file, int redecl_line, std::string redecl_record) const;
       void add_definition(std::string fct_sign, std::string def_file_pos) const;
       // void add_definition(MangledName fct_mangled, std::string fct_sign, std::string def_sign, Virtuality def_virtuality, std::string def_file_pos, std::string record) const;

@@ -89,7 +89,8 @@ namespace CallersData
       void add_namespace(Namespace nspc) const;
       void add_record(Record *record) const;
       void add_record(std::string name, clang::TagTypeKind kind, int begin, int end) const;
-      void get_record(std::string name, Dir* allJsonFiles) const;
+      std::set<CallersData::Record>::iterator get_record(std::string recordName) const;
+      void add_redeclared_method(FctDecl* fct_decl, Dir* allJsonFiles) const;
       void add_thread(Thread* thread, CallersData::Dir *files) const;
       void add_function_call(FctCall* fc, Dir *context) const;
       void output_json_desc() const;
@@ -156,14 +157,17 @@ namespace CallersData
   private:
   };
 
+  class ExtFctDecl;
+
   /* Record class to store "class" or "struct" definitions */
   class Record
   {
+    friend class File;
     friend std::ostream &operator<<(std::ostream &output, const Record &rec);
     friend bool operator< (const CallersData::Record& rec1, const CallersData::Record& rec2);
 
     public:
-      Record(const char* name, clang::TagTypeKind kind, const std::string file, const int begin, const int end);
+      // Record(const char* name, clang::TagTypeKind kind, const std::string file, const int begin, const int end);
       Record(std::string name, clang::TagTypeKind kind, std::string file, int begin, int end);
       Record(const Record& copy_from_me);
       ~Record();
@@ -174,8 +178,8 @@ namespace CallersData
       // void add_friend_method(std::string name) const;
       // For the moment, all methods are considered the same.
       void add_method(std::string name) const;
-      void add_redeclared_method(std::string base_class, std::string name) const;
-      std::string get_redeclared_method(std::string baseRecordName, std::string method_sign) const;
+      void add_redeclared_method(std::string base_class, ExtFctDecl redecl_method) const;
+      std::set<std::pair<std::string, CallersData::ExtFctDecl>>::const_iterator get_redeclared_method(std::string method_sign) const;
       void add_base_class(std::string name, std::string file, int deb, int fin) const;
       void add_base_class(Inheritance inheritance) const;
       void add_child_class(std::string name, std::string file, int deb, int fin) const;
@@ -189,9 +193,10 @@ namespace CallersData
       int end = -1;
       std::set<Inheritance> *inherits;
       std::set<Inheritance> *inherited;
+    protected:
+      std::set<std::pair<std::string, ExtFctDecl>> *redeclared_methods;
     private:
       std::set<std::string> *methods;
-      std::vector<std::pair<std::string, std::string>> *redeclared_methods;
       // std::set<std::string> *public_methods;
       // std::set<std::string> *private_methods;
       // std::set<std::string> *friend_methods;
@@ -212,7 +217,8 @@ namespace CallersData
            Virtuality routine_virtuality,
            std::string routine_file,
            int routine_line,
-           std::string routine_record,
+           std::string routine_recordName,
+           std::string routine_recordFilePath,
            std::string create_location,
            std::string caller_mangled,
            std::string caller_sign,
@@ -221,7 +227,8 @@ namespace CallersData
            int caller_line,
            std::string caller_decl_file,
            int caller_decl_line,
-           std::string caller_record
+           std::string caller_recordName,
+           std::string caller_recordFilePath
       );
       Thread(const Thread& copy_from_me);
       ~Thread();
@@ -239,7 +246,8 @@ namespace CallersData
       // Virtuality routine_def_virtuality = CallersData::VNoVirtual;
       // std::string routine_def_file = "unknownThreadRoutineDefFile";
       // int routine_def_line = -1;
-      std::string routine_record = "unknownThreadRoutineRecord";
+      std::string routine_recordName = "unknownThreadRoutineRecordName";
+      std::string routine_recordFilePath = "unknownThreadRoutineRecordFilePath";
       std::string create_location = "unknownThreadCreateLocation";
       std::string caller_mangled = "unknownThreadCallerMangled";
       std::string caller_sign = "unknownThreadCallerSign";
@@ -248,7 +256,8 @@ namespace CallersData
       int caller_line = -1;
       std::string caller_decl_file = CALLERS_NO_FCT_DECL_FILE;
       int caller_decl_line = -1;
-      std::string caller_record = "unknownThreadCallerRecord";
+      std::string caller_recordName = "unknownThreadCallerRecordName";
+      std::string caller_recordFilePath = "unknownThreadCallerRecordFilePath";
     private:
       //
   };
@@ -257,6 +266,8 @@ namespace CallersData
 
   class ExtFct
   {
+    friend class Record;
+    friend class FctDecl;
     friend bool operator< (const CallersData::ExtFct& fct1, const CallersData::ExtFct& fct2);
     public:
       ExtFct(MangledName mangled, std::string sign, std::string fct_loc);
@@ -265,16 +276,17 @@ namespace CallersData
     protected:
       MangledName mangled = "unknownExtFctMangled";
       std::string sign = "unknownExtFctSign";
-      std::string fct = "unknownExtFctDeclLoc";
+      std::string fctLoc = "unknownExtFctDeclLoc";
   };
 
   class ExtFctDecl : public ExtFct
   {
     friend std::ostream &operator<<(std::ostream &output, const ExtFctDecl &fct);
     public:
-      ExtFctDecl(MangledName mangled, std::string sign, std::string fct_loc) : ExtFct(mangled, sign, fct_loc) { print_cout(mangled, sign, fct); };
-      ExtFctDecl(const ExtFct& copy_from_me) : ExtFct(copy_from_me) { print_cout(mangled, sign, fct); };
+      ExtFctDecl(MangledName mangled, std::string sign, std::string fct_loc) : ExtFct(mangled, sign, fct_loc) { print_cout(mangled, sign, fctLoc); };
+      ExtFctDecl(const ExtFct& copy_from_me) : ExtFct(copy_from_me) { print_cout(mangled, sign, fctLoc); };
       ~ExtFctDecl() {}
+      void output_json_desc(std::ostream &js) const;
     private:
       void print_cout(MangledName mangled, std::string sign, std::string fct);
   };
@@ -283,8 +295,8 @@ namespace CallersData
   {
     friend std::ostream &operator<<(std::ostream &output, const ExtFctDef &fct);
     public:
-      ExtFctDef(MangledName mangled, std::string sign, std::string fct_loc) : ExtFct(mangled, sign, fct_loc) { print_cout(mangled, sign, fct); };
-      ExtFctDef(const ExtFct& copy_from_me) : ExtFct(copy_from_me) { print_cout(mangled, sign, fct); };
+      ExtFctDef(MangledName mangled, std::string sign, std::string fct_loc) : ExtFct(mangled, sign, fct_loc) { print_cout(mangled, sign, fctLoc); };
+      ExtFctDef(const ExtFct& copy_from_me) : ExtFct(copy_from_me) { print_cout(mangled, sign, fctLoc); };
       ~ExtFctDef() {}
     private:
       void print_cout(MangledName mangled, std::string sign, std::string fct);
@@ -294,11 +306,12 @@ namespace CallersData
 
   class FctDecl
   {
+    friend class Visitor;
     friend class File;
     public:
       // FctDecl(const char* mangled, const char* sign, Virtuality is_virtual, const char* filepath, const int line, const char* record);
-      FctDecl(std::string mangled, std::string sign, Virtuality is_virtual, std::string filepath, int line,
-              std::string recordName = CALLERS_DEFAULT_RECORD_NAME, std::string recordFilePath = CALLERS_DEFAULT_RECORD_PATH);
+      FctDecl(std::string mangled, std::string sign, Virtuality is_virtual, std::string filepath, int line, bool is_builtin = false);
+      FctDecl(std::string mangled, std::string sign, Virtuality is_virtual, std::string filepath, int line, std::string recordName, std::string recordFilePath, bool is_builtin = false);
       FctDecl(std::string sign, std::string filepath);
       FctDecl(const FctDecl& copy_from_me);
       ~FctDecl();
@@ -306,7 +319,8 @@ namespace CallersData
       void add_local_caller(std::string caller_sign) const;
       void add_external_caller(MangledName mangled, std::string sign, std::string file_pos) const;
       void add_external_caller(MangledName mangled, std::string sign, std::string file, int line) const;
-      void add_redeclaration(MangledName fct_mangled, std::string fct_sign, Virtuality redecl_virtuality, std::string redecl_file, int redecl_line, std::string redecl_record) const;
+      void add_redeclaration(const ExtFctDecl& redeclared_method);
+      // void add_redeclaration(MangledName fct_mangled, std::string fct_sign, Virtuality redecl_virtuality, std::string redecl_file, int redecl_line, std::string redecl_record) const;
       void add_definition(std::string fct_sign, std::string def_file_pos) const;
       // void add_definition(MangledName fct_mangled, std::string fct_sign, std::string def_sign, Virtuality def_virtuality, std::string def_file_pos, std::string record) const;
       void add_redefinition(MangledName fct_mangled, std::string fct_sign, Virtuality redef_virtuality, std::string redef_file, int redef_line, std::string record) const;
@@ -335,6 +349,7 @@ namespace CallersData
     protected:
       std::string recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
       std::string recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
+      bool is_builtin = false;
     private:
       inline void print_cout() const;
       //inline void print_cout(std::string sign, Virtuality is_virtual, std::string file, int line, std::string record);
@@ -401,7 +416,6 @@ namespace CallersData
       FctCall(FctDef caller_fct, FctDecl callee_fct);
       //FctCall(const FctCall& copy_from_me);
       ~FctCall() {}
-      bool is_builtin = false;
     protected:
       FctDef caller;
       FctDecl callee;

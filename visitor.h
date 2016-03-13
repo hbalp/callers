@@ -109,19 +109,19 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   };
 
   std::string printParentFunctionFileName() const
-  {  
+  {
     return printFileName(pfdParent->getSourceRange());
   };
 
   std::string printParentFunctionFilePath() const
-  {  
+  {
     return printFilePath(pfdParent->getSourceRange());
   };
 
   std::string printCurrentPath() const;
 
   int printParentFunctionLine() const
-  {  
+  {
     if (pfdParent)
       return printLine(pfdParent->getSourceRange());
     else

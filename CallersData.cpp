@@ -443,11 +443,17 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
 
                   MangledName mangled = mangledName.GetString();
                   std::string symbol = sign.GetString();
-                  std::string record = CALLERS_DEFAULT_NO_RECORD_NAME;
-                  if(symb.HasMember("record"))
+                  std::string recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
+                  if(symb.HasMember("recordName"))
                   {
-                    const rapidjson::Value& rec = symb["record"];
-                    record = rec.GetString();
+                    const rapidjson::Value& rec = symb["recordName"];
+                    recordName = rec.GetString();
+                  }
+                  std::string recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
+                  if(symb.HasMember("recordPath"))
+                  {
+                    const rapidjson::Value& rec = symb["recordPath"];
+                    recordFilePath = rec.GetString();
                   }
 
                   CallersData::Virtuality virtuality;
@@ -470,7 +476,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                   // spos << pos;
                   // std::string location(filepath + ":" + spos.str());
                   // symbol_location.insert(SymbLoc::value_type(symbol, location));
-                  CallersData::FctDecl fctDecl(mangled, symbol, virtuality, this->file, pos, record);
+                  CallersData::FctDecl fctDecl(mangled, symbol, virtuality, this->file, pos, recordName, recordFilePath);
 
                   if(symb.HasMember("definitions"))
                   {
@@ -770,37 +776,19 @@ void CallersData::File::add_record(std::string name, clang::TagTypeKind kind, in
 	    << ":" << begin << ":" << end << "\"" << std::endl;
 }
 
-void CallersData::File::get_record(std::string name, Dir* allJsonFiles) const
+std::set<CallersData::Record>::iterator CallersData::File::get_record(std::string recordName) const
 {
-  std::cout << "Lookup for record \"" << name << "\"" << std::endl;
-  std::cout << "...first in file \"" << this->fullPath() << "\"" << std::endl;
-  
-  std::cout << "...then in all other files \"" << std::endl;
-
-/*
-  TBC
-  // Check whether the declared function belongs to the current file.
-  if( filepath == this->fullPath() )
-    // the declared function belongs to the current file
+  std::set<CallersData::Record>::iterator record;
+  std::cout << "Lookup for record \"" << recordName << "\" in file \"" << this->fullPath() << "\"" << std::endl;
+  for(record=records->begin(); record!=records->end(); ++record)
+  {
+    if(record->name == recordName)
     {
-      std::cout << "The declared function belongs to the current file, so we add it directly\n" << std::endl;
-      declared->insert(*fct);
+      std::cout << "Well found record \"" << recordName << "\" declared in file \"" << this->file << "\"" << std::endl;
+      return record;
     }
-  else
-    // the declared function doesn't belong to the current file
-    {
-      std::cout << "The declared function doesn't belong to the current file" << std::endl;
-      // check first whether a json file is already present for the declared function
-      // if true, parse it and add the declared function only when necessary
-      // if false, create the json file and add the declared function
-      boost::filesystem::path p(fct->file);
-      std::string fct_decl_basename = p.filename().string();
-      std::string fct_decl_dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-      assert(files != NULL);
-      std::set<CallersData::File>::iterator fct_decl_file = files->create_or_get_file(fct_decl_basename, fct_decl_dirpath);
-      fct_decl_file->add_declared_function(fct, filepath, files);
-    }
-*/
+  }
+  assert(0);
 }
 
 // Add a thread to the current file
@@ -819,7 +807,8 @@ void CallersData::File::add_thread(CallersData::Thread *thr, CallersData::Dir *f
   assert(thr->caller_file == this->filepath);
   // get a reference to the thread caller definition (if well present as expected)
   CallersData::FctDef thr_caller_def(thr->caller_mangled, thr->caller_sign, thr->caller_virtuality,
-                                     thr->caller_file, thr->caller_line, thr->caller_decl_file, thr->caller_decl_line, thr->caller_record);
+                                     thr->caller_file, thr->caller_line, thr->caller_decl_file, thr->caller_decl_line,
+                                     thr->caller_recordName /*, thr->caller_recordFilePath*/);
   auto caller_def = defined->find(thr_caller_def);
   // ensure caller def has really been found
   assert(caller_def != defined->end());
@@ -829,7 +818,7 @@ void CallersData::File::add_thread(CallersData::Thread *thr, CallersData::Dir *f
   assert(thr->routine_file == this->filepath);
   // get a reference to the thread routine declaration (if well present as expected)
   CallersData::FctDecl thr_routine_decl(thr->routine_mangled, thr->routine_sign, thr->routine_virtuality,
-                                        thr->routine_file, thr->routine_line, thr->routine_record);
+                                        thr->routine_file, thr->routine_line, thr->routine_recordName, thr->routine_recordFilePath);
   routine_decl = declared->find(thr_routine_decl);
   // ensure routine decl has really been found
   assert(routine_decl != declared->end());
@@ -838,7 +827,7 @@ void CallersData::File::add_thread(CallersData::Thread *thr, CallersData::Dir *f
   // // add the thread to the routine definition
   // // get a reference to the thread routine definition (if well present as expected)
   // CallersData::FctDef thr_routine_def(thr->routine_mangled, thr->routine_sign, thr->routine_def_virtuality,
-  //                                      thr->routine_def_file, thr->routine_def_line, thr->routine_decl_pos, thr->routine_record);
+  //                                      thr->routine_def_file, thr->routine_def_line, thr->routine_decl_pos, thr->routine_recordName, thr->routine_recordFilePath);
   // routine_def = defined->find(thr_routine_def);
   // // ensure routine decl has really been found
   // assert(routine_def != defined->end());
@@ -1001,7 +990,6 @@ void CallersData::File::add_defined_function(MangledName fct_mangled, std::strin
 void
 CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir *files) const
 {
-  // std::cerr << "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii" << std::endl;
   std::cout << "Register function call from caller \"" << fc->caller.def_file << ":" << fc->caller.sign
             << "\" to callee \"" << fc->callee.file << ":" << fc->callee.sign
 	    << "\" in file \"" << this->fullPath() << "\"" << std::endl;
@@ -1024,6 +1012,9 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
   std::cout << "callee decl pos: " << fc->callee.file << ":" << fc->callee.line << std::endl;
 
   calls->insert(*fc);
+
+  // complete the callee's fct_decl with redeclarations when needed
+  this->add_redeclared_method(&fc->callee, files);
 
   std::set<CallersData::FctDef>::const_iterator caller;
   std::set<CallersData::FctDecl>::const_iterator callee;
@@ -1080,7 +1071,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 	  std::set<CallersData::File>::iterator callee_file = files->create_or_get_file(callee_basename, callee_dirpath);
 	  //CallersData::File callee_file(callee_basename, callee_dirpath);
 	  //callee_file.parse_json_file();
-	  CallersData::FctDecl callee_decl(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.file, fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
+	  CallersData::FctDecl callee_decl(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.file, fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath, fc->callee.is_builtin);
 	  callee_file->add_declared_function(&callee_decl, fc->callee.file, files);
 
 	  // get a reference to the related defined function
@@ -1088,7 +1079,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 	  // ensure callee has really been found
 	  assert(callee != callee_file->declared->end());
 
-	  if(fc->is_builtin == true)
+	  if(fc->callee.is_builtin == true)
 	    {
               // add the builtin callee to the local caller
 	      caller->add_builtin_callee(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.file, fc->callee.line);
@@ -1197,7 +1188,56 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 	    }
 	}
     }
-  // std::cout << "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii" << std::endl;
+}
+
+void CallersData::File::add_redeclared_method(FctDecl *fct_decl, Dir* files) const
+{
+  assert(files != NULL);
+  // Check whether the input function decl is a method and its record is well defined
+  if((fct_decl->recordName != CALLERS_DEFAULT_NO_RECORD_NAME) &&
+     (fct_decl->recordName != CALLERS_DEFAULT_RECORD_BUILTIN))
+  {
+    assert(fct_decl->recordFilePath != CALLERS_DEFAULT_RECORD_PATH);
+    assert(fct_decl->recordFilePath != CALLERS_DEFAULT_NO_RECORD_PATH);
+
+    std::cout << "CallersData::File::add_redeclared_method:DEBUG: sign=\"" << fct_decl->sign << "\", record=\"" << fct_decl->recordName << "\"" << std::endl;
+
+    // Check whether the fct_decl's record belongs to the current file
+    if(fct_decl->recordFilePath == this->fullPath())
+
+      // the fct_decl's record belongs to the current file
+      {
+        std::cout << "The fct_decl's record \"" << fct_decl->recordName << "\" belongs to the current file" << std::endl;
+
+        // get the fct_decl's record declaration
+        std::set<CallersData::Record>::iterator record = this->get_record(fct_decl->recordName);
+        assert(record != records->end());
+
+        // check whether the current method is a redeclaration
+        auto redecl_method = record->get_redeclared_method(fct_decl->sign);
+        if(redecl_method != record->redeclared_methods->end())
+        {
+          // add a redeclaration to the input function declaration
+          fct_decl->add_redeclaration(redecl_method->second);
+        }
+      }
+    else
+      // the fct_decl's record is defined externally
+      {
+        std::cout << "The fct_decl's record is defined externally" << std::endl;
+
+        // check first whether a json file is already present for the fct_decl's record
+        // if true, parse it and add the redeclared method only when necessary
+        // if false, create the callee json file and add the redeclared method
+        boost::filesystem::path p(fct_decl->recordFilePath);
+        std::string record_basename = p.filename().string();
+        std::string record_dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+        std::set<CallersData::File>::iterator record_file = files->create_or_get_file(record_basename, record_dirpath);
+
+        assert(fct_decl->recordFilePath == record_file->fullPath());
+        record_file->add_redeclared_method(fct_decl, files);
+      }
+  }
 }
 
 void CallersData::File::output_json_desc() const
@@ -1574,7 +1614,7 @@ void CallersData::Record::allocate()
   inherits = new std::set<CallersData::Inheritance>;
   inherited = new std::set<CallersData::Inheritance>;
   methods = new std::set<std::string>;
-  redeclared_methods = new std::vector<std::pair<std::string, std::string>>;
+  redeclared_methods = new std::set<std::pair<std::string, CallersData::ExtFctDecl>>;
 }
 
 CallersData::Record::~Record()
@@ -1585,6 +1625,7 @@ CallersData::Record::~Record()
   delete redeclared_methods;
 }
 
+/*
 CallersData::Record::Record(const char* name, clang::TagTypeKind kind, const std::string file, const int begin, const int end)
   : name(name),
     kind(kind),
@@ -1596,6 +1637,7 @@ CallersData::Record::Record(const char* name, clang::TagTypeKind kind, const std
   std::cout << "Create record: " << std::endl;
   this->print_cout();
 }
+*/
 
 CallersData::Record::Record(std::string name, clang::TagTypeKind kind, std::string file, int begin, int end)
   : name(name),
@@ -1642,42 +1684,51 @@ void CallersData::Record::add_method(std::string method) const
 	    << std::endl;
 }
 
-void CallersData::Record::add_redeclared_method(std::string baseRecordName, std::string method_sign) const
+void CallersData::Record::add_redeclared_method(std::string baseRecordName, CallersData::ExtFctDecl redecl_method) const
 {
-  redeclared_methods->push_back(std::make_pair(baseRecordName, method_sign));
-  std::cout << "Add virtual method \"" << method_sign
+  redeclared_methods->insert(std::make_pair(baseRecordName, redecl_method));
+  std::cout << "Add virtual method \"" << redecl_method.sign
             << "\" defined in base record \"" << baseRecordName
             << "\" and probably redeclared in class \"" << this->name
 	    << "\"" << std::endl;
 }
 
-// return "none" if not found
-std::string CallersData::Record::get_redeclared_method(std::string baseRecordName, std::string method_sign) const
+std::set<std::pair<std::string, CallersData::ExtFctDecl>>::const_iterator
+CallersData::Record::get_redeclared_method(std::string method_sign) const
 {
-  std::string searched_method = "none";
-
-  // replace the current record name by its base class in the method_sign
-  std::string baseMethodSign(method_sign);
-  boost::replace_first(baseMethodSign, this->name + "::", baseRecordName + "::");
-
-  std::cout << "Lookup for virtual method \"" << baseMethodSign << "\" in base record \"" << baseRecordName << "\"" << std::endl;
+  std::set<std::pair<std::string, CallersData::ExtFctDecl>>::const_iterator redeclared_method;
 
   // lookup for the virtual base method within the list of probably redeclared methods
-  std::vector<std::pair<std::string, std::string>>::const_iterator rd;
-  for(rd=redeclared_methods->begin(); rd!=redeclared_methods->end(); ++rd)
+
+  for(redeclared_method=redeclared_methods->begin(); redeclared_method!=redeclared_methods->end(); ++redeclared_method)
     {
-      std::string base_record = rd->first;
-      std::string redecl_method = rd->second;
-      std::cout << "- base record: " << base_record << std::endl;
-      std::cout << "- probably redeclared method: " << redecl_method << std::endl;
-      if((base_record == baseRecordName) && (redecl_method == baseMethodSign))
+      // replace the current record name by its base class in the method_sign
+      std::string baseRecordName = redeclared_method->first;
+      std::string baseMethodSign(method_sign);
+      boost::replace_first(baseMethodSign, this->name + "::", baseRecordName + "::");
+
+      std::cout << "Lookup for virtual method \"" << baseMethodSign << "\" in base record \"" << baseRecordName << "\"" << std::endl;
+      assert(0);
+
+      auto redecl_method  = redeclared_method->second;
+      std::cout << "- base record: " << baseRecordName << std::endl;
+      std::cout << "- probably redeclared method: " << redecl_method.sign << std::endl;
+      if(redecl_method.sign == baseMethodSign)
       {
-        std::cout << "=> Found base virtual method: " << redecl_method << std::endl;
-        searched_method = baseMethodSign;
+        std::cout << "=> Found base virtual method: " << redecl_method.sign << std::endl;
+        return redeclared_method;
+        assert(0);
       }
     }
 
-  return searched_method;
+  if(redeclared_methods->begin() == redeclared_methods->end())
+  {
+    assert(0);
+  }
+
+  // uncomment this line for debug only
+  //assert(redeclared_method != redeclared_methods->end());
+  return redeclared_method;
 }
 
 /*
@@ -1818,6 +1869,22 @@ void CallersData::Record::output_json_desc(std::ofstream &js) const
 	}
     }
 
+  js << "],\"inherited\":[";
+
+  last_bc = inherited->empty() ? inherited->end() : --inherited->end();
+  for(b=inherited->begin(); b!=inherited->end(); ++b)
+    {
+      if(b != last_bc)
+	{
+	  b->output_json_desc(js);
+	  js << ",";
+	}
+      else
+	{
+	  b->output_json_desc(js);
+	}
+    }
+
   js << "],\"methods\":[";
 
   std::set<std::string>::const_iterator m, last_m;
@@ -1831,6 +1898,25 @@ void CallersData::Record::output_json_desc(std::ofstream &js) const
       else
 	{
 	  js << "\"" << *m << "\"";
+	}
+    }
+
+  js << "],\"redeclared\":[";
+
+  std::set<std::pair<std::string, ExtFctDecl>>::const_iterator rm, last_rm;
+  last_rm = redeclared_methods->empty() ? redeclared_methods->end() : --redeclared_methods->end();
+  for(rm=redeclared_methods->begin(); rm!=redeclared_methods->end(); ++rm)
+    {
+      if(rm != last_rm)
+	{
+          js << rm->first << ":";
+	  rm->second.output_json_desc(js);
+	  js << ",";
+	}
+      else
+	{
+          js << rm->first << ":";
+	  rm->second.output_json_desc(js);
 	}
     }
 
@@ -1864,7 +1950,8 @@ CallersData::Thread::Thread(std::string inst_name,
                             // Virtuality routine_def_virtuality,
                             // std::string routine_def_file,
                             // int routine_def_line,
-                            std::string routine_record,
+                            std::string routine_recordName,
+                            std::string routine_recordFilePath,
                             std::string create_location,
                             std::string caller_mangled,
                             std::string caller_sign,
@@ -1873,7 +1960,8 @@ CallersData::Thread::Thread(std::string inst_name,
                             int caller_filepos,
                             std::string caller_decl_file,
                             int caller_decl_line,
-                            std::string caller_record)
+                            std::string caller_recordName,
+                            std::string caller_recordFilePath)
   : inst_name(inst_name),
     routine_name(routine_name),
     routine_sign(routine_sign),
@@ -1884,7 +1972,8 @@ CallersData::Thread::Thread(std::string inst_name,
     // routine_def_virtuality(routine_def_virtuality),
     // routine_def_file(routine_def_file),
     // routine_def_line(routine_def_line),
-    routine_record(routine_record),
+    routine_recordName(routine_recordName),
+    routine_recordFilePath(routine_recordFilePath),
     create_location(create_location),
     caller_mangled(caller_mangled),
     caller_sign(caller_sign),
@@ -1893,7 +1982,8 @@ CallersData::Thread::Thread(std::string inst_name,
     caller_line(caller_filepos),
     caller_decl_file(caller_decl_file),
     caller_decl_line(caller_decl_line),
-    caller_record(caller_record)
+    caller_recordName(caller_recordName),
+    caller_recordFilePath(caller_recordFilePath)
 {
   assert(this->inst_name != "unknownThreadInstanceName");
   assert(this->routine_name != "unknownThreadRoutineName");
@@ -1905,11 +1995,14 @@ CallersData::Thread::Thread(std::string inst_name,
   // // assert(this->routine_def_virtuality != CallersData::VNoVirtual);
   // assert(this->routine_def_file != "unknownThreadRoutineDefFile");
   // assert(this->routine_def_line != -1);
-  assert(this->routine_record != CALLERS_DEFAULT_RECORD_NAME);
+  assert(this->routine_recordName != CALLERS_DEFAULT_RECORD_NAME);
+  assert(this->routine_recordFilePath != CALLERS_DEFAULT_RECORD_PATH);
   assert(this->create_location != "unknownThreadCreateLocation");
   assert(this->caller_sign != "unknownThreadCallerSign");
   assert(this->caller_mangled != "unknownThreadCallerMangled");
   // assert(this->caller_decl_file != CALLERS_NO_FCT_DECL_FILE);
+  assert(this->caller_recordName != CALLERS_DEFAULT_RECORD_NAME);
+  assert(this->caller_recordFilePath != CALLERS_DEFAULT_RECORD_PATH);
 
   // allocate();
   std::cout << "Create thread: " << std::endl;
@@ -1932,12 +2025,15 @@ CallersData::Thread::Thread(const CallersData::Thread& copy_from_me)
   // routine_def_virtuality = copy_from_me.routine_def_virtuality;
   // routine_def_file = copy_from_me.routine_def_file;
   // routine_def_line = copy_from_me.routine_def_line;
-  routine_record = copy_from_me.routine_record;
+  routine_recordName = copy_from_me.routine_recordName;
+  routine_recordFilePath = copy_from_me.routine_recordFilePath;
   create_location = copy_from_me.create_location;
   caller_sign = copy_from_me.caller_sign;
   caller_decl_file = copy_from_me.caller_decl_file;
   caller_decl_line = copy_from_me.caller_decl_line;
   caller_mangled = copy_from_me.caller_mangled;
+  caller_recordName = copy_from_me.caller_recordName;
+  caller_recordFilePath = copy_from_me.caller_recordFilePath;
 }
 
 void CallersData::Thread::print_cout() const
@@ -1958,11 +2054,13 @@ void CallersData::Thread::print_cout() const
     // << ",\"routine_def_virtuality\":\"" << routine_def_virtuality
     // << "\",\"routine_def_file\":\"" << routine_def_file
     // << "\",\"routine_def_line\":" << routine_def_line
-    << ",\"routine_record\":\"" << routine_record
+    << ",\"routine_recordName\":\"" << routine_recordName
+    << "\",\"routine_recordPath\":\"" << routine_recordFilePath
     << "\",\"caller_sign\":\"" << caller_sign
     << "\",\"caller_mangled\":\"" << caller_mangled
     << "\",\"caller_decl_file\":\"" << caller_decl_file
-    << "\",\"caller_record\":\"" << caller_record
+    << "\",\"caller_recordName\":\"" << caller_recordName
+    << "\",\"caller_recordFilePath\":\"" << caller_recordFilePath
     << "\",\"id\":\"" << id
     << "\",\"loc\":\"" << create_location << "\"}";
 }
@@ -1984,11 +2082,13 @@ void CallersData::Thread::output_json_desc(std::ofstream &js) const
       // << ",\"routine_def_virtuality\":\"" << routine_def_virtuality
       // << "\",\"routine_def_file\":\"" << routine_def_file
       // << "\",\"routine_def_line\":" << routine_def_line
-      << ",\"routine_record\":\"" << routine_record
+      << ",\"routine_recordName\":\"" << routine_recordName
+      << "\",\"routine_recordPath\":\"" << routine_recordFilePath
       << "\",\"caller_sign\":\"" << caller_sign
       << "\",\"caller_mangled\":\"" << caller_mangled
       << "\",\"caller_decl_file\":\"" << caller_decl_file
-      << "\",\"caller_record\":\"" << caller_record
+      << "\",\"caller_recordName\":\"" << caller_recordName
+      << "\",\"caller_recordFilePath\":\"" << caller_recordFilePath
       << "\",\"id\":\"" << id
       << "\",\"loc\":\"" << create_location << "\"}";
 }
@@ -2050,36 +2150,70 @@ CallersData::FctDecl::FctDecl(const char* mangled, const char* sign, Virtuality 
 */
 
 CallersData::FctDecl::FctDecl(MangledName mangled, std::string sign, Virtuality is_virtual,
-                              std::string filepath, int line, std::string recordName, std::string recordFilePath)
+                              std::string filepath, int line, bool is_builtin)
+  : mangled(mangled),
+    sign(sign),
+    file(filepath),
+    virtuality(is_virtual),
+    line(line),
+    is_builtin(is_builtin)
+{
+  assert(filepath != CALLERS_NO_FILE_PATH);
+  assert(filepath != CALLERS_NO_FCT_DECL_FILE);
+  allocate();
+  if(is_builtin == true)
+  {
+    std::cout << "Create builtin function declaration: " << std::endl;
+    recordName = CALLERS_DEFAULT_RECORD_BUILTIN;
+  }
+  else
+  {
+    std::cout << "Create function declaration: " << std::endl;
+    recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
+  }
+  recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
+  this->print_cout();
+}
+
+CallersData::FctDecl::FctDecl(MangledName mangled, std::string sign, Virtuality is_virtual,
+                              std::string filepath, int line, std::string recordName, std::string recordFilePath, bool is_builtin)
   : mangled(mangled),
     sign(sign),
     file(filepath),
     virtuality(is_virtual),
     line(line),
     recordName(recordName),
-    recordFilePath(recordFilePath)
+    recordFilePath(recordFilePath),
+    is_builtin(is_builtin)
 {
-  assert(filepath != CALLERS_NO_FILE_PATH);
-  assert(filepath != CALLERS_NO_FCT_DECL_FILE);
-  allocate();
-  if(sign.find("::") != std::string::npos)
   assert(recordName != CALLERS_DEFAULT_RECORD_NAME);
-  if(recordName == CALLERS_DEFAULT_RECORD_NAME)
+  assert(recordFilePath != CALLERS_DEFAULT_RECORD_PATH);
+  allocate();
+  if(recordName == CALLERS_DEFAULT_RECORD_BUILTIN)
   {
-    std::cout << "Create function declaration: " << std::endl;
+    is_builtin = true;
+  }
+  if(is_builtin == true)
+  {
+    std::cout << "Create builtin function declaration: " << std::endl;
+    assert(recordName == CALLERS_DEFAULT_RECORD_BUILTIN);
+    assert(recordFilePath == CALLERS_DEFAULT_NO_RECORD_PATH);
   }
   else
   {
-    std::cout << "Create \"" << recordName << "\"'s method declaration: " << std::endl;
-    std::cout << "Record \"" << recordName << "\" is declared in file \"" << recordFilePath << "\"" << std::endl;
-/*
-    TBC
-    1) get record
-    2) call record->get_redeclared_method()
-*/
+    if(recordName == CALLERS_DEFAULT_NO_RECORD_NAME)
+    {
+      std::cout << "Create function declaration: " << std::endl;
+      assert(recordFilePath == CALLERS_DEFAULT_NO_RECORD_PATH);
+    }
+    else
+    {
+      std::cout << "Create \"" << recordName << "\"'s method declaration: " << std::endl;
+      std::cout << "Record \"" << recordName << "\" is declared in file \"" << recordFilePath << "\"" << std::endl;
+      assert(recordFilePath != CALLERS_DEFAULT_NO_RECORD_PATH);
+    }
   }
   this->print_cout();
-  // this->print_cout(sign, is_virtual, file, line, record);
 }
 
 CallersData::FctDecl::FctDecl(std::string sign, std::string filepath)
@@ -2100,6 +2234,8 @@ CallersData::FctDecl::FctDecl(const CallersData::FctDecl& copy_from_me)
   virtuality = copy_from_me.virtuality;
   line = copy_from_me.line;
   recordName = copy_from_me.recordName;
+  recordFilePath = copy_from_me.recordFilePath;
+  is_builtin = copy_from_me.is_builtin;
 
   // copy threads
   std::set<std::string>::const_iterator i;
@@ -2162,42 +2298,34 @@ void CallersData::FctDecl::add_local_caller(std::string caller_sign) const
   locallers->insert(sign);
 }
 
-// TODO: filter cases where the redeclaration is already present in the fct_decl
-void CallersData::FctDecl::add_redeclaration(MangledName redecl_mangled, std::string redecl_sign, CallersData::Virtuality redecl_virtuality,
-                                             std::string redecl_decl_file, int redecl_decl_line, std::string redecl_record) const
+void CallersData::FctDecl::add_redeclaration(const CallersData::ExtFctDecl& redecl_method)
 {
-  std::string redecl_decl_location = redecl_decl_file;
-  std::ostringstream out;
-  out << redecl_decl_line;
-  redecl_decl_location += ":";
-  redecl_decl_location += out.str();
-  // std::cout << "Check whether the redeclaration \"" << redecl_sign << "\" is already present or not..." << std::endl;
+  std::cout << "Check whether the redeclaration \"" << redecl_method.sign << "\" is already present or not..." << std::endl;
+
   std::set<CallersData::ExtFctDecl>::iterator search_result;
-  CallersData::ExtFctDecl searched_redecl(redecl_mangled, redecl_sign, redecl_decl_location);
-  search_result = redeclarations->find(searched_redecl);
+  search_result = redeclarations->find(redecl_method);
   if(search_result != redeclarations->end())
     {
-      std::cout << "Already present redeclaration \"" << redecl_sign
-                << "\" of function \"" << sign << "\", so do not add it twice. "
-                << "Function is redefined in file: " << redecl_decl_file
-                << " at line: " << redecl_decl_line
+      std::cout << "Already present redeclaration \"" << redecl_method.sign
+                << "\" of function \"" << sign << "\", so do not add it twice."
+                << "The base virtual method is declared in file: " << redecl_method.fctLoc
                 << std::endl;
     }
   else
     {
-      std::cout << "Add redeclaration \"" << redecl_sign
-                << "\" to function \"" << sign << "\". "
-                << "Function is redefined in file: " << redecl_decl_file
-                << " at line: " << redecl_decl_line
+      std::cout << "Add redeclaration \"" << redecl_method.sign
+                << "\" to function \"" << this->sign << "\". "
+                << "The base virtual method is declared in file: " << redecl_method.fctLoc
                 << std::endl;
-      CallersData::ExtFctDecl redecl (redecl_mangled, redecl_sign, redecl_decl_location);
+      CallersData::ExtFctDecl redecl (redecl_method);
       redeclarations->insert(redecl);
-      search_result = redeclarations->find(searched_redecl);
+      search_result = redeclarations->find(redecl_method);
       if(search_result != redeclarations->end())
         {
-          std::cout << "the redeclaration \"" << redecl_sign << "\" is well present now !" << std::endl;
+          std::cout << "the redeclaration \"" << redecl_method.sign << "\" is well present now !" << std::endl;
         }
     }
+  assert(0);
   return;
 }
 
@@ -2470,6 +2598,11 @@ void CallersData::FctDecl::output_json_desc(std::ostream &js) const
   {
     js << ", \"recordName\": \"" << recordName << "\"";
     js << ", \"recordPath\": \"" << recordFilePath << "\"";
+    if((recordName != CALLERS_DEFAULT_NO_RECORD_NAME) &&
+       (recordName != CALLERS_DEFAULT_RECORD_BUILTIN))
+    {
+      assert(recordFilePath != CALLERS_DEFAULT_NO_RECORD_PATH);
+    }
   }
 
   this->output_threads(js);
@@ -2969,10 +3102,10 @@ bool CallersData::operator< (const CallersData::FctCall& fc1, const CallersData:
 
 /**************************************** class ExtFct ***************************************/
 
-CallersData::ExtFct::ExtFct(MangledName mangled, std::string sign, std::string fct)
+CallersData::ExtFct::ExtFct(MangledName mangled, std::string sign, std::string fctLoc)
   : mangled(mangled),
     sign(sign),
-    fct(fct)
+    fctLoc(fctLoc)
 {
   // std::cout << "Create external function: " << std::endl;
   // if(mangled == "_Z17EVP_DecryptUpdate")
@@ -2985,7 +3118,7 @@ CallersData::ExtFct::ExtFct(const CallersData::ExtFct& copy_from_me)
 {
   mangled = copy_from_me.mangled;
   sign = copy_from_me.sign;
-  fct = copy_from_me.fct;
+  fctLoc = copy_from_me.fctLoc;
   std::cout << "Copy external function: " << std::endl;
   // print_cout(mangled, sign, fct);
 }
@@ -2997,34 +3130,41 @@ bool CallersData::operator< (const CallersData::ExtFct& fct1, const CallersData:
 
 /**************************************** class ExtFctDecl ***************************************/
 
-void CallersData::ExtFctDecl::print_cout(MangledName mangled, std::string sign, std::string fct)
+void CallersData::ExtFctDecl::print_cout(MangledName mangled, std::string sign, std::string fctLoc)
 {
   std::cout << "{\"sign\":\"" << sign;
-  std::cout << "\",\"decl\":\"" << fct;
+  std::cout << "\",\"decl\":\"" << fctLoc;
   std::cout << "\",\"mangled\":\"" << mangled << "\"}" << std::endl;
+}
+
+void CallersData::ExtFctDecl::output_json_desc(std::ostream &js) const
+{
+  js << "{\"sign\": \"" << sign
+     << "\", \"mangled\": \"" << mangled << "\""
+     << "\", \"fctLoc\": \"" << fctLoc << "\"}";
 }
 
 std::ostream &CallersData::operator<<(std::ostream &output, const ExtFctDecl &fct)
 {
   output << "{\"sign\":\"" << fct.sign;
-  output << "\",\"decl\":\"" << fct.fct;
+  output << "\",\"decl\":\"" << fct.fctLoc;
   output << "\",\"mangled\":\"" << fct.mangled << "\"}";
   return output;
 }
 
 /**************************************** class ExtFctDef ***************************************/
 
-void CallersData::ExtFctDef::print_cout(MangledName mangled, std::string sign, std::string fct)
+void CallersData::ExtFctDef::print_cout(MangledName mangled, std::string sign, std::string fctLoc)
 {
   std::cout << "{\"sign\":\"" << sign;
-  std::cout << "\",\"def\":\"" << fct;
+  std::cout << "\",\"def\":\"" << fctLoc;
   std::cout << "\",\"mangled\":\"" << mangled << "\"}" << std::endl;
 }
 
 std::ostream &CallersData::operator<<(std::ostream &output, const ExtFctDef &fct)
 {
   output << "{\"sign\":\"" << fct.sign;
-  output << "\",\"def\":\"" << fct.fct;
+  output << "\",\"def\":\"" << fct.fctLoc;
   output << "\",\"mangled\":\"" << fct.mangled << "\"}";
   return output;
 }

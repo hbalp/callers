@@ -953,21 +953,32 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
    MangledName caller_def_mangledName;
    this->getMangledName(mangle_context_, pfdParent, &caller_def_mangledName);
 
-   std::string caller_record = CALLERS_DEFAULT_NO_RECORD_NAME;
+   std::string caller_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
+   // std::string caller_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
+   if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
+   {
+     caller_recordName = parentMethod->getParent()->getQualifiedNameAsString();
+     // caller_recordFilePath = printFilePath(pfdParent->getSourceRange());
+   }
+
+   std::string callee_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
+   std::string callee_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
    if((constr != NULL) && (constr->getParent() != NULL))
    {
-     caller_record = constr->getParent()->getQualifiedNameAsString();
+     callee_recordName = constr->getParent()->getQualifiedNameAsString();
+     callee_recordFilePath = printFilePath(constr->getParent()->getSourceRange());
    }
 
    std::string callee_decl_sign = writeFunction(function);
    std::string callee_decl_file = printFilePath(function.getSourceRange(), caller_def_file);
    int callee_decl_line = printLine(function.getSourceRange());
    CallersData::Virtuality callee_decl_virtuality = caller_def_virtuality;
-   std::string callee_record = caller_record;
 
-   CallersData::FctDef caller(caller_def_mangledName, caller_def_sign, caller_def_virtuality, caller_def_file, caller_def_line, caller_decl_file, caller_decl_line, caller_record);
+   CallersData::FctDef caller(caller_def_mangledName, caller_def_sign, caller_def_virtuality, caller_def_file, caller_def_line,
+                              caller_decl_file, caller_decl_line, caller_recordName);
 
-   CallersData::FctDecl callee(callee_decl_mangledName, callee_decl_sign, callee_decl_virtuality, callee_decl_file, callee_decl_line, callee_record);
+   CallersData::FctDecl callee(callee_decl_mangledName, callee_decl_sign, callee_decl_virtuality, callee_decl_file, callee_decl_line,
+                               callee_recordName, callee_recordFilePath);
 
    CallersData::FctCall fc(caller, callee);
 
@@ -1016,9 +1027,11 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
 
       auto calleeMethod = llvm::dyn_cast<clang::CXXMethodDecl>(&function);
       std::string callee_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
+      std::string callee_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
       if((calleeMethod != NULL) && (calleeMethod->getParent() != NULL))
       {
         callee_recordName = calleeMethod->getParent()->getQualifiedNameAsString();
+        callee_recordFilePath = printFilePath(calleeMethod->getParent()->getSourceRange());
       }
 
       CallersData::FctDef caller(fct_mangledName, printParentFunction(),
@@ -1029,7 +1042,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
           (!calleeMethod || !calleeMethod->isVirtual()) ? CallersData::VNoVirtual
             : (calleeMethod->isPure() ? CallersData::VVirtualPure
             : (calleeMethod->isThisDeclarationADefinition() ? CallersData::VVirtualDefined : CallersData::VVirtualDeclared)),
-          callee_filepath, callee_filepos, callee_recordName);
+          callee_filepath, callee_filepos, callee_recordName, callee_recordFilePath);
 
       CallersData::FctCall fc(caller, callee);
 
@@ -1069,23 +1082,32 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
            caller_decl_line = printLine(caller_decl->getSourceRange());
          }
 
-         std::string caller_record = CALLERS_DEFAULT_NO_RECORD_NAME;
+         std::string caller_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
+         // std::string caller_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
+         if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
+         {
+           caller_recordName = parentMethod->getParent()->getQualifiedNameAsString();
+           // caller_recordFilePath = printFilePath(pfdParent->getSourceRange());
+         }
+
+         std::string callee_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
+         std::string callee_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
          if((destructor != NULL) && (destructor->getParent() != NULL))
          {
-           caller_record = destructor->getParent()->getQualifiedNameAsString();
+           callee_recordName = destructor->getParent()->getQualifiedNameAsString();
+           callee_recordFilePath = printFilePath(destructor->getParent()->getSourceRange());
          }
-         std::string callee_recordName = caller_record;
 
 	 CallersData::FctDef caller(fct_mangledName, printParentFunction(),
                                     (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
-                                    caller_def_file, printParentFunctionLine(), caller_decl_file, caller_decl_line, caller_record);
+                                    caller_def_file, printParentFunctionLine(), caller_decl_file, caller_decl_line, caller_recordName);
 
          CallersData::FctDecl callee(fct_mangledName, callee_sign,
                                      (!calleeMethod || !calleeMethod->isVirtual()) ? CallersData::VNoVirtual
                                      : (calleeMethod->isPure() ? CallersData::VVirtualPure
                                      : (calleeMethod->isThisDeclarationADefinition() ? CallersData::VVirtualDefined : CallersData::VVirtualDeclared)),
                                      callee_filepath, callee_filepos,
-                                     callee_recordName);
+                                     callee_recordName, callee_recordFilePath);
 
 	 CallersData::FctCall fc(caller, callee);
 
@@ -1117,6 +1139,13 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
 	  osOut << inputFile << ":WARNING: unknownFilePath for callee: " << callee_sign << std::endl;
 	  callee_filepos = -1;
 	}
+      std::string callee_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
+      std::string callee_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
+      if(operatorNew.getParent() != NULL)
+      {
+        callee_recordName = operatorNew.getQualifiedNameAsString();
+        callee_recordFilePath = printFilePath(operatorNew.getSourceRange());
+      }
       std::string caller_record = CALLERS_DEFAULT_NO_RECORD_NAME;
       if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
       {
@@ -1132,13 +1161,13 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
         caller_decl_file = printFilePath(caller_decl->getSourceRange(), caller_def_file);
         caller_decl_line = printLine(caller_decl->getSourceRange());
       }
-      std::string callee_recordName = caller_record;
 
       CallersData::FctDef caller(fct_mangledName, printParentFunction(),
           (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
           printParentFunctionFilePath(), printParentFunctionLine(), caller_decl_file, caller_decl_line, caller_record);
 
-      CallersData::FctDecl callee(fct_mangledName, callee_sign, CallersData::VNoVirtual, callee_filepath, callee_filepos, callee_recordName);
+      CallersData::FctDecl callee(fct_mangledName, callee_sign, CallersData::VNoVirtual, callee_filepath,
+                                  callee_filepos, callee_recordName, callee_recordFilePath);
 
       CallersData::FctCall fc(caller, callee);
 
@@ -1190,10 +1219,10 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
                                  (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
                                  caller_def_file, printParentFunctionLine(), caller_decl_file, caller_decl_line);
 
-      CallersData::FctDecl callee(malloc_mangled, malloc_sign, CallersData::VNoVirtual, malloc_filepath, malloc_filepos, caller_record);
+      bool is_builtin = true;
+      CallersData::FctDecl callee(malloc_mangled, malloc_sign, CallersData::VNoVirtual, malloc_filepath, malloc_filepos, is_builtin);
 
       CallersData::FctCall fc(caller, callee);
-      fc.is_builtin = true;
       currentJsonFile->add_function_call(&fc, &otherJsonFiles);
     }
    return true;
@@ -1260,11 +1289,8 @@ CallersAction::Visitor::VisitBuiltinFunction(const clang::FunctionDecl* fd) {
     std::string basename = p.filename().string();
     std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
     std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
-    std::string builtin_record(CALLERS_DEFAULT_RECORD_BUILTIN);
-    CallersData::FctDecl fct(builtin_mangled, builtinName, CallersData::VNoVirtual, headerName, builtinPos, builtin_record);
-    file->add_declared_function(&fct, headerName, &otherJsonFiles);
-    auto parentMethod = llvm::dyn_cast<clang::CXXMethodDecl>(pfdParent);
 
+    auto parentMethod = llvm::dyn_cast<clang::CXXMethodDecl>(pfdParent);
     std::string caller_decl_file = headerName; // CALLERS_NO_FCT_DECL_FILE;
     int caller_decl_line = -1;
     if(parentMethod != NULL)
@@ -1285,10 +1311,9 @@ CallersAction::Visitor::VisitBuiltinFunction(const clang::FunctionDecl* fd) {
                                (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual,
                                printParentFunctionFilePath(), printParentFunctionLine(), caller_decl_file, caller_decl_line, caller_record);
 
-    CallersData::FctDecl callee(builtin_mangled, builtinName, CallersData::VNoVirtual, headerName, builtinPos);
-
+    bool is_builtin = true;
+    CallersData::FctDecl callee(builtin_mangled, builtinName, CallersData::VNoVirtual, headerName, builtinPos, is_builtin);
     CallersData::FctCall fc(caller, callee);
-    fc.is_builtin = true;
     currentJsonFile->add_function_call(&fc, &otherJsonFiles);
   }
   return true;
@@ -1326,10 +1351,12 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
         caller_decl_line = printLine(caller_decl->getSourceRange());
       }
 
-      std::string caller_record = CALLERS_DEFAULT_NO_RECORD_NAME;
+      std::string caller_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
+      std::string caller_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
       if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
       {
-        caller_record = parentMethod->getParent()->getQualifiedNameAsString();
+        caller_recordName = parentMethod->getParent()->getQualifiedNameAsString();
+        caller_recordFilePath = printFilePath(parentMethod->getParent()->getSourceRange());
       }
 
       std::string callee_sign = writeFunction(*callee);
@@ -1342,9 +1369,11 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	  callee_decl_line = -1;
 	}
       std::string callee_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
+      std::string callee_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
       if((calleeMethod != NULL) && (calleeMethod->getParent() != NULL))
       {
         callee_recordName = calleeMethod->getParent()->getQualifiedNameAsString();
+        callee_recordFilePath = printFilePath(calleeMethod->getParent()->getSourceRange());
       }
       CallersData::Virtuality caller_virtuality = (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual;
       int caller_def_line = printParentFunctionLine();
@@ -1352,9 +1381,9 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
            : (calleeMethod->isPure() ? CallersData::VVirtualPure
            : (calleeMethod->isThisDeclarationADefinition() ? CallersData::VVirtualDefined : CallersData::VVirtualDeclared));
 
-      CallersData::FctDef caller_def(caller_mangled, caller_sign, caller_virtuality, caller_def_file, caller_def_line, caller_decl_file, caller_decl_line, caller_record);
+      CallersData::FctDef caller_def(caller_mangled, caller_sign, caller_virtuality, caller_def_file, caller_def_line, caller_decl_file, caller_decl_line, caller_recordName);
 
-      CallersData::FctDecl callee_decl(callee_mangled, callee_sign, callee_virtuality, callee_decl_file, callee_decl_line, callee_recordName);
+      CallersData::FctDecl callee_decl(callee_mangled, callee_sign, callee_virtuality, callee_decl_file, callee_decl_line, callee_recordName, callee_recordFilePath);
 
       CallersData::FctCall fc(caller_def, callee_decl);
       currentJsonFile->add_function_call(&fc, &otherJsonFiles);
@@ -1376,7 +1405,8 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
         // CallersData::Virtuality thr_routine_def_virtuality = CallersData::VNoVirtual;
         // std::string thr_routine_def_file = "unknownThreadRoutineDefFile";
         // int thr_routine_def_line = -1;
-        std::string thr_routine_record = CALLERS_DEFAULT_NO_RECORD_NAME;
+        std::string thr_routine_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
+        std::string thr_routine_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
         std::string thr_create_location = "unknownThreadCreateLocation";
 
         auto thr_routine_method = llvm::dyn_cast<clang::CXXMethodDecl>(callee);
@@ -1407,7 +1437,8 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
                   auto rec = thr_routine_method->getParent();
                   if(rec != NULL)
                   {
-                    thr_routine_record = rec->getQualifiedNameAsString();
+                    thr_routine_recordName = rec->getQualifiedNameAsString();
+                    thr_routine_recordFilePath = printFilePath(rec->getSourceRange());
                   }
                 }
                 this->getMangledName(mangle_context_, FD, &thr_routine_mangled);
@@ -1444,8 +1475,9 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
         CallersData::Thread thread(thr_inst_name, thr_routine_name, thr_routine_sign, thr_routine_mangled,
                                    thr_routine_virtuality, thr_routine_file, thr_routine_line,
                                    // thr_routine_def_virtuality, thr_routine_def_file, thr_routine_def_line,
-                                   thr_routine_record, thr_create_location, caller_mangled, caller_sign,
-                                   caller_virtuality, caller_def_file, caller_def_line, caller_decl_file, caller_decl_line, caller_record);
+                                   thr_routine_recordName, thr_routine_recordFilePath, thr_create_location, caller_mangled, caller_sign,
+                                   caller_virtuality, caller_def_file, caller_def_line, caller_decl_file, caller_decl_line,
+                                   caller_recordName, caller_recordFilePath);
         currentJsonFile->add_thread(&thread, &otherJsonFiles);
       }
       return true;
@@ -1616,13 +1648,15 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
         MangledName fctDef_mangledName;
         this->getMangledName(mangle_context_, function, &fctDef_mangledName);
 
-        std::string record = CALLERS_DEFAULT_NO_RECORD_NAME;
+        std::string fctDef_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
+        // std::string fctDef_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
         if(methodDef != NULL)
         {
-          auto rec = methodDef->getParent();
-          if(rec != NULL)
+          auto rec_def = methodDef->getParent();
+          if(rec_def != NULL)
           {
-            record = rec->getQualifiedNameAsString();
+            fctDef_recordName = rec_def->getQualifiedNameAsString();
+            // fctDef_recordFilePath = printFilePath(rec_def->getSourceRange());
           }
         }
 
@@ -1632,20 +1666,22 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
         int fctDecl_line = printLine(functionDecl->getSourceRange());
         // std::string fctDecl_pos = printLocation(functionDecl->getSourceRange());
 
-        CallersData::FctDef fctDef(fctDef_mangledName, fctDef_sign, virtualityDef, fctDef_filepath, fctDef_line, fctDecl_file, fctDecl_line, record);
+        CallersData::FctDef fctDef(fctDef_mangledName, fctDef_sign, virtualityDef, fctDef_filepath, fctDef_line, fctDecl_file, fctDecl_line, fctDef_recordName/*, fctDef_recordFilePath1*/);
 
         auto methodDecl = llvm::dyn_cast<clang::CXXMethodDecl>(functionDecl);
         auto virtualityDecl = (methodDecl && methodDecl->isVirtual()) ?
           (methodDecl->isPure() ? CallersData::VVirtualPure : CallersData::VVirtualDeclared)
           : CallersData::VNoVirtual;
 
-        record = CALLERS_DEFAULT_NO_RECORD_NAME;
+        std::string fctDecl_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
+        std::string fctDecl_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
         if(methodDecl != NULL)
         {
           auto rec_decl = methodDecl->getParent();
           if(rec_decl != NULL)
           {
-            record = rec_decl->getQualifiedNameAsString();
+            fctDecl_recordName = rec_decl->getQualifiedNameAsString();
+            fctDecl_recordFilePath = printFilePath(rec_decl->getSourceRange());
           }
         }
 
@@ -1672,7 +1708,7 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
           }
 
         // Complete the function definition with a new "declaration" entry
-        CallersData::FctDecl fctDecl(fctDef_mangledName, fctDef_sign, virtualityDecl, fctDecl_file, fctDecl_line, record);
+        CallersData::FctDecl fctDecl(fctDef_mangledName, fctDef_sign, virtualityDecl, fctDecl_file, fctDecl_line, fctDecl_recordName, fctDecl_recordFilePath);
         if(fctDef_filepath == fctDecl_file)
         {
           std::ostringstream sline;
@@ -1715,9 +1751,20 @@ CallersAction::Visitor::VisitFunctionDeclaration(clang::FunctionDecl* function) 
         this->getMangledName(mangle_context_, function, &fct_mangledName);
         osOut << "Debug mangledName ok: " << fct_mangledName << '\n';
 
-        std::string fct_record = CALLERS_DEFAULT_NO_RECORD_NAME;
+        auto methodDef = llvm::dyn_cast<clang::CXXMethodDecl>(function);
+        std::string fct_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
+        std::string fct_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
+        if(methodDef != NULL)
+        {
+          auto rec_decl = methodDef->getParent();
+          if(rec_decl != NULL)
+          {
+            fct_recordName = rec_decl->getQualifiedNameAsString();
+            fct_recordFilePath = printFilePath(rec_decl->getSourceRange());
+          }
+        }
 
-        CallersData::FctDecl fctDecl(fct_mangledName, fct_sign, virtualityDecl, fct_filepath, fct_line, fct_record);
+        CallersData::FctDecl fctDecl(fct_mangledName, fct_sign, virtualityDecl, fct_filepath, fct_line, fct_recordName, fct_recordFilePath);
 
         // check whether the function is really defined in this file
         if(fct_filepath == currentJsonFile->fullPath())
@@ -1768,13 +1815,15 @@ CallersAction::Visitor::VisitMethodDeclaration(clang::CXXMethodDecl* methodDecl)
         this->getMangledName(mangle_context_, methodDecl, &fct_mangledName);
         osOut << "Debug mangledName ok: " << fct_mangledName << '\n';
 
-        std::string fct_record = CALLERS_DEFAULT_NO_RECORD_NAME;
+        std::string fct_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
+        std::string fct_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
         if((methodDecl != NULL) && (methodDecl->getParent() != NULL))
         {
-          fct_record = methodDecl->getParent()->getQualifiedNameAsString();
+          fct_recordName = methodDecl->getParent()->getQualifiedNameAsString();
+          fct_recordFilePath = printFilePath(methodDecl->getParent()->getSourceRange());
         }
 
-        CallersData::FctDecl fctDecl(fct_mangledName, fct_sign, virtualityDecl, fct_filepath, fct_line, fct_record);
+        CallersData::FctDecl fctDecl(fct_mangledName, fct_sign, virtualityDecl, fct_filepath, fct_line, fct_recordName, fct_recordFilePath);
 
         // check whether the function is really defined in this file
         if(fct_filepath == currentJsonFile->fullPath())
@@ -1899,11 +1948,13 @@ CallersAction::Visitor::VisitInheritanceList(clang::CXXRecordDecl* cxxDecl,
       {
         clang::CXXMethodDecl* m = (clang::CXXMethodDecl*)(*mi);
         std::string method_sign = writeFunction(*m);
+        std::string method_loc = printLocation(m->getSourceRange());
         osOut << " - " << method_sign << std::endl;
         // check if this method is virtual or not
         if(m->isVirtual())
         {
-          record->add_redeclared_method(baseName, method_sign);
+          CallersData::ExtFctDecl redecl_method("tbc_mangled", method_sign, method_loc);
+          record->add_redeclared_method(baseName, redecl_method);
         }
       }
 

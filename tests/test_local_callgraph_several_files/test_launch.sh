@@ -116,5 +116,5 @@ then
 fi
 else
     find . -type f -name "*.gen.json.gz" -exec gunzip {} \;
-    source indent_jsonfiles.sh .
+    source indent_jsonfiles.sh $callers_json_rootdir
 fi

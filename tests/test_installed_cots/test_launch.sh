@@ -19,12 +19,12 @@ analysis_type=callers
 common=`which common.sh`
 launch_scan_build=`which launch_analysis.sh`
 
-source test_clean.sh
+#source test_clean.sh
 
 source $common
 source $launch_scan_build
 
-launch_the_analysis ${build_tool} ${analysis_type}
+#launch_the_analysis ${build_tool} ${analysis_type}
 
 if [ $build_tool != "scan-build" ]
 #if false

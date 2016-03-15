@@ -428,6 +428,104 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
 	  std::cout << "file: " << filename << std::endl;
 	  std::cout << "path: " << dirpath << std::endl;
 
+	  if(file.HasMember("records"))
+          {
+            const rapidjson::Value& records = file["records"];
+            if(records.IsArray())
+            {
+              // rapidjson uses SizeType instead of size_t.
+              for (rapidjson::SizeType s = 0; s < records.Size(); s++)
+                {
+                  const rapidjson::Value& rc = records[s];
+                  const rapidjson::Value& rc_name = rc["name"];
+                  const rapidjson::Value& rc_kind = rc["kind"];
+                  const rapidjson::Value& rc_debut = rc["debut"];
+                  const rapidjson::Value& rc_fin = rc["fin"];
+
+                  std::string name = rc_name.GetString();
+
+                  std::string kind = rc_kind.GetString();
+                  clang::TagTypeKind cg_kind = (kind == "class") ? clang::TTK_Class : clang::TTK_Struct;
+
+                  int debut = rc_debut.GetInt();
+                  int fin = rc_fin.GetInt();
+
+                  CallersData::Record record(name, cg_kind, filepath, debut, fin);
+
+                  if(rc.HasMember("inherits"))
+                  {
+                    const rapidjson::Value& inherits = rc["inherits"];
+                    if(inherits.IsArray())
+                    {
+                      // rapidjson uses SizeType instead of size_t.
+                      for (rapidjson::SizeType s = 0; s < inherits.Size(); s++)
+                        {
+                          const rapidjson::Value& bc = inherits[s];
+                          const rapidjson::Value& bc_parent = bc["record"];
+                          const rapidjson::Value& bc_file = bc["file"];
+                          const rapidjson::Value& bc_debut = bc["debut"];
+                          const rapidjson::Value& bc_fin   = bc["fin"];
+
+                          std::string parent = bc_parent.GetString();
+                          std::string file = bc_file.GetString();
+                          int debut = bc_debut.GetInt();
+                          int fin = bc_fin.GetInt();
+
+                          std::cout << "Parsed parent record: \"" << parent << std::endl;
+                          CallersData::Inheritance base(parent, file, debut, fin);
+                          record.add_base_class(base);
+                        }
+                    }
+                  }
+
+                  if(rc.HasMember("inherited"))
+                  {
+                    const rapidjson::Value& inherited = rc["inherited"];
+                    if(inherited.IsArray())
+                    {
+                      // rapidjson uses SizeType instead of size_t.
+                      for (rapidjson::SizeType s = 0; s < inherited.Size(); s++)
+                        {
+                          const rapidjson::Value& bc = inherited[s];
+                          const rapidjson::Value& bc_child = bc["record"];
+                          const rapidjson::Value& bc_file  = bc["file"];
+                          const rapidjson::Value& bc_debut = bc["debut"];
+                          const rapidjson::Value& bc_fin   = bc["fin"];
+
+                          std::string child = bc_child.GetString();
+                          std::string file = bc_file.GetString();
+                          int debut = bc_debut.GetInt();
+                          int fin = bc_fin.GetInt();
+
+                          std::cout << "Parsed child record: \"" << child << std::endl;
+                          CallersData::Inheritance fils(child, file, debut, fin);
+                          record.add_child_class(fils);
+                        }
+                    }
+                  }
+
+                  if(rc.HasMember("methods"))
+                  {
+                    const rapidjson::Value& methods = rc["methods"];
+                    if(methods.IsArray())
+                    {
+                      // rapidjson uses SizeType instead of size_t.
+                      for (rapidjson::SizeType s = 0; s < methods.Size(); s++)
+                        {
+                          const rapidjson::Value& def = methods[s];
+                          std::string meth_sign = def.GetString();
+                          std::cout << "Parsed method: \"" << meth_sign << std::endl;
+                          record.add_method(meth_sign);
+                        }
+                    }
+                  }
+
+                  this->get_or_create_record(&record, files);
+                  std::cout << "Parsed record r[" << s << "]:\"" << name << "\"" << std::endl;
+                }
+            }
+          }
+
 	  if(file.HasMember("declared"))
           {
             const rapidjson::Value& declared = file["declared"];
@@ -500,6 +598,30 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                     }
                   }
 
+                  if(symb.HasMember("redeclared"))
+                  {
+                    const rapidjson::Value& redeclared = symb["redeclared"];
+                    if(redeclared.IsArray())
+                    {
+                      // rapidjson uses SizeType instead of size_t
+                      for (rapidjson::SizeType s = 0; s < redeclared.Size(); s++)
+                        {
+                          const rapidjson::Value& redecl_method = redeclared[s];
+                          const rapidjson::Value& sgn = redecl_method["sign"];
+                          const rapidjson::Value& mgl = redecl_method["mangled"];
+                          const rapidjson::Value& def = redecl_method["decl"];
+
+                          std::string sign = sgn.GetString();
+                          MangledName mangled = mgl.GetString();
+                          std::string extfct_decl_loc = def.GetString();
+
+                          std::cout << "Parsed redeclared method: sign=\"" << sign << "\", def=" << extfct_decl_loc << "\"" << std::endl;
+                          CallersData::ExtFctDecl redeclared_method(mangled, sign, extfct_decl_loc);
+                          fctDecl.add_redeclared_method(redeclared_method);
+                        }
+                    }
+                  }
+
                   if(symb.HasMember("redeclarations"))
                   {
                     const rapidjson::Value& redeclarations = symb["redeclarations"];
@@ -508,17 +630,18 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                       // rapidjson uses SizeType instead of size_t
                       for (rapidjson::SizeType s = 0; s < redeclarations.Size(); s++)
                         {
-                          const rapidjson::Value& redeclaration = redeclarations[s];
-                          const rapidjson::Value& sgn = redeclaration["sign"];
-                          const rapidjson::Value& mgl = redeclaration["mangled"];
-                          const rapidjson::Value& def = redeclaration["decl"];
+                          const rapidjson::Value& redecl = redeclarations[s];
+                          const rapidjson::Value& sgn = redecl["sign"];
+                          const rapidjson::Value& mgl = redecl["mangled"];
+                          const rapidjson::Value& def = redecl["decl"];
 
                           std::string sign = sgn.GetString();
                           MangledName mangled = mgl.GetString();
                           std::string extfct_decl_loc = def.GetString();
 
                           std::cout << "Parsed function redeclaration: sign=\"" << sign << "\", def=" << extfct_decl_loc << "\"" << std::endl;
-                          fctDecl.add_external_caller(mangled, sign, extfct_decl_loc);
+                          CallersData::ExtFctDecl redeclaration(mangled, sign, extfct_decl_loc);
+                          fctDecl.add_redeclaration(redeclaration);
                         }
                     }
                   }
@@ -753,6 +876,7 @@ void CallersData::File::add_namespace(CallersData::Namespace nspc) const
 
 void CallersData::File::add_record(CallersData::Record *rec) const
 {
+  assert(this->fullPath() == rec->file);
   std::string kind = ((rec->kind == clang::TTK_Struct) ? "struct"
 		      : ((rec->kind == clang::TTK_Class) ? "class"
 			 : "anonym"));
@@ -762,6 +886,61 @@ void CallersData::File::add_record(CallersData::Record *rec) const
 	    << "defined in file \"" << this->fullPath() << ":"
 	    << rec->begin << ":" << rec->end << "\"" << std::endl;
   records->insert(*rec);
+}
+
+std::set<CallersData::Record>::iterator
+CallersData::File::get_or_create_record(CallersData::Record* record, CallersData::Dir* files) const
+{
+  std::set<CallersData::Record>::iterator search_record;
+  std::cout << "CallersData::File::get_or_create_record: Lookup for record \"" << record->name << "\" from file \"" << this->fullPath() << "\"..." << std::endl;
+  if(this->fullPath() == record->file)
+    // the declared function belongs to the current file
+    {
+      std::cout << "The declared function belongs to the current file, so we look for it locally\n" << std::endl;
+      search_record = this->get_or_create_local_record(record);
+    }
+  else
+    // the declared function doesn't belong to the current file
+    {
+      std::cout << "The declared function doesn't belong to the current file" << std::endl;
+      // check first whether a json file is already present for the declared function
+      // if true, parse it and return the declared record when found
+      // if false, create it and return the declared record when found
+      boost::filesystem::path p(record->file);
+      std::string record_basename = p.filename().string();
+      std::string record_dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+      assert(files != NULL);
+      std::set<CallersData::File>::iterator record_file = files->create_or_get_file(record_basename, record_dirpath);
+      search_record = record_file->get_or_create_local_record(record);
+    }
+  return search_record;
+}
+
+std::set<CallersData::Record>::iterator CallersData::File::get_or_create_local_record(CallersData::Record *record) const
+{
+  std::set<CallersData::Record>::iterator search_record;
+  std::cout << "CallersData::File::get_or_create_record: Lookup for record \"" << record->name << "\" in file \"" << this->fullPath() << "\"" << std::endl;
+
+  assert(this->fullPath() == record->file);
+
+  for(search_record=records->begin(); search_record!=records->end(); ++search_record)
+  {
+    if(search_record->name == record->name)
+    {
+      std::cout << "Well found record \"" << record->name << "\" declared in file \"" << this->file << "\"" << std::endl;
+      return search_record;
+    }
+  }
+
+  if(search_record == records->end())
+    {
+      std::cout << "CallersData::File::get_or_create_local_record:NOT_FOUND: the record \"" << record->name
+                << "\" is not yet declared in file " << record->file << ", so we create it now !" << std::endl;
+      this->add_record(record);
+      search_record = get_or_create_local_record(record);
+    }
+
+  return search_record;
 }
 
 void CallersData::File::add_record(std::string name, clang::TagTypeKind kind, int begin, int end) const
@@ -776,19 +955,47 @@ void CallersData::File::add_record(std::string name, clang::TagTypeKind kind, in
 	    << ":" << begin << ":" << end << "\"" << std::endl;
 }
 
-std::set<CallersData::Record>::iterator CallersData::File::get_record(std::string recordName) const
+std::set<CallersData::Record>::iterator CallersData::File::get_record(std::string recordName, std::string recordFilePath, CallersData::Dir* files) const
 {
   std::set<CallersData::Record>::iterator record;
-  std::cout << "Lookup for record \"" << recordName << "\" in file \"" << this->fullPath() << "\"" << std::endl;
-  for(record=records->begin(); record!=records->end(); ++record)
-  {
-    if(record->name == recordName)
+  std::cout << "Lookup for record \"" << recordName << "\" from file \"" << this->fullPath() << "\"..." << std::endl;
+  if(this->fullPath() == recordFilePath)
+    // the declared function belongs to the current file
     {
-      std::cout << "Well found record \"" << recordName << "\" declared in file \"" << this->file << "\"" << std::endl;
-      return record;
+      std::cout << "The declared function belongs to the current file, so we look for it locally\n" << std::endl;
+      record = this->get_local_record(recordName, recordFilePath);
+    }
+  else
+    // the declared function doesn't belong to the current file
+    {
+      std::cout << "The declared function doesn't belong to the current file" << std::endl;
+      // check first whether a json file is already present for the declared function
+      // if true, parse it and return the declared record when found
+      // if false, create it and return the declared record when found
+      boost::filesystem::path p(recordFilePath);
+      std::string record_basename = p.filename().string();
+      std::string record_dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+      assert(files != NULL);
+      std::set<CallersData::File>::iterator record_file = files->create_or_get_file(record_basename, record_dirpath);
+      record = record_file->get_local_record(recordName, recordFilePath);
+    }
+  return record;
+}
+
+std::set<CallersData::Record>::iterator CallersData::File::get_local_record(std::string recordName, std::string recordFilePath) const
+{
+  std::set<CallersData::Record>::iterator rc = records->begin();
+  std::cout << "Lookup for record \"" << recordName << "\" in local file \"" << this->fullPath() << "\"" << std::endl;
+  assert(this->fullPath() == recordFilePath);
+  for(; rc!=records->end(); ++rc)
+  {
+    if(rc->name == recordName)
+    {
+      std::cout << "Well found record \"" << recordName << "\" declared in local file \"" << this->file << "\"" << std::endl;
+      return rc;
     }
   }
-  assert(0);
+  return rc;
 }
 
 // Add a thread to the current file
@@ -834,30 +1041,39 @@ void CallersData::File::add_thread(CallersData::Thread *thr, CallersData::Dir *f
   // routine_def->add_thread(thr->id);
 }
 
-void CallersData::File::add_declared_function(CallersData::FctDecl* fct, std::string fct_filepath) const
+void CallersData::File::add_declared_function(CallersData::FctDecl* fct, std::string fct_filepath, CallersData::Dir* files) const
 {
   std::cout << "Tries to add function \"" << fct->sign
 	    << "\" declared in file \"" << fct->file << ":"
 	    << fct->line << "\"" << std::endl;
   assert(this->fullPath() == fct_filepath);
+
+  // complete the fct_decl with a redeclared method when needed
+  this->add_redeclared_method(fct, fct_filepath, files);
+
   declared->insert(*fct);
 }
 
-std::set<CallersData::FctDecl>::const_iterator CallersData::File::get_declared_function(std::string decl_sign, std::string decl_filepath) const
+std::set<CallersData::FctDecl>::const_iterator
+CallersData::File::get_or_create_local_declared_function(CallersData::FctDecl *fct_decl, std::string decl_filepath, CallersData::Dir* files) const
 {
-  std::cout << "Tries to get function \"" << decl_sign
+  std::cout << "Tries to get function \"" << fct_decl->sign
 	    << "\" declared in file \"" << decl_filepath << "\"" << std::endl;
   assert(this->fullPath() == decl_filepath);
   std::set<CallersData::FctDecl>::iterator search_result;
-  CallersData::FctDecl searched_decl(decl_sign, decl_filepath);
+  CallersData::FctDecl searched_decl(fct_decl->sign, decl_filepath);
   search_result = this->declared->find(searched_decl);
   if(search_result != this->declared->end())
     {
-      std::cout << "CallersData::File::get_declared_function:FOUND: The function \"" << decl_sign << "\" is already declared in file " << decl_filepath << std::endl;
+      std::cout << "CallersData::File::get_or_create_declared_function:FOUND: The function \"" << fct_decl->sign
+                << "\" is already declared in file " << decl_filepath << std::endl;
     }
   else
     {
-      std::cout << "CallersData::File::get_declared_function:NOT_FOUND: The function \"" << decl_sign << "\" is not yet declared in file " << decl_filepath << " !" << std::endl;
+      std::cout << "CallersData::File::get_or_create_declared_function:NOT_FOUND: The function \"" << fct_decl->sign
+                << "\" is not yet declared in file " << decl_filepath << ", so we create it now !" << std::endl;
+      this->add_declared_function(fct_decl, decl_filepath, files);
+      search_result = get_or_create_local_declared_function(fct_decl, decl_filepath, files);
     }
   return search_result;
 }
@@ -875,9 +1091,8 @@ CallersData::File::get_or_create_declared_function(CallersData::FctDecl* fct, st
   if( filepath == this->fullPath() )
     // the declared function belongs to the current file
     {
-      std::cout << "The declared function belongs to the current file, so we add it directly\n" << std::endl;
-      this->add_declared_function(fct, filepath);
-      fct_decl = this->get_declared_function(fct->sign, filepath);
+      std::cout << "The declared function belongs to the current file, so we look for it locally\n" << std::endl;
+      fct_decl = this->get_or_create_local_declared_function(fct, filepath, files);
     }
   else
     // the declared function doesn't belong to the current file
@@ -1046,8 +1261,11 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 
   calls->insert(*fc);
 
-  // complete the callee's fct_decl with redeclarations when needed
-  this->add_redeclared_method(&fc->callee, fc->callee.file, files);
+  // // complete the callee's fct_decl with the redeclared method when needed
+  // this->add_redeclared_method(&fc->callee, fc->callee.file, files);
+
+  // // complete the caller's fct_decl with a redeclaration when needed
+  // this->add_redeclaration(&fc->caller, fc->caller.def_file, files);
 
   std::set<CallersData::FctDef>::const_iterator caller;
   std::set<CallersData::FctDecl>::const_iterator callee;
@@ -1223,6 +1441,59 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
     }
 }
 
+void CallersData::File::add_redeclared_method(FctDecl *fct_decl, std::string fct_filepath, CallersData::Dir* files) const
+{
+  // Check whether the input function decl is a method and its record is well defined
+  if((fct_decl->recordName != CALLERS_DEFAULT_NO_RECORD_NAME) &&
+     (fct_decl->recordName != CALLERS_DEFAULT_RECORD_BUILTIN))
+  {
+    std::cout << "CallersData::File::add_local_redeclared_method:DEBUG: sign=\"" << fct_decl->sign
+              << "\", recordName=\"" << fct_decl->recordName << "\""
+              << "\", recordFile=\"" << fct_decl->recordFilePath << "\""
+              << "\", fct_file=\"" << fct_filepath << "\"" << std::endl;
+
+    // check consistency of record file path
+    assert(fct_decl->recordFilePath != CALLERS_DEFAULT_RECORD_PATH);
+    assert(fct_decl->recordFilePath != CALLERS_DEFAULT_NO_RECORD_PATH);
+
+    // Make sure the fct_decl belongs to the current file
+    assert(fct_filepath == this->fullPath());
+
+    // the fct_decl's record belongs to the current file
+    std::cout << "The fct_decl's record \"" << fct_decl->recordName << "\" belongs to the current file" << std::endl;
+
+    // get the fct_decl's record declaration
+    std::set<CallersData::Record>::iterator record = this->get_record(fct_decl->recordName, fct_decl->recordFilePath, files);
+    assert(record != records->end());
+
+    // check whether the current method is a redeclared method
+    auto redecl_method = record->get_redeclared_method(fct_decl->sign);
+    if(redecl_method != record->redeclared_methods->end())
+    {
+      std::string redecl_method_pos = CALLERS_NO_FCT_DECL_FILE;
+      std::string redecl_method_file = CALLERS_NO_FCT_DECL_FILE;
+      int redecl_method_line = -1;
+      decode_function_location(redecl_method->second.fctLoc, redecl_method_file, redecl_method_line);
+
+      CallersData::FctDecl search_base_decl(redecl_method->second.sign, redecl_method_file);
+
+      std::ostringstream sfct_decl_pos;
+      sfct_decl_pos << fct_decl->line;
+      std::string fct_decl_pos = fct_decl->file + ":" + sfct_decl_pos.str();
+
+      CallersData::ExtFctDecl child_redeclared_method(fct_decl->mangled, fct_decl->sign, fct_decl_pos);
+
+      // get a reference to the virtual method declaration specified in input
+      std::set<CallersData::FctDecl>::const_iterator
+      base_declared_method = this->get_or_create_declared_function(&search_base_decl, redecl_method_file, files);
+
+      // add a redeclared method to the input function declaration
+      base_declared_method->add_redeclared_method(child_redeclared_method);
+    }
+  }
+}
+
+/*
 void CallersData::File::add_redeclared_method(FctDecl *fct_decl, std::string fct_filepath, Dir* files) const
 {
   assert(files != NULL);
@@ -1246,15 +1517,15 @@ void CallersData::File::add_redeclared_method(FctDecl *fct_decl, std::string fct
         std::set<CallersData::Record>::iterator record = this->get_record(fct_decl->recordName);
         assert(record != records->end());
 
-        // check whether the current method is a redeclaration
+        // check whether the current method is a redeclared method
         auto redecl_method = record->get_redeclared_method(fct_decl->sign);
         if(redecl_method != record->redeclared_methods->end())
         {
           // get a reference to the function declaration specified in input
           std::set<CallersData::FctDecl>::const_iterator fct_decl_ref = this->get_declared_function(fct_decl->sign, fct_filepath);
 
-          // add a redeclaration to the input function declaration
-          fct_decl_ref->add_redeclaration(redecl_method->second);
+          // add a redeclared method to the input function declaration
+          fct_decl_ref->add_redeclared_method(redecl_method->second);
         }
       }
     else
@@ -1272,6 +1543,60 @@ void CallersData::File::add_redeclared_method(FctDecl *fct_decl, std::string fct
 
         assert(fct_filepath == fct_file->fullPath());
         fct_file->add_redeclared_method(fct_decl, fct_filepath, files);
+      }
+  }
+}
+*/
+
+void CallersData::File::add_redeclaration(FctDecl *fct_decl, std::string fct_filepath, Dir* files) const
+{
+  assert(files != NULL);
+  // Check whether the input function decl is a method and its record is well defined
+  if((fct_decl->recordName != CALLERS_DEFAULT_NO_RECORD_NAME) &&
+     (fct_decl->recordName != CALLERS_DEFAULT_RECORD_BUILTIN))
+  {
+    assert(fct_decl->recordFilePath != CALLERS_DEFAULT_RECORD_PATH);
+    assert(fct_decl->recordFilePath != CALLERS_DEFAULT_NO_RECORD_PATH);
+
+    std::cout << "CallersData::File::add_redeclaration:DEBUG: sign=\"" << fct_decl->sign << "\", record=\"" << fct_decl->recordName << "\"" << std::endl;
+
+    // Check whether the fct_decl belongs to the current file
+    if(fct_filepath == this->fullPath())
+
+      // the fct_decl's record belongs to the current file
+      {
+        std::cout << "The fct_decl's record \"" << fct_decl->recordName << "\" belongs to the current file" << std::endl;
+
+        // get the fct_decl's record declaration
+        std::set<CallersData::Record>::iterator record = this->get_record(fct_decl->recordName, fct_decl->recordFilePath, files);
+        assert(record != records->end());
+
+        // check whether the current method is a redeclaration
+        auto redecl_method = record->get_redeclaration(fct_decl->sign);
+        if(redecl_method != record->redeclarations->end())
+        {
+          // get a reference to the function declaration specified in input
+          std::set<CallersData::FctDecl>::const_iterator fct_decl_ref = this->get_or_create_local_declared_function(fct_decl, fct_filepath, files);
+
+          // add a redeclaration to the input function declaration
+          fct_decl_ref->add_redeclaration(redecl_method->second);
+        }
+      }
+    else
+      // the fct_decl is defined externally
+      {
+        std::cout << "The fct_decl is defined externally" << std::endl;
+
+        // check first whether a json file is already present for the fct_decl
+        // if true, parse it and add the redeclaration only when necessary
+        // if false, create the callee json file and add the redeclaration
+        boost::filesystem::path p(fct_filepath);
+        std::string fct_basename = p.filename().string();
+        std::string fct_dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+        std::set<CallersData::File>::iterator fct_file = files->create_or_get_file(fct_basename, fct_dirpath);
+
+        assert(fct_filepath == fct_file->fullPath());
+        fct_file->add_redeclaration(fct_decl, fct_filepath, files);
       }
   }
 }
@@ -1651,6 +1976,7 @@ void CallersData::Record::allocate()
   inherited = new std::set<CallersData::Inheritance>;
   methods = new std::set<std::string>;
   redeclared_methods = new std::set<std::pair<std::string, CallersData::ExtFctDecl>>;
+  redeclarations = new std::set<std::pair<std::string, CallersData::ExtFctDecl>>;
 }
 
 CallersData::Record::~Record()
@@ -1659,21 +1985,8 @@ CallersData::Record::~Record()
   delete inherited;
   delete methods;
   delete redeclared_methods;
+  delete redeclarations;
 }
-
-/*
-CallersData::Record::Record(const char* name, clang::TagTypeKind kind, const std::string file, const int begin, const int end)
-  : name(name),
-    kind(kind),
-    file(file),
-    begin(begin),
-    end(end)
-{
-  allocate();
-  std::cout << "Create record: " << std::endl;
-  this->print_cout();
-}
-*/
 
 CallersData::Record::Record(std::string name, clang::TagTypeKind kind, std::string file, int begin, int end)
   : name(name),
@@ -1697,23 +2010,32 @@ CallersData::Record::Record(const CallersData::Record& copy_from_me)
   begin = copy_from_me.begin;
   end = copy_from_me.end;
   std::set<Inheritance>::const_iterator b;
+
   for(b=copy_from_me.inherits->begin(); b!=copy_from_me.inherits->end(); ++b)
     {
       inherits->insert(*b);
     }
+
   for(b=copy_from_me.inherited->begin(); b!=copy_from_me.inherited->end(); ++b)
     {
       inherited->insert(*b);
     }
+
   std::set<std::string>::const_iterator m;
   for(m=copy_from_me.methods->begin(); m!=copy_from_me.methods->end(); ++m)
     {
       methods->insert(*m);
     }
+
   std::set<std::pair<std::string,CallersData::ExtFctDecl>>::const_iterator rm;
   for(rm=copy_from_me.redeclared_methods->begin(); rm!=copy_from_me.redeclared_methods->end(); ++rm)
     {
       redeclared_methods->insert(*rm);
+    }
+
+  for(rm=copy_from_me.redeclarations->begin(); rm!=copy_from_me.redeclarations->end(); ++rm)
+    {
+      redeclarations->insert(*rm);
     }
 }
 
@@ -1731,6 +2053,16 @@ void CallersData::Record::add_redeclared_method(std::string baseRecordName, Call
   std::cout << "Add virtual method \"" << redecl_method.sign
             << "\" defined in base record \"" << baseRecordName
             << "\" and probably redeclared in class \"" << this->name
+	    << "\"" << std::endl;
+  // assert(0);
+}
+
+void CallersData::Record::add_redeclaration(std::string baseRecordName, CallersData::ExtFctDecl redeclaration) const
+{
+  redeclarations->insert(std::make_pair(baseRecordName, redeclaration));
+  std::cout << "Add virtual child method \"" << redeclaration.sign
+            << "\" defined in child record \"" << baseRecordName
+            << "\" and probably declared in base class \"" << this->name
 	    << "\"" << std::endl;
   // assert(0);
 }
@@ -1773,6 +2105,44 @@ CallersData::Record::get_redeclared_method(std::string method_sign) const
   return redeclared_method;
 }
 
+std::set<std::pair<std::string, CallersData::ExtFctDecl>>::const_iterator
+CallersData::Record::get_redeclaration(std::string method_sign) const
+{
+  std::set<std::pair<std::string, CallersData::ExtFctDecl>>::const_iterator redeclaration;
+
+  // lookup for the virtual child method within the list of redeclarations
+
+  for(redeclaration=redeclarations->begin(); redeclaration!=redeclarations->end(); ++redeclaration)
+    {
+      // replace the current record name by its child class in the method_sign
+      std::string childRecordName = redeclaration->first;
+      std::string childMethodSign(method_sign);
+      boost::replace_first(childMethodSign, this->name + "::", childRecordName + "::");
+
+      std::cout << "Lookup for virtual child method \"" << childMethodSign << "\" in child record \"" << childRecordName << "\"" << std::endl;
+      // assert(0); // debug
+
+      auto redecl_method  = redeclaration->second;
+      std::cout << "- child record: " << childRecordName << std::endl;
+      std::cout << "- probably redeclaration: " << redecl_method.sign << std::endl;
+      if(redecl_method.sign == childMethodSign)
+      {
+        std::cout << "=> Found child virtual method: " << redecl_method.sign << std::endl;
+        return redeclaration;
+      }
+    }
+
+  if(redeclarations->begin() == redeclarations->end())
+  {
+    // WARNING: Uncomment this line for tmp debug purposes only !
+    // assert(0);
+  }
+
+  // uncomment this line for debug only
+  //assert(redeclaration != redeclarations->end());
+  return redeclaration;
+}
+
 /*
 // This code is currently useless because I didn't yet found how to
 // check whether a CXXMethodDecl is declared public, private or friend
@@ -1805,24 +2175,34 @@ void CallersData::Record::add_friend_method(std::string method) const
 void CallersData::Record::add_base_class(CallersData::Inheritance bclass) const
 {
   inherits->insert(bclass);
-  std::cout << "Register inheritance \"" << bclass.name
+  std::cout << "Register base record \"" << bclass.name
 	    << "\" defined in file \"" << bclass.file << "\""
 	    << " in record " << name
 	    << ", nb_inherits=" << inherits->size()
 	    << std::endl;
 }
 
-void CallersData::Record::add_base_class(std::string name, std::string file,
-                                         int begin, int end) const
+void CallersData::Record::add_child_class(CallersData::Inheritance bclass) const
 {
-  Inheritance bclass(name, file, begin, end);
   inherits->insert(bclass);
-  std::cout << "Create inheritance \"" << name
-	    << "\" located in file \"" << file << "\""
-	    << " in record " << this->name
+  std::cout << "Register child record \"" << bclass.name
+	    << "\" defined in file \"" << bclass.file << "\""
+	    << " in record " << name
 	    << ", nb_inherits=" << inherits->size()
 	    << std::endl;
 }
+
+// void CallersData::Record::add_base_class(std::string name, std::string file,
+//                                          int begin, int end) const
+// {
+//   Inheritance bclass(name, file, begin, end);
+//   inherits->insert(bclass);
+//   std::cout << "Create inheritance \"" << name
+// 	    << "\" located in file \"" << file << "\""
+// 	    << " in record " << this->name
+// 	    << ", nb_inherits=" << inherits->size()
+// 	    << std::endl;
+// }
 
 void CallersData::Record::print_cout() const
 {
@@ -1943,25 +2323,46 @@ void CallersData::Record::output_json_desc(std::ofstream &js) const
 	}
     }
 
-  js << "],\"redeclared\":[";
+  // js << "],\"redeclared\":[";
 
-  std::set<std::pair<std::string, ExtFctDecl>>::const_iterator rm, last_rm;
-  last_rm = redeclared_methods->empty() ? redeclared_methods->end() : --redeclared_methods->end();
-  for(rm=redeclared_methods->begin(); rm!=redeclared_methods->end(); ++rm)
-    {
-      if(rm != last_rm)
-	{
-          js << "{\"bc\":\"" << rm->first << "\",\"rm\":";
-	  rm->second.output_json_desc(js);
-	  js << "},";
-	}
-      else
-	{
-          js << "{\"bc\":\"" << rm->first << "\",\"rm\":";
-	  rm->second.output_json_desc(js);
-	  js << "}";
-	}
-    }
+  // std::set<std::pair<std::string, ExtFctDecl>>::const_iterator rm, last_rm;
+  // last_rm = redeclared_methods->empty() ? redeclared_methods->end() : --redeclared_methods->end();
+  // for(rm=redeclared_methods->begin(); rm!=redeclared_methods->end(); ++rm)
+  //   {
+  //     if(rm != last_rm)
+  //       {
+  //         js << "{\"bc\":\"" << rm->first << "\",\"rm\":";
+  //         rm->second.output_json_desc(js);
+  //         js << "},";
+  //       }
+  //     else
+  //       {
+  //         js << "{\"bc\":\"" << rm->first << "\",\"rm\":";
+  //         rm->second.output_json_desc(js);
+  //         js << "}";
+  //       }
+  //   }
+
+
+  // js << "],\"redeclarations\":[";
+
+  // std::set<std::pair<std::string, ExtFctDecl>>::const_iterator rm, last_rm;
+  // last_rm = redeclarations->empty() ? redeclarations->end() : --redeclarations->end();
+  // for(rm=redeclarations->begin(); rm!=redeclarations->end(); ++rm)
+  //   {
+  //     if(rm != last_rm)
+  //       {
+  //         js << "{\"bc\":\"" << rm->first << "\",\"rm\":";
+  //         rm->second.output_json_desc(js);
+  //         js << "},";
+  //       }
+  //     else
+  //       {
+  //         js << "{\"bc\":\"" << rm->first << "\",\"rm\":";
+  //         rm->second.output_json_desc(js);
+  //         js << "}";
+  //       }
+  //   }
 
   js << "]}";
 }
@@ -2146,6 +2547,7 @@ bool CallersData::operator< (const CallersData::Thread& thread1, const CallersDa
 void CallersData::FctDecl::allocate()
 {
   threads = new std::set<std::string>;
+  redeclared = new std::set<ExtFctDecl>;
   redeclarations = new std::set<ExtFctDecl>;
   definitions = new std::set<std::string>;
   // definitions = new std::set<ExtFctDef>;
@@ -2157,40 +2559,13 @@ void CallersData::FctDecl::allocate()
 CallersData::FctDecl::~FctDecl()
 {
   delete threads;
+  delete redeclared;
   delete redeclarations;
   delete definitions;
   delete redefinitions;
   delete locallers;
   delete extcallers;
 }
-
-/*
-CallersData::FctDecl::FctDecl(const char* mangled, const char* sign, Virtuality is_virtual,
-                              const char* filepath, const int line, const char* record)
-  : mangled(mangled),
-    sign(sign),
-    file(filepath),
-    virtuality(is_virtual),
-    line(line),
-    record(record)
-{
-  allocate();
-  std::string sgn(sign);
-  std::string rec(record);
-  if(sgn.find("::") != std::string::npos)
-  assert(rec != CALLERS_DEFAULT_RECORD_NAME);
-  if(rec == CALLERS_DEFAULT_RECORD_NAME)
-  {
-    std::cout << "Create function declaration: " << std::endl;
-  }
-  else
-  {
-    std::cout << "Create " << rec << "'s method declaration: " << std::endl;
-  }
-  this->print_cout();
-  // this->print_cout(sign, is_virtual, file, line, rec);
-}
-*/
 
 CallersData::FctDecl::FctDecl(MangledName mangled, std::string sign, Virtuality is_virtual,
                               std::string filepath, int line, bool is_builtin)
@@ -2293,8 +2668,14 @@ CallersData::FctDecl::FctDecl(const CallersData::FctDecl& copy_from_me)
       locallers->insert(*i);
     };
 
-  // copy redeclarations
+  // copy redeclared methods
   std::set<ExtFctDecl>::const_iterator xdc;
+  for(xdc=copy_from_me.redeclared->begin(); xdc!=copy_from_me.redeclared->end(); ++xdc )
+    {
+      redeclared->insert(*xdc);
+    };
+
+  // copy redeclarations
   for(xdc=copy_from_me.redeclarations->begin(); xdc!=copy_from_me.redeclarations->end(); ++xdc )
     {
       redeclarations->insert(*xdc);
@@ -2339,6 +2720,37 @@ void CallersData::FctDecl::add_local_caller(std::string caller_sign) const
     std::cout << "Add local caller \"" << caller_sign << "\" to callee method declaration \"" << this->sign << "\"" << std::endl;
   }
   locallers->insert(sign);
+}
+
+void CallersData::FctDecl::add_redeclared_method(const CallersData::ExtFctDecl& redecl_method) const
+{
+  std::cout << "Check whether the redeclared method \"" << redecl_method.sign << "\" is already present or not..." << std::endl;
+
+  std::set<CallersData::ExtFctDecl>::iterator search_result;
+  search_result = redeclared->find(redecl_method);
+  if(search_result != redeclared->end())
+    {
+      std::cout << "Already present redeclared method \"" << redecl_method.sign
+                << "\" of function \"" << sign << "\", so do not add it twice."
+                << "The base virtual method is declared in file: " << redecl_method.fctLoc
+                << std::endl;
+    }
+  else
+    {
+      std::cout << "Add redeclared method \"" << redecl_method.sign
+                << "\" to function \"" << this->sign << "\". "
+                << "The base virtual method is declared in file: " << redecl_method.fctLoc
+                << std::endl;
+      CallersData::ExtFctDecl redecl (redecl_method);
+      redeclared->insert(redecl);
+      search_result = redeclared->find(redecl_method);
+      if(search_result != redeclared->end())
+        {
+          std::cout << "the redeclared method \"" << redecl_method.sign << "\" is well present now !" << std::endl;
+          this->print_cout();
+        }
+    }
+  return;
 }
 
 void CallersData::FctDecl::add_redeclaration(const CallersData::ExtFctDecl& redecl_method) const
@@ -2524,6 +2936,31 @@ void CallersData::FctDecl::output_local_callers(std::ostream &js) const
     }
 }
 
+void CallersData::FctDecl::output_redeclared_methods(std::ostream &js) const
+{
+  if(not redeclared->empty())
+    {
+      js << ", \"redeclared\": [";
+
+      std::set<ExtFctDecl>::const_iterator x, extlast;
+      //last = std::prev(redeclared.end(); // requires C++ 11
+      extlast = redeclared->empty() ? redeclared->end() : --redeclared->end();
+      for( x=redeclared->begin(); x!=redeclared->end(); ++x )
+		{
+		  if(x != extlast)
+			{
+			  js << *x << ", ";
+			}
+		  else
+			{
+			  js << *x;
+			}
+		};
+      js << "]";
+
+    }
+}
+
 void CallersData::FctDecl::output_redeclarations(std::ostream &js) const
 {
   if(not redeclarations->empty())
@@ -2649,6 +3086,7 @@ void CallersData::FctDecl::output_json_desc(std::ostream &js) const
   }
 
   this->output_threads(js);
+  this->output_redeclared_methods(js);
   this->output_redeclarations(js);
   this->output_definitions(js);
   this->output_redefinitions(js);
@@ -3166,9 +3604,17 @@ CallersData::ExtFct::ExtFct(const CallersData::ExtFct& copy_from_me)
   // print_cout(mangled, sign, fct);
 }
 
-bool CallersData::operator< (const CallersData::ExtFct& fct1, const CallersData::ExtFct& fct2)
-{
-  return fct1.sign < fct2.sign;
+// bool CallersData::operator< (const CallersData::ExtFct& fct1, const CallersData::ExtFct& fct2)
+// {
+//   return fct1.sign < fct2.sign;
+// }
+
+namespace CallersData {
+
+  bool operator< (const ExtFct& fct1, const ExtFct& fct2)
+  {
+    return fct1.sign < fct2.sign;
+  }
 }
 
 /**************************************** class ExtFctDecl ***************************************/

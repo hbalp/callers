@@ -1938,7 +1938,8 @@ CallersAction::Visitor::VisitInheritanceList(clang::CXXRecordDecl* cxxDecl,
       int baseEnd = printLine(base->getLocEnd());
       // clang::TagTypeKind baseTagKind = base->getTagKind();
 
-      record->add_base_class(baseName, baseFile, baseBegin, baseEnd);
+      CallersData::Inheritance parent(baseName, baseFile, baseBegin, baseEnd);
+      record->add_base_class(parent);
 
       osOut << " the base record \"" << baseName << "\" of record \"" << record->name << "\" declares the following methods:" << std::endl;
 
@@ -2014,7 +2015,7 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
               {
                 osOut << "the record \"" << recordName << "\" is well defined in current file \""
                       << recordFile << "\"" << std::endl;
-                currentJsonFile->add_record(&record);
+                currentJsonFile->get_or_create_local_record(&record);
               }
             else
               // otherwise, check whether a json file is already present for the visited record
@@ -2030,7 +2031,7 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
                 std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
                 std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
 
-                file->add_record(&record);
+                file->get_or_create_local_record(&record);
               }
 
             osOut << '\n';

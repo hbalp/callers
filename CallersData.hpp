@@ -77,11 +77,10 @@ namespace CallersData
       ~File();
       std::string getKind() const;
       std::string fullPath () const;
-      void parse_json_file(CallersData::Dir *files) const;
+      void parse_json_file(Dir *files) const;
       std::set<CallersData::Namespace>::iterator create_or_get_namespace(std::string qualifiers, const clang::NamespaceDecl* nspc);
-      //void add_declared_function(std::string sign, Virtuality virtuality, std::string file, int line) const;
-      void add_declared_function(CallersData::FctDecl* fct, std::string fct_filepath) const;
       std::set<CallersData::FctDecl>::const_iterator get_or_create_declared_function(FctDecl* fct, std::string filepath, Dir *context) const;
+      std::set<CallersData::FctDecl>::const_iterator get_or_create_local_declared_function(FctDecl* fct, std::string filepath, Dir *context) const;
       std::set<CallersData::FctDecl>::const_iterator get_declared_function(std::string decl_sign, std::string decl_filepath) const;
       bool add_definition_to_declaration(std::string def_pos, std::string decl_sign, std::string decl_filepath) const;
       bool add_definition_to_declaration(std::string def_pos, std::string decl_sign, std::string decl_filepath, Dir* otherFiles) const;
@@ -89,11 +88,14 @@ namespace CallersData
                                 int line, std::string filepath, std::string decl_file, int decl_line, std::string record, Dir *context) const;
       void add_defined_function(FctDef* fct, std::string filepath, Dir *otherFiles) const;
       void add_namespace(Namespace nspc) const;
-      void add_record(Record *record) const;
-      void add_record(std::string name, clang::TagTypeKind kind, int begin, int end) const;
-      std::set<CallersData::Record>::iterator get_record(std::string recordName) const;
-      void add_redeclared_method(FctDecl* fct_decl, std::string fct_filepath, Dir* allJsonFiles) const;
-      void add_thread(Thread* thread, CallersData::Dir *files) const;
+      std::set<CallersData::Record>::iterator get_or_create_record(CallersData::Record *record, Dir* allJsonFiles) const;
+      std::set<CallersData::Record>::iterator get_or_create_local_record(CallersData::Record *record) const;
+      std::set<CallersData::Record>::iterator get_record(std::string recordName, std::string recordFilePath, Dir* allJsonFiles) const;
+      std::set<CallersData::Record>::iterator get_local_record(std::string recordName, std::string recordFilePath) const;
+      void add_redeclared_method(FctDecl *fct_decl, std::string fct_filepath, Dir* allJsonFiles) const;
+      // void add_redeclared_method(FctDecl* fct_decl, std::string fct_filepath, Dir* allJsonFiles) const;
+      void add_redeclaration(FctDecl* fct_decl, std::string fct_filepath, Dir* allJsonFiles) const;
+      void add_thread(Thread* thread, Dir *files) const;
       void add_function_call(FctCall* fc, Dir *context) const;
       void output_json_desc() const;
       std::set<Namespace> *namespaces;
@@ -102,6 +104,10 @@ namespace CallersData
       std::set<FctDecl> *declared;
       std::set<FctDef>  *defined;
   private:
+      void add_declared_function(CallersData::FctDecl* fct, std::string fct_filepath, Dir* files) const;
+      void add_record(Record *record) const;
+      void add_record(std::string name, clang::TagTypeKind kind, int begin, int end) const;
+      //void add_declared_function(std::string sign, Virtuality virtuality, std::string file, int line) const;
       std::set<FctCall> *calls;
       std::string file = "unknownFileName";
       std::string kind = "unknownFileKind";
@@ -161,7 +167,7 @@ namespace CallersData
 
   class ExtFctDecl;
 
-  /* Record class to store "class" or "struct" definitions */
+    /* Record class to store "class" or "struct" definitions */
   class Record
   {
     friend class File;
@@ -181,11 +187,13 @@ namespace CallersData
       // For the moment, all methods are considered the same.
       void add_method(std::string name) const;
       void add_redeclared_method(std::string base_class, ExtFctDecl redecl_method) const;
+      void add_redeclaration(std::string base_class, ExtFctDecl redeclaration) const;
       std::set<std::pair<std::string, CallersData::ExtFctDecl>>::const_iterator get_redeclared_method(std::string method_sign) const;
-      void add_base_class(std::string name, std::string file, int deb, int fin) const;
+      std::set<std::pair<std::string, CallersData::ExtFctDecl>>::const_iterator get_redeclaration(std::string method_sign) const;
+      // void add_base_class(std::string name, std::string file, int deb, int fin) const;
       void add_base_class(Inheritance inheritance) const;
-      void add_child_class(std::string name, std::string file, int deb, int fin) const;
-      // void add_child_class(Inheritance inheritance) const;
+      // void add_child_class(std::string name, std::string file, int deb, int fin) const;
+      void add_child_class(Inheritance inheritance) const;
       void output_json_desc(std::ofstream &js) const;
       void print_cout() const;
       std::string name = "unknownRecordName";
@@ -197,6 +205,7 @@ namespace CallersData
       std::set<Inheritance> *inherited;
     protected:
       std::set<std::pair<std::string, ExtFctDecl>> *redeclared_methods;
+      std::set<std::pair<std::string, ExtFctDecl>> *redeclarations;
     private:
       std::set<std::string> *methods;
       // std::set<std::string> *public_methods;
@@ -268,14 +277,14 @@ namespace CallersData
 
   class ExtFct
   {
-    friend class Record;
-    friend class FctDecl;
-    friend bool operator< (const CallersData::ExtFct& fct1, const CallersData::ExtFct& fct2);
+    // friend class Record;
+    // friend class FctDecl;
+    // friend bool operator< (const CallersData::ExtFct& fct1, const CallersData::ExtFct& fct2);
     public:
       ExtFct(MangledName mangled, std::string sign, std::string fct_loc);
       ExtFct(const ExtFct& copy_from_me);
       ~ExtFct() {}
-    protected:
+    // protected:
       MangledName mangled = "unknownExtFctMangled";
       std::string sign = "unknownExtFctSign";
       std::string fctLoc = "unknownExtFctDeclLoc";
@@ -321,7 +330,8 @@ namespace CallersData
       void add_local_caller(std::string caller_sign) const;
       void add_external_caller(MangledName mangled, std::string sign, std::string file_pos) const;
       void add_external_caller(MangledName mangled, std::string sign, std::string file, int line) const;
-      void add_redeclaration(const ExtFctDecl& redeclared_method) const;
+      void add_redeclared_method(const ExtFctDecl& redeclared_method) const;
+      void add_redeclaration(const ExtFctDecl& redeclaration) const;
       // void add_redeclaration(MangledName fct_mangled, std::string fct_sign, Virtuality redecl_virtuality, std::string redecl_file, int redecl_line, std::string redecl_record) const;
       void add_definition(std::string fct_sign, std::string def_file_pos) const;
       // void add_definition(MangledName fct_mangled, std::string fct_sign, std::string def_sign, Virtuality def_virtuality, std::string def_file_pos, std::string record) const;
@@ -331,6 +341,7 @@ namespace CallersData
       void output_threads(std::ostream &js) const;
       void output_local_callers(std::ostream &js) const;
       void output_external_callers(std::ostream &js) const;
+      void output_redeclared_methods(std::ostream &js) const;
       void output_redeclarations(std::ostream &js) const;
       void output_definitions(std::ostream &js) const;
       void output_redefinitions(std::ostream &js) const;
@@ -342,6 +353,7 @@ namespace CallersData
       Virtuality virtuality = VNoVirtual;
       int line = -1;
       std::set<std::string> *threads;
+      std::set<ExtFctDecl> *redeclared;
       std::set<ExtFctDecl> *redeclarations;
       std::set<std::string> *definitions;
       // std::set<ExtFctDef> *definitions;

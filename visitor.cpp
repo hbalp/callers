@@ -2013,31 +2013,6 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
               record->add_method(method_sign);
             }
 
-            // // check whether the record is really defined in this file
-            // if(recordFile == currentJsonFile->fullPath())
-            //   // if true, add the record to the current json file
-            //   {
-            //     osOut << "the record \"" << recordName << "\" is well defined in current file \""
-            //           << recordFile << "\"" << std::endl;
-            //     currentJsonFile->get_or_create_local_record(&record);
-            //   }
-            // else
-            //   // otherwise, check whether a json file is already present for the visited record
-            //   // if true, parse it and add the defined record only when necessary
-            //   // if false, create this json file and add the defined record
-            //   {
-            //     osOut << "the record \"" << recordName
-            //           << "\" is not defined in current file \"" << currentJsonFile->fullPath()
-            //           << "\" but in file \"" << recordFile << "\"" << std::endl;
-
-            //     boost::filesystem::path p(recordFile);
-            //     std::string basename = p.filename().string();
-            //     std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-            //     std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
-
-            //     file->get_or_create_local_record(&record);
-            //   }
-
             osOut << '\n';
          };
       }

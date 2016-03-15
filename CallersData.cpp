@@ -1049,7 +1049,7 @@ void CallersData::File::add_declared_function(CallersData::FctDecl* fct, std::st
   assert(this->fullPath() == fct_filepath);
 
   // complete the fct_decl with a redeclared method when needed
-  this->add_redeclared_method(fct, fct_filepath, files);
+  this->try_to_add_redeclared_and_redeclaration_methods(fct, fct_filepath, files);
 
   declared->insert(*fct);
 }
@@ -1441,13 +1441,13 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
     }
 }
 
-void CallersData::File::add_redeclared_method(FctDecl *fct_decl, std::string fct_filepath, CallersData::Dir* files) const
+void CallersData::File::try_to_add_redeclared_and_redeclaration_methods(FctDecl *fct_decl, std::string fct_filepath, CallersData::Dir* files) const
 {
   // Check whether the input function decl is a method and its record is well defined
   if((fct_decl->recordName != CALLERS_DEFAULT_NO_RECORD_NAME) &&
      (fct_decl->recordName != CALLERS_DEFAULT_RECORD_BUILTIN))
   {
-    std::cout << "CallersData::File::add_local_redeclared_method:DEBUG: sign=\"" << fct_decl->sign
+    std::cout << "CallersData::File::try_to_add_local_redeclared_and_redeclaration_methods:DEBUG: sign=\"" << fct_decl->sign
               << "\", recordName=\"" << fct_decl->recordName << "\""
               << "\", recordFile=\"" << fct_decl->recordFilePath << "\""
               << "\", fct_file=\"" << fct_filepath << "\"" << std::endl;
@@ -1459,8 +1459,8 @@ void CallersData::File::add_redeclared_method(FctDecl *fct_decl, std::string fct
     // Make sure the fct_decl belongs to the current file
     assert(fct_filepath == this->fullPath());
 
-    // the fct_decl's record belongs to the current file
-    std::cout << "The fct_decl's record \"" << fct_decl->recordName << "\" belongs to the current file" << std::endl;
+    // the fct_decl's belongs to the current file
+    std::cout << "The fct_decl \"" << fct_decl->recordName << "\" belongs to the current file" << std::endl;
 
     // get the fct_decl's record declaration
     std::set<CallersData::Record>::iterator record = this->get_record(fct_decl->recordName, fct_decl->recordFilePath, files);
@@ -1475,20 +1475,30 @@ void CallersData::File::add_redeclared_method(FctDecl *fct_decl, std::string fct
       int redecl_method_line = -1;
       decode_function_location(redecl_method->second.fctLoc, redecl_method_file, redecl_method_line);
 
-      CallersData::FctDecl search_base_decl(redecl_method->second.sign, redecl_method_file);
-
-      std::ostringstream sfct_decl_pos;
-      sfct_decl_pos << fct_decl->line;
-      std::string fct_decl_pos = fct_decl->file + ":" + sfct_decl_pos.str();
-
-      CallersData::ExtFctDecl child_redeclared_method(fct_decl->mangled, fct_decl->sign, fct_decl_pos);
+      // get a reference to the base virtual method
+      CallersData::FctDecl search_base_virt_method(redecl_method->second.sign, redecl_method_file);
 
       // get a reference to the virtual method declaration specified in input
       std::set<CallersData::FctDecl>::const_iterator
-      base_declared_method = this->get_or_create_declared_function(&search_base_decl, redecl_method_file, files);
+      base_virt_method = this->get_or_create_declared_function(&search_base_virt_method, redecl_method_file, files);
 
-      // add a redeclared method to the input function declaration
-      base_declared_method->add_redeclared_method(child_redeclared_method);
+      // add a redeclared method to the child method declaration
+      {
+        std::ostringstream pos;
+        pos << base_virt_method->line;
+        std::string base_virt_method_pos = record->file + ":" + pos.str();
+        CallersData::ExtFctDecl base_virtual_method(base_virt_method->mangled, base_virt_method->sign, base_virt_method_pos);
+        fct_decl->add_redeclared_method(base_virtual_method);
+      }
+
+      // add a redeclaration to the base virtual method
+      {
+        std::ostringstream pos;
+        pos << fct_decl->line;
+        std::string fct_decl_pos = fct_decl->file + ":" + pos.str();
+        CallersData::ExtFctDecl child_redeclared_method(fct_decl->mangled, fct_decl->sign, fct_decl_pos);
+        base_virt_method->add_redeclaration(child_redeclared_method);
+      }
     }
   }
 }
@@ -1548,6 +1558,7 @@ void CallersData::File::add_redeclared_method(FctDecl *fct_decl, std::string fct
 }
 */
 
+/*
 void CallersData::File::add_redeclaration(FctDecl *fct_decl, std::string fct_filepath, Dir* files) const
 {
   assert(files != NULL);
@@ -1600,6 +1611,7 @@ void CallersData::File::add_redeclaration(FctDecl *fct_decl, std::string fct_fil
       }
   }
 }
+*/
 
 void CallersData::File::output_json_desc() const
 {
@@ -2078,30 +2090,26 @@ CallersData::Record::get_redeclared_method(std::string method_sign) const
     {
       // replace the current record name by its base class in the method_sign
       std::string baseRecordName = redeclared_method->first;
-      std::string baseMethodSign(method_sign);
-      boost::replace_first(baseMethodSign, this->name + "::", baseRecordName + "::");
+      std::string baseMethodSign1(method_sign);
+      std::string baseMethodSign2(method_sign);
 
-      std::cout << "Lookup for virtual method \"" << baseMethodSign << "\" in base record \"" << baseRecordName << "\"" << std::endl;
-      // assert(0); // debug
+      boost::replace_first(baseMethodSign1, this->name + "::", baseRecordName + "::");
+      boost::replace_first(baseMethodSign2, "::" + this->name + "::", baseRecordName + "::");
+
+      std::cout << "Lookup for virtual method \"" << baseMethodSign1 << "\" in base record \"" << baseRecordName << "\"" << std::endl;
+      std::cout << "Lookup for virtual method \"" << baseMethodSign2 << "\" in base record \"" << baseRecordName << "\"" << std::endl;
 
       auto redecl_method  = redeclared_method->second;
       std::cout << "- base record: " << baseRecordName << std::endl;
       std::cout << "- probably redeclared method: " << redecl_method.sign << std::endl;
-      if(redecl_method.sign == baseMethodSign)
+
+      if((redecl_method.sign == baseMethodSign1) || (redecl_method.sign == baseMethodSign2))
       {
         std::cout << "=> Found base virtual method: " << redecl_method.sign << std::endl;
         return redeclared_method;
       }
     }
 
-  if(redeclared_methods->begin() == redeclared_methods->end())
-  {
-    // WARNING: Uncomment this line for tmp debug purposes only !
-    // assert(0);
-  }
-
-  // uncomment this line for debug only
-  //assert(redeclared_method != redeclared_methods->end());
   return redeclared_method;
 }
 

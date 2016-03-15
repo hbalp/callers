@@ -20,6 +20,7 @@ int main()
   // C* d = new C();
   // ::Newly::Added::D* d = new ::Newly::Added::D();
   C* d = new ::Newly::Added::D();
+  //C* d = new D();
 
   //assert_callers(d, (D*) null_ptr, );
   //ACSL++ avec les methodes virtuelles

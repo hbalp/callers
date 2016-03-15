@@ -128,7 +128,7 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
       return 0;
   };
 
-  void VisitInheritanceList(clang::CXXRecordDecl* cxxDecl, CallersData::Record* rec);
+  void VisitInheritanceList(clang::CXXRecordDecl* cxxDecl, std::set<CallersData::Record>::iterator& record);
   bool isTemplate(clang::CXXRecordDecl* RD) const;
 
  public:

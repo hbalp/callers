@@ -190,9 +190,7 @@ namespace CallersData
       void add_redeclaration(std::string base_class, ExtFctDecl redeclaration) const;
       std::set<std::pair<std::string, CallersData::ExtFctDecl>>::const_iterator get_redeclared_method(std::string method_sign) const;
       std::set<std::pair<std::string, CallersData::ExtFctDecl>>::const_iterator get_redeclaration(std::string method_sign) const;
-      // void add_base_class(std::string name, std::string file, int deb, int fin) const;
       void add_base_class(Inheritance inheritance) const;
-      // void add_child_class(std::string name, std::string file, int deb, int fin) const;
       void add_child_class(Inheritance inheritance) const;
       void output_json_desc(std::ofstream &js) const;
       void print_cout() const;
@@ -201,12 +199,12 @@ namespace CallersData
       std::string file;
       int begin = -1;
       int end = -1;
-      std::set<Inheritance> *inherits;
       std::set<Inheritance> *inherited;
     protected:
       std::set<std::pair<std::string, ExtFctDecl>> *redeclared_methods;
       std::set<std::pair<std::string, ExtFctDecl>> *redeclarations;
     private:
+      std::set<Inheritance> *inherits;
       std::set<std::string> *methods;
       // std::set<std::string> *public_methods;
       // std::set<std::string> *private_methods;

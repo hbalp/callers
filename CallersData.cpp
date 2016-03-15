@@ -902,8 +902,8 @@ CallersData::File::get_or_create_record(CallersData::Record* record, CallersData
   else
     // the declared function doesn't belong to the current file
     {
-      std::cout << "The declared function doesn't belong to the current file" << std::endl;
-      // check first whether a json file is already present for the declared function
+      std::cout << "The declared record doesn't belong to the current file" << std::endl;
+      // check first whether a json file is already present for the declared record
       // if true, parse it and return the declared record when found
       // if false, create it and return the declared record when found
       boost::filesystem::path p(record->file);
@@ -2175,7 +2175,7 @@ void CallersData::Record::add_friend_method(std::string method) const
 void CallersData::Record::add_base_class(CallersData::Inheritance bclass) const
 {
   inherits->insert(bclass);
-  std::cout << "Register base record \"" << bclass.name
+  std::cout << "CallersData::Record::add_base_class: Register base record \"" << bclass.name
 	    << "\" defined in file \"" << bclass.file << "\""
 	    << " in record " << name
 	    << ", nb_inherits=" << inherits->size()
@@ -2184,11 +2184,11 @@ void CallersData::Record::add_base_class(CallersData::Inheritance bclass) const
 
 void CallersData::Record::add_child_class(CallersData::Inheritance bclass) const
 {
-  inherits->insert(bclass);
-  std::cout << "Register child record \"" << bclass.name
+  inherited->insert(bclass);
+  std::cout << "CallersData::Record::add_child_class: Register child record \"" << bclass.name
 	    << "\" defined in file \"" << bclass.file << "\""
 	    << " in record " << name
-	    << ", nb_inherits=" << inherits->size()
+	    << ", nb_inherited=" << inherited->size()
 	    << std::endl;
 }
 

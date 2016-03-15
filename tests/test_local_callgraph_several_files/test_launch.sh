@@ -97,8 +97,8 @@ then
     source callgraph_to_dot.sh $callers_json_rootdir files
 
     # generate classes tree from base class A
-    source classes_depgraph.sh child "$canonical_pwd/dirA/A.hpp" "A"
-    source classes_depgraph.sh base "$canonical_pwd/dirC/D.hpp" "::Newly::Added::D"
+    # source classes_depgraph.sh child "$canonical_pwd/dirA/A.hpp" "A"
+    # source classes_depgraph.sh base "$canonical_pwd/dirC/D.hpp" "::Newly::Added::D"
 
     source process_dot_files.sh . analysis/${analysis_type}
 

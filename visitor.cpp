@@ -1909,7 +1909,7 @@ CallersAction::Visitor::TraverseCXXRecordDecl(clang::CXXRecordDecl* Decl) {
 
 void
 CallersAction::Visitor::VisitInheritanceList(clang::CXXRecordDecl* cxxDecl,
-					     CallersData::Record* record)
+					     std::set<CallersData::Record>::iterator& record)
 {
    clang::CXXRecordDecl::base_class_iterator endBase = cxxDecl->bases_end();
    bool isFirst = true;
@@ -1933,10 +1933,10 @@ CallersAction::Visitor::VisitInheritanceList(clang::CXXRecordDecl* cxxDecl,
 
       //std::string baseName = printQualifiedName(*base);
       std::string baseName = base->getQualifiedNameAsString();
+      clang::TagTypeKind baseTagKind = base->getTagKind();
       std::string baseFile = printFilePath(base->getSourceRange());
       int baseBegin = printLine(base->getLocStart());
       int baseEnd = printLine(base->getLocEnd());
-      // clang::TagTypeKind baseTagKind = base->getTagKind();
 
       CallersData::Inheritance parent(baseName, baseFile, baseBegin, baseEnd);
       record->add_base_class(parent);
@@ -1959,9 +1959,11 @@ CallersAction::Visitor::VisitInheritanceList(clang::CXXRecordDecl* cxxDecl,
         }
       }
 
-      // CallersData::Record parent(baseName, baseTagKind, baseFile, baseBegin, baseEnd);
-
-      // osOut << " the base record \"" << baseName << "\" is inherited by child record \"" << recordName << "\"" << std::endl;
+      osOut << " the base record \"" << baseName << "\" is inherited by child record \"" << record->name << "\"" << std::endl;
+      CallersData::Inheritance child(record->name, record->file, record->begin, record->end);
+      CallersData::Record search_parent(baseName, baseTagKind, baseFile, baseBegin, baseEnd);
+      std::set<CallersData::Record>::iterator parent_record = currentJsonFile->get_or_create_record(&search_parent, &otherJsonFiles);
+      parent_record->add_child_class(child);
 
       osOut << baseName;
       osOut << printTemplateKind(*base);
@@ -1991,10 +1993,12 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
             osOut << "visiting record " << recordName
                   << " at " << printLocation(Decl->getSourceRange()) << '\n';
 
-            CallersData::Record record(recordName, tagKind, recordFile, recordBegin, recordEnd);
+            CallersData::Record search_record(recordName, tagKind, recordFile, recordBegin, recordEnd);
+
+            std::set<CallersData::Record>::iterator record = currentJsonFile->get_or_create_record(&search_record, &otherJsonFiles);
 
             osOut << " the record \"" << recordName << "\" inherits from ";
-            VisitInheritanceList(RD, &record);
+            VisitInheritanceList(RD, record);
             osOut << std::endl;
 
             osOut << " the record \"" << recordName << "\" declares the following methods:" << std::endl;
@@ -2006,33 +2010,33 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
               clang::FunctionDecl* f = (clang::FunctionDecl*)(*m);
               std::string method_sign = writeFunction(*f);
               osOut << " - " << method_sign << std::endl;
-              record.add_method(method_sign);
+              record->add_method(method_sign);
             }
 
-            // check whether the record is really defined in this file
-            if(recordFile == currentJsonFile->fullPath())
-              // if true, add the record to the current json file
-              {
-                osOut << "the record \"" << recordName << "\" is well defined in current file \""
-                      << recordFile << "\"" << std::endl;
-                currentJsonFile->get_or_create_local_record(&record);
-              }
-            else
-              // otherwise, check whether a json file is already present for the visited record
-              // if true, parse it and add the defined record only when necessary
-              // if false, create this json file and add the defined record
-              {
-                osOut << "the record \"" << recordName
-                      << "\" is not defined in current file \"" << currentJsonFile->fullPath()
-                      << "\" but in file \"" << recordFile << "\"" << std::endl;
+            // // check whether the record is really defined in this file
+            // if(recordFile == currentJsonFile->fullPath())
+            //   // if true, add the record to the current json file
+            //   {
+            //     osOut << "the record \"" << recordName << "\" is well defined in current file \""
+            //           << recordFile << "\"" << std::endl;
+            //     currentJsonFile->get_or_create_local_record(&record);
+            //   }
+            // else
+            //   // otherwise, check whether a json file is already present for the visited record
+            //   // if true, parse it and add the defined record only when necessary
+            //   // if false, create this json file and add the defined record
+            //   {
+            //     osOut << "the record \"" << recordName
+            //           << "\" is not defined in current file \"" << currentJsonFile->fullPath()
+            //           << "\" but in file \"" << recordFile << "\"" << std::endl;
 
-                boost::filesystem::path p(recordFile);
-                std::string basename = p.filename().string();
-                std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-                std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
+            //     boost::filesystem::path p(recordFile);
+            //     std::string basename = p.filename().string();
+            //     std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+            //     std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
 
-                file->get_or_create_local_record(&record);
-              }
+            //     file->get_or_create_local_record(&record);
+            //   }
 
             osOut << '\n';
          };

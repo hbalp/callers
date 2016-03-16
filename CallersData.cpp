@@ -26,6 +26,7 @@
 #ifndef NOT_USE_BOOST_STRING
 #include <boost/algorithm/string.hpp>
 #endif
+#include <boost/algorithm/string/predicate.hpp>
 
 #include "assert.h"
 #include "clang/AST/Decl.h"
@@ -955,6 +956,7 @@ void CallersData::File::add_record(std::string name, clang::TagTypeKind kind, in
 	    << ":" << begin << ":" << end << "\"" << std::endl;
 }
 
+/*
 std::set<CallersData::Record>::iterator CallersData::File::get_record(std::string recordName, std::string recordFilePath, CallersData::Dir* files) const
 {
   std::set<CallersData::Record>::iterator record;
@@ -989,14 +991,21 @@ std::set<CallersData::Record>::iterator CallersData::File::get_local_record(std:
   assert(this->fullPath() == recordFilePath);
   for(; rc!=records->end(); ++rc)
   {
-    if(rc->name == recordName)
+    // Check whether the recordName is a substring of the rc->name
+    if(boost::starts_with(rc->name, recordName))
     {
-      std::cout << "Well found record \"" << recordName << "\" declared in local file \"" << this->file << "\"" << std::endl;
+      std::cout << "Well found record \"" << recordName << "\" as substr of rc->name=\"" << rc->name
+                << "\" declared in local file \"" << this->file << "\"" << std::endl;
       return rc;
+    }
+    else
+    {
+      std::cout << "CallersData::File::get_local_record:DEBUG: rc->name=" << rc->name << " != recordName=" << recordName << std::endl;
     }
   }
   return rc;
 }
+*/
 
 // Add a thread to the current file
 // Do not add the thread if it already exist in the file
@@ -1460,10 +1469,11 @@ void CallersData::File::try_to_add_redeclared_and_redeclaration_methods(FctDecl 
     assert(fct_filepath == this->fullPath());
 
     // the fct_decl's belongs to the current file
-    std::cout << "The fct_decl \"" << fct_decl->recordName << "\" belongs to the current file" << std::endl;
+    std::cout << "The fct_decl \"" << fct_decl->sign << "\" belongs to the current file" << std::endl;
 
     // get the fct_decl's record declaration
-    std::set<CallersData::Record>::iterator record = this->get_record(fct_decl->recordName, fct_decl->recordFilePath, files);
+    CallersData::Record rc(fct_decl->recordName, fct_decl->recordFilePath);
+    std::set<CallersData::Record>::iterator record = this->get_or_create_record(&rc, files);
     assert(record != records->end());
 
     // check whether the current method is a redeclared method
@@ -1998,6 +2008,15 @@ CallersData::Record::~Record()
   delete methods;
   delete redeclared_methods;
   delete redeclarations;
+}
+
+CallersData::Record::Record(std::string name, std::string file)
+  : name(name),
+    file(file)
+{
+  allocate();
+  std::cout << "Create record: " << std::endl;
+  this->print_cout();
 }
 
 CallersData::Record::Record(std::string name, clang::TagTypeKind kind, std::string file, int begin, int end)
@@ -2824,48 +2843,48 @@ void CallersData::FctDecl::add_definition(MangledName def_mangled, std::string f
 void CallersData::FctDecl::add_external_caller(MangledName caller_mangled, std::string caller_sign, std::string caller_file_pos) const
 {
   std::cout << "Add external caller \"" << caller_sign << "\" to callee function declaration \"" << this->sign << "\"" << std::endl;
-  {
-    // BEGIN DEBUG SECTION
-    std::cout << "CallersData::FctDecl::add_external_caller:DEBUG:BEGIN: before addition" << std::endl;
-    this->print_cout();
-    std::cout << "CallersData::FctDecl::add_external_caller:DEBUG:END" << std::endl;
-    // BEGIN DEBUG SECTION
-  }
+  // {
+  //   // BEGIN DEBUG SECTION
+  //   std::cout << "CallersData::FctDecl::add_external_caller:DEBUG:BEGIN: before addition" << std::endl;
+  //   this->print_cout();
+  //   std::cout << "CallersData::FctDecl::add_external_caller:DEBUG:END" << std::endl;
+  //   // BEGIN DEBUG SECTION
+  // }
   std::cout << "Caller function is located at: " << caller_file_pos << std::endl;
   ExtFctDef extfct(caller_mangled, caller_sign, caller_file_pos);
-  extcallers->insert(extfct);
-  {
-    // BEGIN DEBUG SECTION
-    std::cout << "CallersData::FctDecl::add_external_caller:DEBUG:BEGIN: after addition" << std::endl;
-    print_cout();
-    std::cout << "CallersData::FctDecl::add_external_caller:DEBUG:END" << std::endl;
-    // BEGIN DEBUG SECTION
-  }
+  // extcallers->insert(extfct);
+  // {
+  //   // BEGIN DEBUG SECTION
+  //   std::cout << "CallersData::FctDecl::add_external_caller:DEBUG:BEGIN: after addition" << std::endl;
+  //   print_cout();
+  //   std::cout << "CallersData::FctDecl::add_external_caller:DEBUG:END" << std::endl;
+  //   // BEGIN DEBUG SECTION
+  // }
 }
 
 void CallersData::FctDecl::add_external_caller(MangledName caller_mangled, std::string caller_sign, std::string caller_file, int caller_line) const
 {
   std::cout << "Add external caller \"" << caller_sign << "\" to callee function declaration \"" << this->sign << "\"" << std::endl;
-  {
-    // BEGIN DEBUG SECTION
-    std::cout << "CallersData::FctDecl::add_external_caller:DEBUG:BEGIN: before addition" << std::endl;
-    this->print_cout();
-    std::cout << "CallersData::FctDecl::add_external_caller:DEBUG:END" << std::endl;
-    // BEGIN DEBUG SECTION
-  }
+  // {
+  //   // BEGIN DEBUG SECTION
+  //   std::cout << "CallersData::FctDecl::add_external_caller:DEBUG:BEGIN: before addition" << std::endl;
+  //   this->print_cout();
+  //   std::cout << "CallersData::FctDecl::add_external_caller:DEBUG:END" << std::endl;
+  //   // BEGIN DEBUG SECTION
+  // }
   std::cout << "Caller function is located at: " << caller_file << ":" << caller_line << std::endl;
   std::ostringstream pos;
   pos << caller_line;
   std::string caller_file_pos = caller_file + ":" + pos.str();
   ExtFctDef extfct(caller_mangled, caller_sign, caller_file_pos);
   extcallers->insert(extfct);
-  {
-    // BEGIN DEBUG SECTION
-    std::cout << "CallersData::FctDecl::add_external_caller:DEBUG:BEGIN: after addition" << std::endl;
-    print_cout();
-    std::cout << "CallersData::FctDecl::add_external_caller:DEBUG:END" << std::endl;
-    // BEGIN DEBUG SECTION
-  }
+  // {
+  //   // BEGIN DEBUG SECTION
+  //   std::cout << "CallersData::FctDecl::add_external_caller:DEBUG:BEGIN: after addition" << std::endl;
+  //   print_cout();
+  //   std::cout << "CallersData::FctDecl::add_external_caller:DEBUG:END" << std::endl;
+  //   // BEGIN DEBUG SECTION
+  // }
 }
 
 void CallersData::FctDecl::add_redefinition(MangledName redef_mangled, std::string redef_sign, CallersData::Virtuality redef_virtuality,

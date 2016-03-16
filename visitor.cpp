@@ -793,7 +793,7 @@ CallersAction::Visitor::printQualification(const clang::DeclContext* context) co
 	  result += "::";
 	else
 	  result += "::";
-	  
+
 	result += static_cast<const clang::NamespaceDecl*>(context)->getName().str();
       }
     else if (kind >= clang::Decl::firstTag && kind <= clang::Decl::lastTag) {
@@ -807,6 +807,50 @@ CallersAction::Visitor::printQualification(const clang::DeclContext* context) co
   };
   return "";
 }
+
+/*
+std::string
+CallersAction::Visitor::printRecordName(const clang::CXXRecordDecl* record) const {
+
+  std::string recordName = "";
+
+  // returns only the identifier without the template arguments
+  // recordName = record->getQualifiedNameAsString();
+
+  // recordFullNameWithTemplateArgs
+  llvm::raw_string_ostream os(recordName);
+  record->getNameForDiagnostic(os, ciCompilerInstance.getASTContext().getPrintingPolicy(), // Qualified
+ true);
+  recordName = os.str();
+  assert(recordName != "");
+  return recordName;
+}
+*/
+
+std::string
+CallersAction::Visitor::printRecordName(const clang::CXXRecordDecl* record) const {
+
+  std::string recordName = "";
+
+  // returns only the identifier without the template arguments
+  // recordName = record->getQualifiedNameAsString();
+
+  // recordFullNameWithTemplateArgs
+  //  llvm::raw_string_ostream os(recordName);
+  //  record->getNameForDiagnostic(os, ciCompilerInstance.getASTContext().getPrintingPolicy(), // Qualified
+  // true);
+  //  recordName = os.str();
+
+  recordName = this->printQualifiedName(*record);
+  if(recordName == "")
+  {
+    // c'est le cas des record anonymes
+    recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
+  }
+  // assert(recordName != "");
+  return recordName;
+}
+
 
 std::string
 CallersAction::Visitor::parseQualifiedName(const clang::NamedDecl& namedDecl, bool* isEmpty) {
@@ -957,7 +1001,7 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
    // std::string caller_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
    if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
    {
-     caller_recordName = parentMethod->getParent()->getQualifiedNameAsString();
+     caller_recordName = printRecordName(parentMethod->getParent());
      // caller_recordFilePath = printFilePath(pfdParent->getSourceRange());
    }
 
@@ -965,7 +1009,7 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
    std::string callee_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
    if((constr != NULL) && (constr->getParent() != NULL))
    {
-     callee_recordName = constr->getParent()->getQualifiedNameAsString();
+     callee_recordName = printRecordName(constr->getParent());
      callee_recordFilePath = printFilePath(constr->getParent()->getSourceRange());
    }
 
@@ -1022,7 +1066,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
       std::string caller_record = CALLERS_DEFAULT_NO_RECORD_NAME;
       if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
       {
-        caller_record = parentMethod->getParent()->getQualifiedNameAsString();
+        caller_record = printRecordName(parentMethod->getParent());
       }
 
       auto calleeMethod = llvm::dyn_cast<clang::CXXMethodDecl>(&function);
@@ -1030,7 +1074,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
       std::string callee_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
       if((calleeMethod != NULL) && (calleeMethod->getParent() != NULL))
       {
-        callee_recordName = calleeMethod->getParent()->getQualifiedNameAsString();
+        callee_recordName = printRecordName(calleeMethod->getParent());
         callee_recordFilePath = printFilePath(calleeMethod->getParent()->getSourceRange());
       }
 
@@ -1086,7 +1130,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
          // std::string caller_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
          if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
          {
-           caller_recordName = parentMethod->getParent()->getQualifiedNameAsString();
+           caller_recordName = printRecordName(parentMethod->getParent());
            // caller_recordFilePath = printFilePath(pfdParent->getSourceRange());
          }
 
@@ -1094,7 +1138,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
          std::string callee_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
          if((destructor != NULL) && (destructor->getParent() != NULL))
          {
-           callee_recordName = destructor->getParent()->getQualifiedNameAsString();
+           callee_recordName = printRecordName(destructor->getParent());
            callee_recordFilePath = printFilePath(destructor->getParent()->getSourceRange());
          }
 
@@ -1122,7 +1166,7 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
   auto parentMethod = llvm::dyn_cast<clang::CXXMethodDecl>(pfdParent);
   if (newExpr->getOperatorNew() && !newExpr->getOperatorNew()->isImplicit())
     {
-      const auto& operatorNew = *newExpr->getOperatorNew();
+      const clang::FunctionDecl& operatorNew = *newExpr->getOperatorNew();
       std::string callee_sign = printResultSignature(operatorNew);
       MangledName fct_mangledName;
       this->getMangledName(mangle_context_, &operatorNew, &fct_mangledName);
@@ -1141,15 +1185,17 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
 	}
       std::string callee_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
       std::string callee_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
-      if(operatorNew.getParent() != NULL)
+
+      auto callee_rec = llvm::dyn_cast<clang::CXXMethodDecl>(&operatorNew);
+      if((callee_rec != NULL) && (callee_rec->getParent() != NULL))
       {
-        callee_recordName = operatorNew.getQualifiedNameAsString();
-        callee_recordFilePath = printFilePath(operatorNew.getSourceRange());
+        callee_recordName = printRecordName(callee_rec->getParent());
+        callee_recordFilePath = printFilePath(callee_rec->getSourceRange());
       }
       std::string caller_record = CALLERS_DEFAULT_NO_RECORD_NAME;
       if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
       {
-        caller_record = parentMethod->getParent()->getQualifiedNameAsString();
+        caller_record = printRecordName(parentMethod->getParent());
       }
       std::string caller_def_file = printParentFunctionFilePath();
       std::string caller_decl_file = caller_def_file;
@@ -1212,7 +1258,7 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
       std::string caller_record = CALLERS_DEFAULT_NO_RECORD_NAME;
       if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
       {
-        caller_record = parentMethod->getParent()->getQualifiedNameAsString();
+        caller_record = printRecordName(parentMethod->getParent());
       }
 
       CallersData::FctDef caller(malloc_mangled, printParentFunction(),
@@ -1304,7 +1350,7 @@ CallersAction::Visitor::VisitBuiltinFunction(const clang::FunctionDecl* fd) {
     std::string caller_record(CALLERS_DEFAULT_NO_RECORD_NAME);
     if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
     {
-      caller_record = parentMethod->getParent()->getQualifiedNameAsString();
+      caller_record = printRecordName(parentMethod->getParent());
     }
 
     CallersData::FctDef caller(builtin_mangled, printParentFunction(),
@@ -1355,7 +1401,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
       std::string caller_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
       if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
       {
-        caller_recordName = parentMethod->getParent()->getQualifiedNameAsString();
+        caller_recordName = printRecordName(parentMethod->getParent());
         caller_recordFilePath = printFilePath(parentMethod->getParent()->getSourceRange());
       }
 
@@ -1372,7 +1418,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
       std::string callee_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
       if((calleeMethod != NULL) && (calleeMethod->getParent() != NULL))
       {
-        callee_recordName = calleeMethod->getParent()->getQualifiedNameAsString();
+        callee_recordName = printRecordName(calleeMethod->getParent());
         callee_recordFilePath = printFilePath(calleeMethod->getParent()->getSourceRange());
       }
       CallersData::Virtuality caller_virtuality = (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual;
@@ -1437,7 +1483,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
                   auto rec = thr_routine_method->getParent();
                   if(rec != NULL)
                   {
-                    thr_routine_recordName = rec->getQualifiedNameAsString();
+                    thr_routine_recordName = printRecordName(rec);
                     thr_routine_recordFilePath = printFilePath(rec->getSourceRange());
                   }
                 }
@@ -1655,7 +1701,7 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
           auto rec_def = methodDef->getParent();
           if(rec_def != NULL)
           {
-            fctDef_recordName = rec_def->getQualifiedNameAsString();
+            fctDef_recordName = printRecordName(rec_def);
             // fctDef_recordFilePath = printFilePath(rec_def->getSourceRange());
           }
         }
@@ -1680,7 +1726,7 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
           auto rec_decl = methodDecl->getParent();
           if(rec_decl != NULL)
           {
-            fctDecl_recordName = rec_decl->getQualifiedNameAsString();
+            fctDecl_recordName = printRecordName(rec_decl);
             fctDecl_recordFilePath = printFilePath(rec_decl->getSourceRange());
           }
         }
@@ -1759,7 +1805,7 @@ CallersAction::Visitor::VisitFunctionDeclaration(clang::FunctionDecl* function) 
           auto rec_decl = methodDef->getParent();
           if(rec_decl != NULL)
           {
-            fct_recordName = rec_decl->getQualifiedNameAsString();
+            fct_recordName = printRecordName(rec_decl);
             fct_recordFilePath = printFilePath(rec_decl->getSourceRange());
           }
         }
@@ -1819,7 +1865,7 @@ CallersAction::Visitor::VisitMethodDeclaration(clang::CXXMethodDecl* methodDecl)
         std::string fct_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
         if((methodDecl != NULL) && (methodDecl->getParent() != NULL))
         {
-          fct_recordName = methodDecl->getParent()->getQualifiedNameAsString();
+          fct_recordName = printRecordName(methodDecl->getParent());
           fct_recordFilePath = printFilePath(methodDecl->getParent()->getSourceRange());
         }
 
@@ -1932,7 +1978,7 @@ CallersAction::Visitor::VisitInheritanceList(clang::CXXRecordDecl* cxxDecl,
          isFirst = false;
 
       //std::string baseName = printQualifiedName(*base);
-      std::string baseName = base->getQualifiedNameAsString();
+      std::string baseName = printRecordName(base);
       clang::TagTypeKind baseTagKind = base->getTagKind();
       std::string baseFile = printFilePath(base->getSourceRange());
       int baseBegin = printLine(base->getLocStart());
@@ -1982,7 +2028,7 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
       if (tagKind == clang::TTK_Struct || tagKind == clang::TTK_Class) { // avoid unions
          bool isAnonymousRecord = false;
          //std::string recordName = printQualifiedName(*Decl, &isAnonymousRecord);
-         std::string recordName = Decl->getQualifiedNameAsString();
+         std::string recordName = printRecordName(RD);
          std::string recordFile = printFilePath(Decl->getSourceRange());
          int recordBegin = printLine(Decl->getLocStart());
          int recordEnd = printLine(Decl->getLocEnd());

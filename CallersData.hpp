@@ -90,8 +90,8 @@ namespace CallersData
       void add_namespace(Namespace nspc) const;
       std::set<CallersData::Record>::iterator get_or_create_record(CallersData::Record *record, Dir* allJsonFiles) const;
       std::set<CallersData::Record>::iterator get_or_create_local_record(CallersData::Record *record) const;
-      std::set<CallersData::Record>::iterator get_record(std::string recordName, std::string recordFilePath, Dir* allJsonFiles) const;
-      std::set<CallersData::Record>::iterator get_local_record(std::string recordName, std::string recordFilePath) const;
+      // std::set<CallersData::Record>::iterator get_record(std::string recordName, std::string recordFilePath, Dir* allJsonFiles) const;
+      // std::set<CallersData::Record>::iterator get_local_record(std::string recordName, std::string recordFilePath) const;
       void try_to_add_redeclared_and_redeclaration_methods(FctDecl *fct_decl, std::string fct_filepath, Dir* allJsonFiles) const;
       // void add_redeclared_method(FctDecl* fct_decl, std::string fct_filepath, Dir* allJsonFiles) const;
       // void add_redeclaration(FctDecl* fct_decl, std::string fct_filepath, Dir* allJsonFiles) const;
@@ -177,6 +177,7 @@ namespace CallersData
     public:
       // Record(const char* name, clang::TagTypeKind kind, const std::string file, const int begin, const int end);
       Record(std::string name, clang::TagTypeKind kind, std::string file, int begin, int end);
+      Record(std::string name, std::string file);
       Record(const Record& copy_from_me);
       ~Record();
       void allocate();
@@ -195,7 +196,7 @@ namespace CallersData
       void output_json_desc(std::ofstream &js) const;
       void print_cout() const;
       std::string name = "unknownRecordName";
-      clang::TagTypeKind kind = clang::TTK_Struct;
+      clang::TagTypeKind kind = clang::TTK_Class;
       std::string file;
       int begin = -1;
       int end = -1;

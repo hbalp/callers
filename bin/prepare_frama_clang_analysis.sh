@@ -214,15 +214,11 @@ function launch_clang_cpp ()
     cpp_file=$1
     clang_cpp_stdout_file=$2
     clang_cpp_stderr_file=$3
-    clang_cpp_app_cmd=$4
-    clang_cpp_app_dbg=$5
     stderr_dir=`dirname $clang_cpp_stderr_file`
     shift
     shift
     shift
-    shift
-    shift
-    clang_cpp_app_includes="$@"
+    file_build_options=$@
 
     # localize clang_cpp
     clang_cpp=`which clang++ 2> /dev/null`
@@ -235,23 +231,23 @@ function launch_clang_cpp ()
     #clang_cpp_ast_options="-I. -I.. -Xclang -ast-dump -fsyntax-only --disable-extern-template"
     clang_cpp_ast_options="-I. -I.. -Xclang -ast-dump -fsyntax-only "
     clang_cpp_astout_file="${clang_cpp_stdout_file}.ast"
-    clang_cpp_ast="${clang_cpp} ${clang_cpp_ast_options} ${debug_options} \${system_includes} \${app_includes} ${cpp_file} > ${clang_cpp_astout_file}"
+    clang_cpp_ast="${clang_cpp} ${clang_cpp_ast_options} ${debug_options} ${file_build_options} \${system_includes} \${app_includes} ${cpp_file} > ${clang_cpp_astout_file}"
 
     # build the clang_cpp dump_cfg command
     clang_cpp_dump_cfg_options="-cc1 -analyze -analyzer-checker=debug.DumpCFG"
     clang_cpp_dump_cfg_file="${clang_cpp_stdout_file}.cfg.dump"
-    clang_cpp_dump_cfg="${clang_cpp} ${clang_cpp_dump_cfg_options} \${system_includes} \${app_includes} ${cpp_file} 2> ${clang_cpp_dump_cfg_file}"
+    clang_cpp_dump_cfg="${clang_cpp} ${clang_cpp_dump_cfg_options} ${file_build_options} \${system_includes} \${app_includes} ${cpp_file} 2> ${clang_cpp_dump_cfg_file}"
 
     # build the clang_cpp view_cfg command
     clang_cpp_view_cfg_options="-cc1 -analyze -analyzer-checker=debug.ViewCFG"
     clang_cpp_view_cfg_file="${clang_cpp_stdout_file}.cfg.view"
-    clang_cpp_view_cfg1="${clang_cpp} ${clang_cpp_view_cfg_options} \${system_includes} \${app_includes} ${cpp_file}"
+    clang_cpp_view_cfg1="${clang_cpp} ${clang_cpp_view_cfg_options} ${file_build_options} \${system_includes} \${app_includes} ${cpp_file}"
     #clang_cpp_view_cfg3="for f in `ls /tmp/CFG-*.dot`; do dot -Tsvg $f > $f.svg; done"
     clang_cpp_view_cfg2="tar -zcf ${clang_cpp_view_cfg_file}.tgz /tmp/CFG-*.dot; rm /tmp/CFG-*.*"
     #clang_cpp_view_cfg2="tar -zcf ${clang_cpp_view_cfg_file}.tgz /tmp/CFG-*.dot"
 
     # build the clang_cpp build command
-    clang_cpp_build="${clang_cpp} ${clang_cpp_app_dbg} ${clang_cpp_build_options} ${debug_options} \${system_includes} \${app_includes} -o ${clang_cpp_stdout_file} ${cpp_file}"
+    clang_cpp_build="${clang_cpp} ${debug_options} ${clang_cpp_build_options} ${file_build_options} \${system_includes} \${app_includes} -o ${clang_cpp_stdout_file} ${cpp_file}"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch clang++ build of file: ${cpp_file}\""
@@ -282,7 +278,7 @@ function launch_clang_c ()
     c_file=$1
     clang_c_stdout_file=$2
     clang_c_stderr_file=$3
-    stderr_dir=`dirname $clang_c_stderr_file` 
+    stderr_dir=`dirname $clang_c_stderr_file`
     shift
     shift
     shift
@@ -298,22 +294,22 @@ function launch_clang_c ()
     #clang_c_ast_options="-I. -I.. -Xclang -ast-dump -fsyntax-only --disable-extern-template"
     clang_c_ast_options="-I. -I.. -Xclang -ast-dump -fsyntax-only "
     clang_c_astout_file="${clang_c_stdout_file}.ast"
-    clang_c_ast="${clang_c} ${clang_c_ast_options} ${debug_options} \${system_includes} \${app_includes} ${c_file} > ${clang_c_astout_file}"
+    clang_c_ast="${clang_c} ${debug_options} ${clang_c_ast_options} ${file_build_options} \${system_includes} \${app_includes} ${c_file} > ${clang_c_astout_file}"
 
     # build the clang_cpp dump_cfg command
     clang_c_dump_cfg_options="-cc1 -analyze -analyzer-checker=debug.DumpCFG"
     clang_c_dump_cfg_file="${clang_c_stdout_file}.cfg.dump"
-    clang_c_dump_cfg="${clang_cpp} ${clang_c_dump_cfg_options} \${system_includes} \${app_includes} ${cpp_file} 2> ${clang_c_dump_cfg_file}"
+    clang_c_dump_cfg="${clang_cpp} ${debug_options} ${clang_c_dump_cfg_options} ${file_build_options} \${system_includes} \${app_includes} ${cpp_file} 2> ${clang_c_dump_cfg_file}"
 
     # build the clang_cpp view_cfg command
     clang_c_view_cfg_options="-cc1 -analyze -analyzer-checker=debug.ViewCFG"
     clang_c_view_cfg_file="${clang_c_stdout_file}.cfg.view"
-    clang_c_view_cfg1="${clang_cpp} ${clang_c_view_cfg_options} \${system_includes} \${app_includes} ${cpp_file}"
+    clang_c_view_cfg1="${clang_cpp} ${debug_options} ${clang_c_view_cfg_options} ${file_build_options} \${system_includes} \${app_includes} ${cpp_file}"
     #clang_c_view_cfg3="for f in `ls /tmp/CFG-*.dot`; do dot -Tsvg $f > $f.svg; done"
     clang_c_view_cfg2="tar -zcf ${clang_c_view_cfg_file}.tgz /tmp/CFG-*.dot; rm /tmp/CFG-*.*"
 
     # build the clang build command
-    clang_c_build="${clang_c} ${clang_c_build_options} ${debug_options} \${system_includes} \${app_includes} -o ${clang_c_stdout_file} ${c_file}"
+    clang_c_build="${clang_c} ${debug_options} ${clang_c_build_options} ${file_build_options} \${system_includes} \${app_includes} -o ${clang_c_stdout_file} ${c_file}"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch clang build of file: ${c_file}\""
@@ -359,7 +355,7 @@ function launch_callers_cpp ()
     callers_cpp_options="-I. -I.. "
 
     # build the callers analysis command
-    callers_cpp_analysis="${callers_cpp} ${callers_cpp_options} \${system_includes} ${file_analysis_options} -o ${callers_cpp_stdout_file} ${cpp_file}"
+    callers_cpp_analysis="${callers_cpp} ${callers_cpp_options} \${system_includes} \${app_includes} ${file_analysis_options} -o ${callers_cpp_stdout_file} ${cpp_file}"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch callers++ analysis of file: ${cpp_file}\""
@@ -406,7 +402,7 @@ function launch_callers_c ()
     callers_c_options="-I. -I.. "
 
     # build the callers analysis command
-    callers_c_analysis="${callers_c} ${callers_c_options} \${system_includes} ${file_analysis_options} -o ${callers_c_stdout_file} ${c_file}"
+    callers_c_analysis="${callers_c} ${callers_c_options} \${system_includes} \${app_includes} ${file_analysis_options} -o ${callers_c_stdout_file} ${c_file}"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch callers analysis of file: ${c_file}\""

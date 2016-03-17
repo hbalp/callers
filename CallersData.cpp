@@ -1214,80 +1214,99 @@ bool CallersData::File::add_definition_to_declaration(std::string def_pos, std::
     }
 }
 
-void CallersData::File::add_defined_function(CallersData::FctDef* fct, std::string filepath, CallersData::Dir *otherFiles) const
+void CallersData::File::add_defined_function(CallersData::FctDef* fct_def, std::string fct_def_filepath, CallersData::Dir *otherJsonFiles) const
 {
-  std::cout << "Register function \"" << fct->sign
-	    << "\" defined in file \"" << fct->def_file << ":"
-	    << fct->def_line << "\"" << std::endl;
+  std::cout << "Register function \"" << fct_def->sign
+            << "\" defined in file \"" << fct_def->def_file << ":"
+            << fct_def->def_line << "\"" << std::endl;
 
-  // Check whether the defined function belongs to the current file.
-  if((filepath == this->get_filepath()) || ( fct->def_file == this->filename))
-    // the defined function belongs to the current file
+  // Check whether the defined function has well to be added to the current file.
+  if(fct_def_filepath != this->get_filepath())
+  {
+    if((this->kind != "inc") || (!boost::algorithm::ends_with(fct_def->def_file, this->filename)))
     {
-      std::cout << "The defined function belongs to the current file, so we add it directly\n" << std::endl;
-      defined->insert(*fct);
-      if(fct->decl_file != CALLERS_NO_FCT_DECL_FILE)
+      // the defined function does not belong to the current file
+
+      std::cout << "CallersData::File::add_defined_function:WARNING: The defined function \"" << fct_def->sign << "\" doesn't belong to the current file: "
+                << this->get_filepath() << ", so we try to open the right file..." << std::endl;
+
+      // check whether a json file is already present for the visited defined function
+      // if true, parse it and add the defined function only when necessary
+      // if false, create this json file and add the defined function
       {
-        std::ostringstream sdef_pos;
-        sdef_pos << fct->def_line;
-        if(fct->decl_file == CALLERS_LOCAL_FCT_DECL)
-        {
-          std::string def_pos = std::string(CALLERS_LOCAL_FCT_DECL) + ":" + sdef_pos.str();
-          this->add_definition_to_declaration(def_pos, fct->sign, filepath, otherFiles);
-        }
-        else
-        {
-          std::string def_pos = filepath + ":" + sdef_pos.str();
-          this->add_definition_to_declaration(def_pos, fct->sign, fct->decl_file, otherFiles);
-        }
+        boost::filesystem::path p(fct_def_filepath);
+        std::string basename = p.filename().string();
+        std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+        std::set<CallersData::File>::iterator file = otherJsonFiles->create_or_get_file(basename, dirpath);
+        file->add_defined_function(fct_def, fct_def_filepath, otherJsonFiles);
       }
     }
-  else
+  }
+
+  // the defined function should here belong to the current file
+  {
+    std::cout << "The defined function belongs to the current file, so we add it directly\n" << std::endl;
+    defined->insert(*fct_def);
+    if(fct_def->decl_file != CALLERS_NO_FCT_DECL_FILE)
     {
-      std::cerr << "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\n" << std::endl;
-      std::cerr << "CallersData::File::add_defined_function:ERROR: unsupported case: " << std::endl;
-      std::cerr << "   The defined function \"" << fct->sign << "\" doesn't belong to the current file: " << this->get_filepath() << std::endl;
-      std::cerr << "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\n" << std::endl;
-      exit(CALLERS_ERROR_UNSUPPORTED_CASE);
+      std::ostringstream sdef_pos;
+      sdef_pos << fct_def->def_line;
+      if(fct_def->decl_file == CALLERS_LOCAL_FCT_DECL)
+      {
+        std::string def_pos = std::string(CALLERS_LOCAL_FCT_DECL) + ":" + sdef_pos.str();
+        this->add_definition_to_declaration(def_pos, fct_def->sign, filepath, otherJsonFiles);
+      }
+      else
+      {
+        std::string def_pos = filepath + ":" + sdef_pos.str();
+        this->add_definition_to_declaration(def_pos, fct_def->sign, fct_def->decl_file, otherJsonFiles);
+      }
     }
+  }
 }
 
 void CallersData::File::add_defined_function(MangledName fct_mangled, std::string fct_sign, Virtuality fct_virtuality,
 					     std::string fct_def_file, int fct_def_line, std::string fct_def_filepath,
-                                             std::string fct_decl_file, int fct_decl_line, std::string record, CallersData::Dir *otherFiles) const
+                                             std::string fct_decl_file, int fct_decl_line, std::string record, CallersData::Dir *otherJsonFiles) const
 {
-  // Check whether the defined function has well to be added the current file.
+  FctDef fct_def(fct_mangled, fct_sign, fct_virtuality, fct_def_file, fct_def_line, fct_decl_file, fct_decl_line, record);
 
-  if(( fct_def_filepath == this->get_filepath()) || ( fct_def_file == this->filename))
+  // Check whether the defined function has well to be added to the current file.
+  if(fct_def_filepath != this->get_filepath())
+  {
+    if((this->kind != "inc") || (!boost::algorithm::ends_with(fct_def_file, this->filename)))
+    {
+      // the defined function does not belong to the current file
 
-    // the defined function belongs to the current file
-    {
-      if(record == CALLERS_DEFAULT_RECORD_NAME) {
-        std::cout << "CallersData::File::add_defined_function: Create function definition \"" << fct_sign
-                  << "\" located in file \"" << fct_def_file << ":" << fct_def_line << "\"" << std::endl;
+      std::cout << "CallersData::File::add_defined_function:WARNING: The defined function \"" << fct_sign << "\" doesn't belong to the current file: "
+                << this->get_filepath() << ", so we try to open the right file..." << std::endl;
+
+      // check whether a json file is already present for the visited defined function
+      // if true, parse it and add the defined function only when necessary
+      // if false, create this json file and add the defined function
+      {
+        boost::filesystem::path p(fct_def_file);
+        std::string basename = p.filename().string();
+        std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+        std::set<CallersData::File>::iterator file = otherJsonFiles->create_or_get_file(basename, dirpath);
+        file->add_defined_function(&fct_def, fct_def_file, otherJsonFiles);
       }
-      else {
-        std::cout << "CallersData::File::add_defined_function: Create " << record << " method definition \"" << fct_sign
-                  << "\" located in file \"" << fct_def_file << ":" << fct_def_line << "\"" << std::endl;
-      }
-      FctDef fct(fct_mangled, fct_sign, fct_virtuality, fct_def_file, fct_def_line, fct_decl_file, fct_decl_line, record);
-      this->add_defined_function(&fct, fct_def_filepath, otherFiles);
-      // if(fct_decl_file != CALLERS_NO_FCT_DECL_FILE)
-      // {
-      //   std::ostringstream sdef_pos;
-      //   sdef_pos << fct_def_line;
-      //   std::string def_pos = fct_def_file + ":" + sdef_pos.str();
-      //   this->add_definition_to_declaration(def_pos, fct_sign, fct_decl_file, otherFiles);
-      // }
     }
-  else
+  }
+
+  // the defined function should here belong to the current file
+  {
+    if(record == CALLERS_DEFAULT_RECORD_NAME)
     {
-      std::cerr << "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\n" << std::endl;
-      std::cerr << "CallersData::File::add_defined_function:ERROR: unsupported case: " << std::endl;
-      std::cerr << "   The defined function \"" << fct_sign << "\" doesn't belong to the current file: " << this->get_filepath() << std::endl;
-      std::cerr << "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\n" << std::endl;
-      exit(CALLERS_ERROR_UNSUPPORTED_CASE);
+      std::cout << "CallersData::File::add_defined_function: Create function definition \"" << fct_sign
+                << "\" located in file \"" << fct_def_file << ":" << fct_def_line << "\"" << std::endl;
     }
+    else {
+      std::cout << "CallersData::File::add_defined_function: Create " << record << " method definition \"" << fct_sign
+                << "\" located in file \"" << fct_def_file << ":" << fct_def_line << "\"" << std::endl;
+    }
+    this->add_defined_function(&fct_def, fct_def_filepath, otherJsonFiles);
+  }
 }
 
 void

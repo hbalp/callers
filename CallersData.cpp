@@ -141,49 +141,59 @@ bool decode_function_location(std::string fct_pos, std::string& fct_file, int& f
 
 /***************************************** class JsonFileWriter ****************************************/
 
-CallersData::JsonFileWriter::JsonFileWriter(std::string jsonFileName)
-  : fileName(jsonFileName), out()
+CallersData::JsonFileWriter::JsonFileWriter(std::string jsonLogicalFilePath, std::string jsonPhysicalFilePath) :
+    jsonLogicalFilePath(jsonLogicalFilePath),
+    jsonPhysicalFilePath(jsonPhysicalFilePath),
+    out()
 {
-  std::cout << "Try to open file \"" << jsonFileName << "\" in write mode..." << std::endl;
-
   // Check whether the input path does well begins with the expected rootdir path
-  assert_rootdir_prefix(jsonFileName);
+  assert_rootdir_prefix(jsonPhysicalFilePath);
+
+  std::cout << "Try to open source file \"" << jsonPhysicalFilePath << "\" in write mode..." << std::endl;
 
   bool opened = false;
   do
     {
-      out.open(jsonFileName.c_str());
+      out.open(jsonPhysicalFilePath.c_str());
       if(out.fail())
 	{
 	  std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
-	  std::cerr << "WARNING: Failed to open file \"" << fileName << "\" in write mode." << std::endl;
+	  std::cerr << "WARNING: Failed to open file \"" << jsonPhysicalFilePath << "\" in write mode." << std::endl;
 	  std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
 	  exit(-1);
 	  //sleep(1);
 	}
       else
 	{
-	  std::cout << "JSON output file \"" << fileName << "\" is now opened in write mode." << std::endl;
+	  std::cout << "JSON output file \"" << jsonPhysicalFilePath << "\" is now opened in write mode." << std::endl;
 	  opened = true;
 	}
     }
-  while( opened == false );
+  while(opened == false);
 }
 
 CallersData::JsonFileWriter::~JsonFileWriter()
 {
-  std::cout << "Close file \"" << fileName << "\"." << std::endl;
+  if(jsonLogicalFilePath != jsonPhysicalFilePath)
+  {
+    if(!(boost::filesystem::exists(jsonLogicalFilePath)))
+    {
+      std::cout << "Creating file symlink from " << jsonLogicalFilePath << " to " << jsonPhysicalFilePath << std::endl;
+      boost::filesystem::create_symlink(jsonPhysicalFilePath, jsonLogicalFilePath);
+    }
+  }
+  std::cout << "Close file \"" << jsonPhysicalFilePath << "\"." << std::endl;
   out.close();
   if(out.fail())
     {
       std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
-      std::cerr << "Failed to close file \"" << fileName << "\"." << std::endl;
+      std::cerr << "Failed to close file \"" << jsonPhysicalFilePath << "\"." << std::endl;
       std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
       exit(2);
     }
   else
     {
-      std::cout << "JSON output file \"" << fileName << "\" is now closed." << std::endl;
+      std::cout << "JSON output file \"" << jsonPhysicalFilePath << "\" is now closed." << std::endl;
     }
 }
 
@@ -197,7 +207,8 @@ CallersData::Dir::Dir()
 CallersData::Dir::Dir(std::string dir, std::string path)
   : dir(dir),
     path(path),
-    jsonfilename(path + "/" + dir + "/" + dir + ".dir.callers.gen.json")
+    jsonfilename(dir + CALLERS_DIR_JSON_EXT),
+    jsonfilepath(path + "/" + dir)
 {
   assert_rootdir_prefix(path);
   //assert_homedir_prefix(path);
@@ -208,21 +219,21 @@ CallersData::Dir::~Dir()
 
 }
 
-std::string CallersData::Dir::fullPath()
+std::string CallersData::Dir::get_dirpath()
 {
-  std::string fullPath = path + "/" + dir;
-  return fullPath;
+  std::string fullpath = path + "/" + dir;
+  return fullpath;
 }
 
 void CallersData::Dir::add_file(std::string file)
 {
-  std::cout << "Register file name \"" << file << "\" in directory \"" << this->fullPath() << "\"" << std::endl;
+  std::cout << "Register file name \"" << file << "\" in directory \"" << this->get_dirpath() << "\"" << std::endl;
   filenames.push_back(file);
 }
 
 void CallersData::Dir::add_file(File file)
 {
-  std::cout << "Register file path \"" << file.fullPath() << "\"" << std::endl;
+  std::cout << "Register file path \"" << file.get_filepath() << "\"" << std::endl;
   files.insert(file);
 }
 
@@ -249,6 +260,11 @@ std::set<CallersData::File>::iterator CallersData::Dir::create_or_get_file(std::
 	{
 	  std::cout << "The file \"" << filepath << "\" is well opened now !" << std::endl;
 	}
+      else
+	{
+	  std::cerr << "CallersData::Dir::create_or_get_file:ERROR: to open file \"" << filepath << "\" as expected !" << std::endl;
+          assert(search_result != files.end());
+	}
     }
   return search_result;
 }
@@ -259,14 +275,14 @@ void CallersData::Dir::output_json_files()
 
   for(f=files.begin(); f!=files.end(); ++f)
     {
-      std::cout << "Edit file \"" << f->fullPath() << "\"..." << std::endl;
+      std::cout << "Edit file \"" << f->get_filepath() << "\"..." << std::endl;
       f->output_json_desc();
     }
 }
 
 void CallersData::Dir::output_json_dir()
 {
-  CallersData::JsonFileWriter js(this->jsonfilename);
+  CallersData::JsonFileWriter js(this->jsonfilepath, this->jsonfilepath);
   js.out << "{\"dir\":\"" << dir
          << "\",\"path\":\"" << path
          << "\",\"files\":[";
@@ -290,11 +306,11 @@ void CallersData::Dir::output_json_dir()
 
 /***************************************** class File ****************************************/
 
-CallersData::File::File(std::string file, std::string path)
-  : file(file),
-    path(path),
-    fullpath(CALLERS_ROOTDIR_PREFIX + path),
-    jsonfilename(CALLERS_ROOTDIR_PREFIX + path + "/" + file + ".file.callers.gen.json")
+CallersData::File::File(std::string filename, std::string dirpath)
+  : filename(filename),
+    dirpath(dirpath),
+    filepath(dirpath + "/" + filename),
+    jsonLogicalFilePath(CALLERS_ROOTDIR_PREFIX + dirpath + "/" + filename + CALLERS_FILE_JSON_EXT)
 {
   namespaces = new std::set<CallersData::Namespace>;
   declared = new std::set<CallersData::FctDecl>;
@@ -303,14 +319,31 @@ CallersData::File::File(std::string file, std::string path)
   threads = new std::set<CallersData::Thread>;
   calls = new std::set<CallersData::FctCall>;
 
-  kind = this->getKind();
-  filepath = this->fullPath();
+  CallersData::FileKind fileType = CallersData::File::getKind(filename);
+  switch (fileType)
+  {
+    case E_SourceFile:
+    {
+      kind = "src";
+      jsonPhysicalFilePath = jsonLogicalFilePath;
+      break;
+    }
+
+    case E_HeaderFile:
+    case E_UnknownFileKind:
+    {
+      kind = "inc";
+      jsonPhysicalFilePath = std::string(CALLERS_INCLUDES_FULL_DIR) + "/" + filename + CALLERS_FILE_JSON_EXT;
+      break;
+    }
+  }
 
   // Check whether the related callers'analysis path does already exists or not in the filesystem
-  if(!(boost::filesystem::exists(fullpath)))
+  std::string jsonPhysicalDirPath = CALLERS_ROOTDIR_PREFIX + dirpath;
+  if(!(boost::filesystem::exists(jsonPhysicalDirPath)))
   {
-    std::cout << "Creating tmp directory: " << fullpath << std::endl;
-    boost::filesystem::create_directories(fullpath);
+    std::cout << "Creating tmp directory: " << jsonPhysicalDirPath << std::endl;
+    boost::filesystem::create_directories(jsonPhysicalDirPath);
   }
 }
 
@@ -327,12 +360,12 @@ CallersData::File::~File()
 
 CallersData::File::File(const CallersData::File& copy_from_me)
 {
-  file = copy_from_me.file;
+  filename = copy_from_me.filename;
   kind = copy_from_me.kind;
-  path = copy_from_me.path;
+  dirpath = copy_from_me.dirpath;
   filepath = copy_from_me.filepath;
-  fullpath = copy_from_me.fullpath;
-  jsonfilename = copy_from_me.jsonfilename;
+  jsonLogicalFilePath = copy_from_me.jsonLogicalFilePath;
+  jsonPhysicalFilePath = copy_from_me.jsonPhysicalFilePath;
 
   namespaces = new std::set<CallersData::Namespace>;
   declared = new std::set<CallersData::FctDecl>;
@@ -341,7 +374,7 @@ CallersData::File::File(const CallersData::File& copy_from_me)
   threads = new std::set<CallersData::Thread>;
   calls = new std::set<CallersData::FctCall>;
 
-  std::cout << "File Copy Constructor of file \"" << file
+  std::cout << "File Copy Constructor of file \"" << filename
 	    << "\" defining " << copy_from_me.records->size()
 	    << " classes, " << copy_from_me.defined->size() << " functions"
 	    << " and " << copy_from_me.calls->size() << " function calls"
@@ -393,16 +426,14 @@ CallersData::File::File(const CallersData::File& copy_from_me)
 void CallersData::File::parse_json_file(CallersData::Dir *files) const
 {
   /* Check whether the related json file does already exists or not. */
-  //std::string jsonfilename = this->js.fileName;
-  std::string jsonfilename = this->fullpath + "/" + file + ".file.callers.gen.json";
-  std::cout << "Parsing json file \"" << jsonfilename << "\"..." << std::endl;
-  assert_rootdir_prefix(jsonfilename);
-  FILE* pFile = fopen(jsonfilename.c_str(), "rb");
+  std::cout << "Parsing json file \"" << jsonPhysicalFilePath << "\"..." << std::endl;
+  assert_rootdir_prefix(jsonPhysicalFilePath);
+  FILE* pFile = fopen(jsonPhysicalFilePath.c_str(), "rb");
   // Always check to see if file opening succeeded
   if (pFile == NULL)
     {
       //std::cout << "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww" << std::endl;
-      std::cout << "WARNING: do not parse json file \"" << jsonfilename << "\" which doesn't exists yet !" << std::endl;
+      std::cout << "WARNING: do not parse json file \"" << jsonPhysicalFilePath << "\" which doesn't exists yet !" << std::endl;
       //std::cout << "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww" << std::endl;
     }
   else
@@ -438,10 +469,10 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
               for (rapidjson::SizeType s = 0; s < records.Size(); s++)
                 {
                   const rapidjson::Value& rc = records[s];
-                  const rapidjson::Value& rc_name = rc["name"];
-                  const rapidjson::Value& rc_kind = rc["kind"];
+                  const rapidjson::Value& rc_name  = rc["name"];
+                  const rapidjson::Value& rc_kind  = rc["kind"];
                   const rapidjson::Value& rc_debut = rc["debut"];
-                  const rapidjson::Value& rc_fin = rc["fin"];
+                  const rapidjson::Value& rc_fin   = rc["fin"];
 
                   std::string name = rc_name.GetString();
 
@@ -463,9 +494,9 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                         {
                           const rapidjson::Value& bc = inherits[s];
                           const rapidjson::Value& bc_parent = bc["record"];
-                          const rapidjson::Value& bc_file = bc["file"];
-                          const rapidjson::Value& bc_debut = bc["debut"];
-                          const rapidjson::Value& bc_fin   = bc["fin"];
+                          const rapidjson::Value& bc_file   = bc["file"];
+                          const rapidjson::Value& bc_debut  = bc["debut"];
+                          const rapidjson::Value& bc_fin    = bc["fin"];
 
                           std::string parent = bc_parent.GetString();
                           std::string file = bc_file.GetString();
@@ -575,7 +606,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                   // spos << pos;
                   // std::string location(filepath + ":" + spos.str());
                   // symbol_location.insert(SymbLoc::value_type(symbol, location));
-                  CallersData::FctDecl fctDecl(mangled, symbol, virtuality, this->file, pos, recordName, recordFilePath);
+                  CallersData::FctDecl fctDecl(mangled, symbol, virtuality, this->filename, pos, recordName, recordFilePath);
 
                   if(symb.HasMember("definitions"))
                   {
@@ -746,7 +777,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                   // sdef_pos << def_pos;
                   // std::string def_location(filepath + ":" + sdef_pos.str());
                   // symbol_location.insert(SymbLoc::value_type(symbol, def_location));
-                  CallersData::FctDef fctDef(mangled, symbol, virtuality, this->file, def_pos, decl_file, decl_line,  record);
+                  CallersData::FctDef fctDef(mangled, symbol, virtuality, this->filename, def_pos, decl_file, decl_line,  record);
 
                   if(symb.HasMember("locallees"))
                   {
@@ -797,7 +828,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
       else
 	{
 	  std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
-	  std::cerr << "ERROR: Empty or Malformed file \"" << jsonfilename << "\"\n" << std::endl;
+	  std::cerr << "ERROR: Empty or Malformed file \"" << jsonPhysicalFilePath << "\"\n" << std::endl;
 	  std::cerr << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl;
 	  exit(3);
 	}
@@ -807,41 +838,40 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
 /* WARNING: some file may not have any extension while being a valid file.
    This is the case for the header file /usr/include/c++/4.8/exception
  */
-std::string CallersData::File::getKind() const
+CallersData::FileKind CallersData::File::getKind(std::string filename)
 {
-  assert(this->file != CALLERS_NO_FILE_PATH);
-  std::string ext = boost::filesystem::extension(this->file);
-  std::string kind = "none";
+  assert(filename != CALLERS_NO_FILE_PATH);
+  std::string ext = boost::filesystem::extension(filename);
+  CallersData::FileKind kind = E_UnknownFileKind;
   boost::regex headers(".h|.hh|.hpp");
   boost::regex sources(".c|.cpp|.tcc");
   //boost::cmatch m;
   if(boost::regex_match(ext,/*m,*/ headers))
   {
-      kind = "inc";
+    kind = E_HeaderFile;
   }
   else if(boost::regex_match(ext,/*m,*/ sources))
   {
-      kind = "src";
+    kind = E_SourceFile;
   }
 
   if(ext == "")
   {
-    std::cout << "CallersData.cpp:WARNING: file without any extension \"" << this->file << "\". We suppose here this is a valid header file !\n" << std::endl;
-    kind = "inc";
+    std::cout << "CallersData.cpp:WARNING: file without any extension \"" << filename << "\". We suppose here this is a valid header file !\n" << std::endl;
+    kind = E_HeaderFile;
   }
 
-  if(kind == "none")
+  if(kind == E_UnknownFileKind)
   {
     std::cout << "CallersData.cpp:WARNING: Unsupported file extension \"" << ext << "\"\n" << std::endl;
-    assert(kind != "none");
+    assert(kind != E_UnknownFileKind);
   }
   return kind;
 }
 
-std::string CallersData::File::fullPath() const
+std::string CallersData::File::get_filepath() const
 {
-  std::string fullPath = path + "/" + file;
-  return fullPath;
+  return filepath;
 }
 
 std::set<CallersData::Namespace>::iterator
@@ -871,20 +901,20 @@ CallersData::File::create_or_get_namespace(std::string qualifiers, const clang::
 void CallersData::File::add_namespace(CallersData::Namespace nspc) const
 {
   std::cout << "Register namespace \"" << nspc.name
-	    << "\" defined in file \"" << this->fullPath() << std::endl;
+	    << "\" defined in file \"" << this->get_filepath() << std::endl;
   namespaces->insert(nspc);
 }
 
 void CallersData::File::add_record(CallersData::Record *rec) const
 {
-  assert(this->fullPath() == rec->file);
+  assert(this->get_filepath() == rec->file);
   std::string kind = ((rec->kind == clang::TTK_Struct) ? "struct"
 		      : ((rec->kind == clang::TTK_Class) ? "class"
 			 : "anonym"));
   int nb_base_classes = rec->inherits->size();
   std::cout << "Register " << kind << " record \"" << rec->name
 	    << "\" with " << nb_base_classes << " base classes, "
-	    << "defined in file \"" << this->fullPath() << ":"
+	    << "defined in file \"" << this->get_filepath() << ":"
 	    << rec->begin << ":" << rec->end << "\"" << std::endl;
   records->insert(*rec);
 }
@@ -893,8 +923,8 @@ std::set<CallersData::Record>::iterator
 CallersData::File::get_or_create_record(CallersData::Record* record, CallersData::Dir* files) const
 {
   std::set<CallersData::Record>::iterator search_record;
-  std::cout << "CallersData::File::get_or_create_record: Lookup for record \"" << record->name << "\" from file \"" << this->fullPath() << "\"..." << std::endl;
-  if(this->fullPath() == record->file)
+  std::cout << "CallersData::File::get_or_create_record: Lookup for record \"" << record->name << "\" from file \"" << this->get_filepath() << "\"..." << std::endl;
+  if(this->get_filepath() == record->file)
     // the declared function belongs to the current file
     {
       std::cout << "The declared function belongs to the current file, so we look for it locally\n" << std::endl;
@@ -920,15 +950,15 @@ CallersData::File::get_or_create_record(CallersData::Record* record, CallersData
 std::set<CallersData::Record>::iterator CallersData::File::get_or_create_local_record(CallersData::Record *record) const
 {
   std::set<CallersData::Record>::iterator search_record;
-  std::cout << "CallersData::File::get_or_create_record: Lookup for record \"" << record->name << "\" in file \"" << this->fullPath() << "\"" << std::endl;
+  std::cout << "CallersData::File::get_or_create_record: Lookup for record \"" << record->name << "\" in file \"" << this->get_filepath() << "\"" << std::endl;
 
-  assert(this->fullPath() == record->file);
+  assert(this->get_filepath() == record->file);
 
   for(search_record=records->begin(); search_record!=records->end(); ++search_record)
   {
     if(search_record->name == record->name)
     {
-      std::cout << "Well found record \"" << record->name << "\" declared in file \"" << this->file << "\"" << std::endl;
+      std::cout << "Well found record \"" << record->name << "\" declared in file \"" << this->filename << "\"" << std::endl;
       return search_record;
     }
   }
@@ -947,12 +977,12 @@ std::set<CallersData::Record>::iterator CallersData::File::get_or_create_local_r
 void CallersData::File::add_record(std::string name, clang::TagTypeKind kind, int begin, int end) const
 {
   //Record *rec = new Record(name, kind, deb, fin); // fuite mémoire sur la pile si pas désalloué !
-  Record rec(name, kind, this->fullPath(), begin, end);
+  Record rec(name, kind, this->get_filepath(), begin, end);
   records->insert(rec);
   int nb_base_classes = rec.inherits->size();
   std::cout << "Create " << kind << " record \"" << name
 	    << "\" with " << nb_base_classes << " base classes, "
-	    << "located in file \"" << this->fullPath()
+	    << "located in file \"" << this->get_filepath()
 	    << ":" << begin << ":" << end << "\"" << std::endl;
 }
 
@@ -960,8 +990,8 @@ void CallersData::File::add_record(std::string name, clang::TagTypeKind kind, in
 std::set<CallersData::Record>::iterator CallersData::File::get_record(std::string recordName, std::string recordFilePath, CallersData::Dir* files) const
 {
   std::set<CallersData::Record>::iterator record;
-  std::cout << "Lookup for record \"" << recordName << "\" from file \"" << this->fullPath() << "\"..." << std::endl;
-  if(this->fullPath() == recordFilePath)
+  std::cout << "Lookup for record \"" << recordName << "\" from file \"" << this->get_filepath() << "\"..." << std::endl;
+  if(this->get_filepath() == recordFilePath)
     // the declared function belongs to the current file
     {
       std::cout << "The declared function belongs to the current file, so we look for it locally\n" << std::endl;
@@ -987,8 +1017,8 @@ std::set<CallersData::Record>::iterator CallersData::File::get_record(std::strin
 std::set<CallersData::Record>::iterator CallersData::File::get_local_record(std::string recordName, std::string recordFilePath) const
 {
   std::set<CallersData::Record>::iterator rc = records->begin();
-  std::cout << "Lookup for record \"" << recordName << "\" in local file \"" << this->fullPath() << "\"" << std::endl;
-  assert(this->fullPath() == recordFilePath);
+  std::cout << "Lookup for record \"" << recordName << "\" in local file \"" << this->get_filepath() << "\"" << std::endl;
+  assert(this->get_filepath() == recordFilePath);
   for(; rc!=records->end(); ++rc)
   {
     // Check whether the recordName is a substring of the rc->name
@@ -1055,7 +1085,7 @@ void CallersData::File::add_declared_function(CallersData::FctDecl* fct, std::st
   std::cout << "Tries to add function \"" << fct->sign
 	    << "\" declared in file \"" << fct->file << ":"
 	    << fct->line << "\"" << std::endl;
-  assert(this->fullPath() == fct_filepath);
+  assert((this->get_filepath() == fct_filepath) || (this->filename == fct->file));
 
   // complete the fct_decl with a redeclared method when needed
   this->try_to_add_redeclared_and_redeclaration_methods(fct, fct_filepath, files);
@@ -1068,21 +1098,24 @@ CallersData::File::get_or_create_local_declared_function(CallersData::FctDecl *f
 {
   std::cout << "Tries to get function \"" << fct_decl->sign
 	    << "\" declared in file \"" << decl_filepath << "\"" << std::endl;
-  assert(this->fullPath() == decl_filepath);
+  assert((this->get_filepath() == decl_filepath) || (this->filename == fct_decl->file));
   std::set<CallersData::FctDecl>::iterator search_result;
   CallersData::FctDecl searched_decl(fct_decl->sign, decl_filepath);
   search_result = this->declared->find(searched_decl);
   if(search_result != this->declared->end())
     {
-      std::cout << "CallersData::File::get_or_create_declared_function:FOUND: The function \"" << fct_decl->sign
+      std::cout << "CallersData::File::get_or_create_local_declared_function:FOUND: The function \"" << fct_decl->sign
                 << "\" is already declared in file " << decl_filepath << std::endl;
     }
   else
     {
-      std::cout << "CallersData::File::get_or_create_declared_function:NOT_FOUND: The function \"" << fct_decl->sign
+      std::cout << "CallersData::File::get_or_create_local_declared_function:NOT_FOUND: The function \"" << fct_decl->sign
                 << "\" is not yet declared in file " << decl_filepath << ", so we create it now !" << std::endl;
       this->add_declared_function(fct_decl, decl_filepath, files);
       search_result = get_or_create_local_declared_function(fct_decl, decl_filepath, files);
+      // at this point we should have found or created the local declared function,
+      // so a valid fct_decl should have been succesfully retrieved
+      assert(search_result != this->declared->end());
     }
   return search_result;
 }
@@ -1094,13 +1127,24 @@ CallersData::File::get_or_create_declared_function(CallersData::FctDecl* fct, st
 	    << "\" declared in file \"" << fct->file << ":"
 	    << fct->line << "\"" << std::endl;
 
+  if(fct->file == "test_dummy.h")
+  {
+    std::cout << "HBDBG to be debugged..." << std::endl;
+  }
+
   std::set<CallersData::FctDecl>::const_iterator fct_decl;
 
   // Check whether the declared function belongs to the current file.
-  if( filepath == this->fullPath() )
-    // the declared function belongs to the current file
+  if(filepath == this->get_filepath())
+    // the declared source function belongs to the current file
     {
       std::cout << "The declared function belongs to the current file, so we look for it locally\n" << std::endl;
+      fct_decl = this->get_or_create_local_declared_function(fct, filepath, files);
+    }
+  else if((kind == "inc") && (fct->file == this->filename))
+    // the declared function belongs to the current header file
+    {
+      std::cout << "The declared function belongs to the current header file, so we look for it locally\n" << std::endl;
       fct_decl = this->get_or_create_local_declared_function(fct, filepath, files);
     }
   else
@@ -1115,7 +1159,7 @@ CallersData::File::get_or_create_declared_function(CallersData::FctDecl* fct, st
       std::string fct_decl_dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
       assert(files != NULL);
       std::set<CallersData::File>::iterator fct_decl_file = files->create_or_get_file(fct_decl_basename, fct_decl_dirpath);
-      fct_decl = fct_decl_file->get_or_create_declared_function(fct, filepath, files);
+      fct_decl = fct_decl_file->get_or_create_local_declared_function(fct, filepath, files);
     }
   return fct_decl;
 }
@@ -1149,7 +1193,7 @@ bool CallersData::File::add_definition_to_declaration(std::string def_pos, std::
   assert(decl_filepath != CALLERS_NO_FCT_DECL_FILE);
 
   // Check whether the declared function belongs to the current file
-  if( decl_filepath == this->fullPath() )
+  if( decl_filepath == this->get_filepath() )
     // the declared function belongs to the current file
     {
       std::cout << "The searched declared function should belong to the current file, so we look for it locally\n" << std::endl;
@@ -1177,7 +1221,7 @@ void CallersData::File::add_defined_function(CallersData::FctDef* fct, std::stri
 	    << fct->def_line << "\"" << std::endl;
 
   // Check whether the defined function belongs to the current file.
-  if(filepath == this->fullPath())
+  if((filepath == this->get_filepath()) || ( fct->def_file == this->filename))
     // the defined function belongs to the current file
     {
       std::cout << "The defined function belongs to the current file, so we add it directly\n" << std::endl;
@@ -1202,7 +1246,7 @@ void CallersData::File::add_defined_function(CallersData::FctDef* fct, std::stri
     {
       std::cerr << "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\n" << std::endl;
       std::cerr << "CallersData::File::add_defined_function:ERROR: unsupported case: " << std::endl;
-      std::cerr << "   The defined function \"" << fct->sign << "\" doesn't belong to the current file: " << this->fullPath() << std::endl;
+      std::cerr << "   The defined function \"" << fct->sign << "\" doesn't belong to the current file: " << this->get_filepath() << std::endl;
       std::cerr << "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\n" << std::endl;
       exit(CALLERS_ERROR_UNSUPPORTED_CASE);
     }
@@ -1213,7 +1257,9 @@ void CallersData::File::add_defined_function(MangledName fct_mangled, std::strin
                                              std::string fct_decl_file, int fct_decl_line, std::string record, CallersData::Dir *otherFiles) const
 {
   // Check whether the defined function has well to be added the current file.
-  if( fct_def_filepath == this->fullPath() )
+
+  if(( fct_def_filepath == this->get_filepath()) || ( fct_def_file == this->filename))
+
     // the defined function belongs to the current file
     {
       if(record == CALLERS_DEFAULT_RECORD_NAME) {
@@ -1238,7 +1284,7 @@ void CallersData::File::add_defined_function(MangledName fct_mangled, std::strin
     {
       std::cerr << "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\n" << std::endl;
       std::cerr << "CallersData::File::add_defined_function:ERROR: unsupported case: " << std::endl;
-      std::cerr << "   The defined function \"" << fct_sign << "\" doesn't belong to the current file: " << this->fullPath() << std::endl;
+      std::cerr << "   The defined function \"" << fct_sign << "\" doesn't belong to the current file: " << this->get_filepath() << std::endl;
       std::cerr << "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\n" << std::endl;
       exit(CALLERS_ERROR_UNSUPPORTED_CASE);
     }
@@ -1249,7 +1295,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 {
   std::cout << "Register function call from caller \"" << fc->caller.def_file << ":" << fc->caller.sign
             << "\" to callee \"" << fc->callee.file << ":" << fc->callee.sign
-	    << "\" in file \"" << this->fullPath() << "\"" << std::endl;
+	    << "\" in file \"" << this->get_filepath() << "\"" << std::endl;
   std::cout << "caller sign: " << fc->caller.sign << std::endl;
   std::cout << "caller virtual: "
 	    << ((fc->caller.virtuality == CallersData::VNoVirtual) ? "no"
@@ -1264,7 +1310,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 	    	: ((fc->callee.virtuality == CallersData::VVirtualDefined) ? "defined"
 		: "pure")))
             << std::endl;
-  std::cout << "current file: " << this->fullPath() << std::endl;
+  std::cout << "current file: " << this->get_filepath() << std::endl;
   std::cout << "caller def pos: " << fc->caller.def_file << ":" << fc->caller.def_line << std::endl;
   std::cout << "callee decl pos: " << fc->callee.file << ":" << fc->callee.line << std::endl;
 
@@ -1280,7 +1326,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
   std::set<CallersData::FctDecl>::const_iterator callee;
 
   // Check whether the caller function belongs to the current file.
-  if( fc->caller.def_file == this->fullPath() )
+  if( fc->caller.def_file == this->get_filepath() )
 
     // the caller function belongs to the current file
     {
@@ -1295,18 +1341,20 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
       assert(caller != defined->end());
 
       // Check whether the callee function belongs to the current file.
-      if( fc->callee.file == this->fullPath() )
+      if( fc->callee.file == this->get_filepath() )
 
 	// the callee function belongs to the current file
 	{
 	  std::cout << "The callee function belongs to the current file" << std::endl;
 
 	  // adds the callee function to the declared functions of the current file
-          CallersData::FctDecl fctDecl(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.file, fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
+          CallersData::FctDecl fctDecl(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.file,
+                                       fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
           this->get_or_create_declared_function(&fctDecl, fc->callee.file, files);
 
 	  // get a reference to the related declared function
-	  CallersData::FctDecl callee_fct(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.file, fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
+	  CallersData::FctDecl callee_fct(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.file,
+                                          fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
 	  callee = declared->find(callee_fct);
 	  // ensure callee has really been found
 	  assert(callee != declared->end());
@@ -1331,7 +1379,8 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 	  std::set<CallersData::File>::iterator callee_file = files->create_or_get_file(callee_basename, callee_dirpath);
 	  //CallersData::File callee_file(callee_basename, callee_dirpath);
 	  //callee_file.parse_json_file();
-	  CallersData::FctDecl callee_decl(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.file, fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath, fc->callee.is_builtin);
+	  CallersData::FctDecl callee_decl(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.file,
+                                           fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath, fc->callee.is_builtin);
 	  callee_file->get_or_create_declared_function(&callee_decl, fc->callee.file, files);
 
 	  // get a reference to the related defined function
@@ -1381,7 +1430,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
       assert(caller != caller_file->defined->end());
 
       // check whether the callee function belongs to the current file or not
-      if( fc->callee.file == this->fullPath() )
+      if( fc->callee.file == this->get_filepath() )
 
 	// the callee function belongs to the current file
 	{
@@ -1466,7 +1515,7 @@ void CallersData::File::try_to_add_redeclared_and_redeclaration_methods(FctDecl 
     assert(fct_decl->recordFilePath != CALLERS_DEFAULT_NO_RECORD_PATH);
 
     // Make sure the fct_decl belongs to the current file
-    assert(fct_filepath == this->fullPath());
+    assert((fct_filepath == this->get_filepath()) || (fct_decl->file == this->filename));
 
     // the fct_decl's belongs to the current file
     std::cout << "The fct_decl \"" << fct_decl->sign << "\" belongs to the current file" << std::endl;
@@ -1527,7 +1576,7 @@ void CallersData::File::add_redeclared_method(FctDecl *fct_decl, std::string fct
     std::cout << "CallersData::File::add_redeclared_method:DEBUG: sign=\"" << fct_decl->sign << "\", record=\"" << fct_decl->recordName << "\"" << std::endl;
 
     // Check whether the fct_decl belongs to the current file
-    if(fct_filepath == this->fullPath())
+    if(fct_filepath == this->get_filepath())
 
       // the fct_decl's record belongs to the current file
       {
@@ -1561,7 +1610,7 @@ void CallersData::File::add_redeclared_method(FctDecl *fct_decl, std::string fct
         std::string fct_dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
         std::set<CallersData::File>::iterator fct_file = files->create_or_get_file(fct_basename, fct_dirpath);
 
-        assert(fct_filepath == fct_file->fullPath());
+        assert(fct_filepath == fct_file->get_filepath());
         fct_file->add_redeclared_method(fct_decl, fct_filepath, files);
       }
   }
@@ -1582,7 +1631,7 @@ void CallersData::File::add_redeclaration(FctDecl *fct_decl, std::string fct_fil
     std::cout << "CallersData::File::add_redeclaration:DEBUG: sign=\"" << fct_decl->sign << "\", record=\"" << fct_decl->recordName << "\"" << std::endl;
 
     // Check whether the fct_decl belongs to the current file
-    if(fct_filepath == this->fullPath())
+    if(fct_filepath == this->get_filepath())
 
       // the fct_decl's record belongs to the current file
       {
@@ -1616,7 +1665,7 @@ void CallersData::File::add_redeclaration(FctDecl *fct_decl, std::string fct_fil
         std::string fct_dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
         std::set<CallersData::File>::iterator fct_file = files->create_or_get_file(fct_basename, fct_dirpath);
 
-        assert(fct_filepath == fct_file->fullPath());
+        assert(fct_filepath == fct_file->get_filepath());
         fct_file->add_redeclaration(fct_decl, fct_filepath, files);
       }
   }
@@ -1625,13 +1674,13 @@ void CallersData::File::add_redeclaration(FctDecl *fct_decl, std::string fct_fil
 
 void CallersData::File::output_json_desc() const
 {
-  CallersData::JsonFileWriter js(this->jsonfilename);
+  CallersData::JsonFileWriter js(this->jsonLogicalFilePath, this->jsonPhysicalFilePath);
 
   js.out
     //<< "{\"eClass\":\"" << CALLERS_TYPE_FILE << "\",\"file\":\"" << file
-    << "{\"file\":\"" << file
+    << "{\"file\":\"" << filename
     << "\",\"kind\":\"" << kind
-    << "\",\"path\":\"" << path
+    << "\",\"path\":\"" << dirpath
     << "\"";
 
   if(namespaces->size() > 0)
@@ -1739,7 +1788,7 @@ void CallersData::File::output_json_desc() const
 
 bool CallersData::operator< (const CallersData::File& file1, const CallersData::File& file2)
 {
-  return file1.fullPath() < file2.fullPath();
+  return file1.get_filepath() < file2.get_filepath();
 }
 
 /***************************************** class Namespace ****************************************/

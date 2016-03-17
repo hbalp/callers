@@ -28,9 +28,10 @@ namespace CallersData
   class JsonFileWriter
   {
     public:
-      JsonFileWriter(std::string jsonFileName);
+      JsonFileWriter(std::string jsonLogicalFilePath, std::string jsonPhysicalFilePath);
       ~JsonFileWriter();
-      std::string fileName;
+      std::string jsonLogicalFilePath = "unknownJsonLogicalFilePath";
+      std::string jsonPhysicalFilePath = "unknownJsonPhysicalFilePath";
       std::ofstream out;
   };
 
@@ -42,7 +43,7 @@ namespace CallersData
       Dir();
       Dir(std::string dir, std::string path);
       ~Dir();
-      std::string fullPath ();
+      std::string get_dirpath ();
       void add_children(std::string dir);
       void add_file(std::string file);
       void add_file(File file);
@@ -55,6 +56,7 @@ namespace CallersData
       std::list<std::string> filenames;
       std::list<std::string> childrens;
       std::string jsonfilename = "unknownJsonFileName";
+      std::string jsonfilepath = "unknownJsonFilePath";
       std::set<File> files;
    };
 
@@ -67,16 +69,17 @@ namespace CallersData
 
   enum Virtuality { VNoVirtual, VVirtualDeclared, VVirtualDefined, VVirtualPure };
   enum FctKind { E_FctDecl, E_FctDef };
+  enum FileKind { E_HeaderFile, E_SourceFile, E_UnknownFileKind };
 
   class File
   {
     friend bool operator< (const CallersData::File& file1, const CallersData::File& file2);
     public:
-      File(std::string file, std::string path);
+      File(std::string file, std::string filepath);
       File(const CallersData::File& copy_from_me);
       ~File();
-      std::string getKind() const;
-      std::string fullPath () const;
+      static FileKind getKind(std::string filename);
+      std::string get_filepath () const;
       void parse_json_file(Dir *files) const;
       std::set<CallersData::Namespace>::iterator create_or_get_namespace(std::string qualifiers, const clang::NamespaceDecl* nspc);
       std::set<CallersData::FctDecl>::const_iterator get_or_create_declared_function(FctDecl* fct, std::string filepath, Dir *context) const;
@@ -109,12 +112,12 @@ namespace CallersData
       void add_record(std::string name, clang::TagTypeKind kind, int begin, int end) const;
       //void add_declared_function(std::string sign, Virtuality virtuality, std::string file, int line) const;
       std::set<FctCall> *calls;
-      std::string file = "unknownFileName";
+      std::string filename = "unknownFileName";
       std::string kind = "unknownFileKind";
-      std::string path = "unknownFileDirPath";
-      std::string fullpath = "unknownFileDirFullPath";
+      std::string dirpath = "unknownFileDirPath";
       std::string filepath = CALLERS_NO_FILE_PATH;
-      std::string jsonfilename = "unknownJsonFileName";
+      std::string jsonLogicalFilePath = "unknownJsonLogicalFilePath";
+      std::string jsonPhysicalFilePath = "unknownJsonPhysicalFilePath";
   };
 
   /* Namespace class */

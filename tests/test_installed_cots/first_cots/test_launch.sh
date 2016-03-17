@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #canonical_pwd="$PWD"
-canonical_pwd="/net/alpha.sc2.theresis.org/$PWD"
+canonical_pwd="/net/alpha.sc2.theresis.org$PWD"
 #canonical_pwd="/net/alpha.sc2.theresis.org/works$PWD"
 
 build_tool="cmake"
@@ -19,7 +19,7 @@ analysis_type=callers
 common=`which common.sh`
 launch_scan_build=`which launch_analysis.sh`
 
-source test_clean.sh
+#source test_clean.sh
 
 source $common
 source $launch_scan_build

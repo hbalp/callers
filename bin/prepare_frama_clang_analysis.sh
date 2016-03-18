@@ -21,13 +21,14 @@ function launch_frama_clang ()
     frama_c=`which frama-c 2> /dev/null`
 
     # define frama-clang configuration options
-    frama_clang_options="-cxx-nostdinc -cxx-keep-mangling -fclang-msg-key clang,cabs -fclang-verbose 2 -machdep x86_32 -print -cxx-clang-command"
+    #frama_clang_options="-cxx-nostdinc -cxx-keep-mangling -fclang-msg-key clang,cabs -fclang-verbose 2 -machdep x86_32 -print -cxx-clang-command"
+    frama_clang_options="-machdep x86_64 -cxx-nostdinc -fclang-msg-key clang,cabs -cxx-clang-command"
 
     # add target source file specific analysis options
     frama_clang_analysis_options="${file_analysis_options}"
 
     # build the frama_clang analysis command
-    cpp_analysis="${frama_c} ${frama_clang_options} \"framaCIRGen \${system_includes} ${frama_clang_analysis_options}\" ${cpp_file} > ${cabs_file}"
+    cpp_analysis="${frama_c} ${frama_clang_options} \"framaCIRGen \${system_includes} \${file_analysis_options}\" ${cpp_file} -cxx-keep-mangling -print > ${cabs_file}"
 
     # make sure the output directories are well created before calling the analysis ?
 
@@ -36,6 +37,7 @@ function launch_frama_clang ()
     echo "echo \"cppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcppcp\""
     echo "mkdir -p $cabs_dir"
     echo "touch $cabs_stderr"
+    echo "file_analysis_options=\"${frama_clang_analysis_options}\""
     echo "#gdb --args "
     echo "#valgrind --tool=callgrind "
     echo "#valgrind "
@@ -71,13 +73,14 @@ function launch_frama_c ()
     frama_c_analysis_options="-cpp-extra-args=\"${file_analysis_options}\""
 
     # build the frama_c analysis command
-    c_analysis="${frama_c} ${frama_c_options} ${frama_c_analysis_options} ${c_file} > ${cabs_file}"
+    c_analysis="${frama_c} ${frama_c_options} \${frama_c_analysis_options} ${c_file} > ${cabs_file}"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch frama-c analysis of file: ${c_file}\""
     echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
     echo "mkdir -p $cabs_dir"
     echo "touch $cabs_stderr"
+    echo "frama_c_analysis_options=${frama_c_analysis_options}"
     echo "#gdb --args "
     echo "#valgrind --tool=callgrind "
     echo "#valgrind "
@@ -257,7 +260,7 @@ function launch_clang_cpp ()
     echo "#gdb --args "
     echo "#valgrind --tool=callgrind "
     echo "#valgrind "
-    echo "app_includes=\"${clang_cpp_app_includes}\""
+    echo "app_includes=\"${file_build_options}\""
     echo "${clang_cpp_ast}"
     echo "${clang_cpp_dump_cfg}"
     echo "# ${clang_cpp_view_cfg1}"
@@ -355,7 +358,7 @@ function launch_callers_cpp ()
     callers_cpp_options="-I. -I.. "
 
     # build the callers analysis command
-    callers_cpp_analysis="${callers_cpp} ${callers_cpp_options} \${system_includes} \${app_includes} ${file_analysis_options} -o ${callers_cpp_stdout_file} ${cpp_file}"
+    callers_cpp_analysis="${callers_cpp} ${callers_cpp_options} \${system_includes} \${app_includes} -o ${callers_cpp_stdout_file} ${cpp_file}"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch callers++ analysis of file: ${cpp_file}\""
@@ -363,6 +366,7 @@ function launch_callers_cpp ()
     echo "mkdir -p ${stderr_dir}"
     echo "touch $callers_cpp_stderr_file"
     stderr_file_dir=`dirname ${callers_cpp_stderr_file}`
+    echo "app_includes=\"${file_analysis_options}\""
     echo "#gdb --args "
     echo "#valgrind --tool=callgrind "
     echo "#valgrind "
@@ -402,7 +406,7 @@ function launch_callers_c ()
     callers_c_options="-I. -I.. "
 
     # build the callers analysis command
-    callers_c_analysis="${callers_c} ${callers_c_options} \${system_includes} \${app_includes} ${file_analysis_options} -o ${callers_c_stdout_file} ${c_file}"
+    callers_c_analysis="${callers_c} ${callers_c_options} \${system_includes} \${app_includes} -o ${callers_c_stdout_file} ${c_file}"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch callers analysis of file: ${c_file}\""
@@ -411,6 +415,7 @@ function launch_callers_c ()
     echo "touch $callers_c_stderr_file"
     #echo "file_dir=`dirname ${c_file}`"
     stderr_file_dir=`dirname ${callers_c_stderr_file}`
+    echo "app_includes=\"${file_analysis_options}\""
     echo "#gdb --args "
     echo "#valgrind --tool=callgrind "
     echo "#valgrind "

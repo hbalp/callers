@@ -2701,6 +2701,7 @@ CallersData::FctDecl::FctDecl(MangledName mangled, std::string sign, Virtuality 
 {
   assert(recordName != CALLERS_DEFAULT_RECORD_NAME);
   assert(recordFilePath != CALLERS_DEFAULT_RECORD_PATH);
+  assert(recordFilePath != CALLERS_NO_FILE_PATH);
   allocate();
   if(recordName == CALLERS_DEFAULT_RECORD_BUILTIN)
   {
@@ -2717,7 +2718,7 @@ CallersData::FctDecl::FctDecl(MangledName mangled, std::string sign, Virtuality 
     if(recordName == CALLERS_DEFAULT_NO_RECORD_NAME)
     {
       std::cout << "Create function declaration: " << std::endl;
-      assert(recordFilePath == CALLERS_DEFAULT_NO_RECORD_PATH);
+      // assert(recordFilePath == CALLERS_DEFAULT_NO_RECORD_PATH);
     }
     else
     {

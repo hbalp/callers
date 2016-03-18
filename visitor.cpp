@@ -815,25 +815,6 @@ CallersAction::Visitor::printQualification(const clang::DeclContext* context) co
   return "";
 }
 
-/*
-std::string
-CallersAction::Visitor::printRecordName(const clang::CXXRecordDecl* record) const {
-
-  std::string recordName = "";
-
-  // returns only the identifier without the template arguments
-  // recordName = record->getQualifiedNameAsString();
-
-  // recordFullNameWithTemplateArgs
-  llvm::raw_string_ostream os(recordName);
-  record->getNameForDiagnostic(os, ciCompilerInstance.getASTContext().getPrintingPolicy(), // Qualified
- true);
-  recordName = os.str();
-  assert(recordName != "");
-  return recordName;
-}
-*/
-
 std::string
 CallersAction::Visitor::printRecordName(const clang::CXXRecordDecl* record) const {
 
@@ -1009,20 +990,21 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
    if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
    {
      caller_recordName = printRecordName(parentMethod->getParent());
-     // caller_recordFilePath = printFilePath(pfdParent->getSourceRange());
+     // caller_recordFilePath = printFilePath(pfdParent->getSourceRange(), caller_def_file);
    }
+
+   std::string callee_decl_sign = writeFunction(function);
+   std::string callee_decl_file = printFilePath(function.getSourceRange(), caller_def_file);
+   int callee_decl_line = printLine(function.getSourceRange());
 
    std::string callee_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
    std::string callee_recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
    if((constr != NULL) && (constr->getParent() != NULL))
    {
      callee_recordName = printRecordName(constr->getParent());
-     callee_recordFilePath = printFilePath(constr->getParent()->getSourceRange());
+     callee_recordFilePath = printFilePath(constr->getParent()->getSourceRange(), callee_decl_file);
    }
 
-   std::string callee_decl_sign = writeFunction(function);
-   std::string callee_decl_file = printFilePath(function.getSourceRange(), caller_def_file);
-   int callee_decl_line = printLine(function.getSourceRange());
    CallersData::Virtuality callee_decl_virtuality = caller_def_virtuality;
 
    CallersData::FctDef caller(caller_def_mangledName, caller_def_sign, caller_def_virtuality, caller_def_file, caller_def_line,
@@ -1301,7 +1283,6 @@ CallersAction::Visitor::VisitBuiltinFunction(const clang::FunctionDecl* fd) {
   MangledName builtin_mangled;
   this->getMangledName(mangle_context_, fd, &builtin_mangled);
   int builtinPos = printLine(fd->getSourceRange());
-  assert(builtinName != "notFoundBuiltinName");
   std::cout << "DEBUG: builtin name: \"" << builtinName << "\"" << std::endl;
   std::cout << "DEBUG: builtin decl location: " << builtinFile << ":" << builtinPos << std::endl;
   std::cout << "DEBUG: builtin def location (headerName): " << headerName << std::endl;
@@ -1313,6 +1294,7 @@ CallersAction::Visitor::VisitBuiltinFunction(const clang::FunctionDecl* fd) {
     }
   else
     {
+      assert(builtinName != "notFoundBuiltinName");
       // Tries to get the full path of the builtin implementation file
       //if(headerName.length() > 0)
 

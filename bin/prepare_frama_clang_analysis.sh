@@ -22,13 +22,15 @@ function launch_frama_clang ()
 
     # define frama-clang configuration options
     #frama_clang_options="-cxx-nostdinc -cxx-keep-mangling -fclang-msg-key clang,cabs -fclang-verbose 2 -machdep x86_32 -print -cxx-clang-command"
-    frama_clang_options="-machdep x86_64 -cxx-nostdinc -fclang-msg-key clang,cabs -cxx-clang-command"
+    #frama_clang_options="-machdep x86_64 -cxx-nostdinc -fclang-msg-key clang,cabs -cxx-clang-command" # for debug pruposes
+    frama_clang_options="-machdep x86_64 -cxx-nostdinc -cxx-clang-command"
 
     # add target source file specific analysis options
     frama_clang_analysis_options="${file_analysis_options}"
 
     # build the frama_clang analysis command
-    cpp_analysis="${frama_c} ${frama_clang_options} \"framaCIRGen \${system_includes} \${file_analysis_options}\" ${cpp_file} -cxx-keep-mangling -print > ${cabs_file}"
+    # cpp_analysis="${frama_c} ${frama_clang_options} \"framaCIRGen \${system_includes} \${file_analysis_options}\" ${cpp_file} -cxx-keep-mangling -ocode ${cabs_file} -print"
+    cpp_analysis="${frama_c} ${frama_clang_options} \"framaCIRGen \${system_includes} \${file_analysis_options}\" ${cpp_file} -cxx-keep-mangling > ${cabs_file}"
 
     # make sure the output directories are well created before calling the analysis ?
 
@@ -67,13 +69,14 @@ function launch_frama_c ()
     frama_c=`which frama-c 2> /dev/null`
 
     # define frama-c configuration options
-    frama_c_options="-machdep x86_32 -print -no-cpp-gnu-like "
+    frama_c_options="-machdep x86_32 -no-cpp-gnu-like "
 
     # add target source file specific analysis options
     frama_c_analysis_options="-cpp-extra-args=\"${file_analysis_options}\""
 
     # build the frama_c analysis command
     c_analysis="${frama_c} ${frama_c_options} \${frama_c_analysis_options} ${c_file} > ${cabs_file}"
+    # c_analysis="${frama_c} ${frama_c_options} \${frama_c_analysis_options} ${c_file} -ocode ${cabs_file} -print"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
     echo "echo \"launch frama-c analysis of file: ${c_file}\""

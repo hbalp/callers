@@ -80,6 +80,8 @@ namespace CallersData
       ~File();
       static FileKind getKind(std::string filename);
       std::string get_filepath () const;
+      bool is_same_file(std::string otherFilePath, std::string otherFileName = CALLERS_NO_FILE_NAME) const;
+      void assertSameFile(std::string otherFilePath, std::string otherFileName = CALLERS_NO_FILE_NAME) const;
       void parse_json_file(Dir *files) const;
       std::set<CallersData::Namespace>::iterator create_or_get_namespace(std::string qualifiers, const clang::NamespaceDecl* nspc);
       std::set<CallersData::FctDecl>::const_iterator get_or_create_declared_function(FctDecl* fct, std::string filepath, Dir *context) const;
@@ -409,7 +411,7 @@ namespace CallersData
       int decl_line = -1;
       std::set<std::string> *threads;
       std::set<std::string> *locallees;
-      std::set<ExtFctDecl> *extcallees;
+      std::set<ExtFctDecl>  *extcallees;
     protected:
       std::string record = CALLERS_DEFAULT_NO_RECORD_NAME;
     private:

@@ -35,6 +35,7 @@
 #define CALLERS_DEFAULT_RECORD_BUILTIN "env"
 
 #define CALLERS_NO_FILE_PATH     "unknownFilePath"
+#define CALLERS_NO_FILE_NAME     "unknownFileName"
 #define CALLERS_NO_FCT_DEF_FILE  "unknownFctDefFile"
 #define CALLERS_NO_FCT_DECL_FILE "unknownFctDeclFile"
 #define CALLERS_LOCAL_FCT_DECL   "local"

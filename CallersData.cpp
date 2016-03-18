@@ -874,6 +874,43 @@ std::string CallersData::File::get_filepath() const
   return filepath;
 }
 
+bool CallersData::File::is_same_file(std::string otherFilePath, std::string otherFileName) const
+{
+  bool is_same_file = false;
+
+  if(this->get_filepath() == otherFilePath)
+  {
+    is_same_file = true;
+  }
+  else
+  {
+    if(this->kind == "inc")
+    {
+      std::string otherfilename = CALLERS_NO_FILE_NAME;
+
+      if(otherFileName == CALLERS_NO_FILE_NAME)
+      {
+        boost::filesystem::path p(otherFilePath);
+        otherfilename = p.filename().string();
+      }
+      else
+      {
+        otherfilename = otherFileName;
+      }
+      if(boost::algorithm::ends_with(otherfilename, this->filename))
+      {
+        is_same_file = true;
+      }
+    }
+  }
+  return is_same_file;
+}
+
+void CallersData::File::assertSameFile(std::string otherFilePath, std::string otherFileName) const
+{
+  assert(this->is_same_file(otherFilePath, otherFileName));
+}
+
 std::set<CallersData::Namespace>::iterator
 CallersData::File::create_or_get_namespace(std::string qualifiers, const clang::NamespaceDecl* nspc)
 {
@@ -907,7 +944,7 @@ void CallersData::File::add_namespace(CallersData::Namespace nspc) const
 
 void CallersData::File::add_record(CallersData::Record *rec) const
 {
-  assert(this->get_filepath() == rec->file);
+  assertSameFile(rec->file);
   std::string kind = ((rec->kind == clang::TTK_Struct) ? "struct"
 		      : ((rec->kind == clang::TTK_Class) ? "class"
 			 : "anonym"));
@@ -923,8 +960,8 @@ std::set<CallersData::Record>::iterator
 CallersData::File::get_or_create_record(CallersData::Record* record, CallersData::Dir* files) const
 {
   std::set<CallersData::Record>::iterator search_record;
-  std::cout << "CallersData::File::get_or_create_record: Lookup for record \"" << record->name << "\" from file \"" << this->get_filepath() << "\"..." << std::endl;
-  if(this->get_filepath() == record->file)
+  std::cout << "CallersData::File::get_or_create_record: Lookup for record \"" << record->name << "\"  from file \"" << this->get_filepath() << "\"..." << std::endl;
+  if(this->is_same_file(record->file))
     // the declared function belongs to the current file
     {
       std::cout << "The declared function belongs to the current file, so we look for it locally\n" << std::endl;
@@ -952,7 +989,7 @@ std::set<CallersData::Record>::iterator CallersData::File::get_or_create_local_r
   std::set<CallersData::Record>::iterator search_record;
   std::cout << "CallersData::File::get_or_create_record: Lookup for record \"" << record->name << "\" in file \"" << this->get_filepath() << "\"" << std::endl;
 
-  assert(this->get_filepath() == record->file);
+  assertSameFile(record->file);
 
   for(search_record=records->begin(); search_record!=records->end(); ++search_record)
   {
@@ -991,7 +1028,7 @@ std::set<CallersData::Record>::iterator CallersData::File::get_record(std::strin
 {
   std::set<CallersData::Record>::iterator record;
   std::cout << "Lookup for record \"" << recordName << "\" from file \"" << this->get_filepath() << "\"..." << std::endl;
-  if(this->get_filepath() == recordFilePath)
+  if(this->is_same_file(recordFilePath))
     // the declared function belongs to the current file
     {
       std::cout << "The declared function belongs to the current file, so we look for it locally\n" << std::endl;
@@ -1018,7 +1055,7 @@ std::set<CallersData::Record>::iterator CallersData::File::get_local_record(std:
 {
   std::set<CallersData::Record>::iterator rc = records->begin();
   std::cout << "Lookup for record \"" << recordName << "\" in local file \"" << this->get_filepath() << "\"" << std::endl;
-  assert(this->get_filepath() == recordFilePath);
+  assertSameFile(recordFilePath);
   for(; rc!=records->end(); ++rc)
   {
     // Check whether the recordName is a substring of the rc->name
@@ -1085,7 +1122,7 @@ void CallersData::File::add_declared_function(CallersData::FctDecl* fct, std::st
   std::cout << "Tries to add function \"" << fct->sign
 	    << "\" declared in file \"" << fct->file << ":"
 	    << fct->line << "\"" << std::endl;
-  assert((this->get_filepath() == fct_filepath) || (this->filename == fct->file));
+  assertSameFile(fct_filepath);
 
   // complete the fct_decl with a redeclared method when needed
   this->try_to_add_redeclared_and_redeclaration_methods(fct, fct_filepath, files);
@@ -1098,7 +1135,7 @@ CallersData::File::get_or_create_local_declared_function(CallersData::FctDecl *f
 {
   std::cout << "Tries to get function \"" << fct_decl->sign
 	    << "\" declared in file \"" << decl_filepath << "\"" << std::endl;
-  assert((this->get_filepath() == decl_filepath) || (this->filename == fct_decl->file));
+  assertSameFile(decl_filepath, fct_decl->file);
   std::set<CallersData::FctDecl>::iterator search_result;
   CallersData::FctDecl searched_decl(fct_decl->sign, decl_filepath);
   search_result = this->declared->find(searched_decl);
@@ -1135,7 +1172,7 @@ CallersData::File::get_or_create_declared_function(CallersData::FctDecl* fct, st
   std::set<CallersData::FctDecl>::const_iterator fct_decl;
 
   // Check whether the declared function belongs to the current file.
-  if(filepath == this->get_filepath())
+  if(this->is_same_file(filepath))
     // the declared source function belongs to the current file
     {
       std::cout << "The declared function belongs to the current file, so we look for it locally\n" << std::endl;
@@ -1193,7 +1230,7 @@ bool CallersData::File::add_definition_to_declaration(std::string def_pos, std::
   assert(decl_filepath != CALLERS_NO_FCT_DECL_FILE);
 
   // Check whether the declared function belongs to the current file
-  if( decl_filepath == this->get_filepath() )
+  if(this->is_same_file(decl_filepath))
     // the declared function belongs to the current file
     {
       std::cout << "The searched declared function should belong to the current file, so we look for it locally\n" << std::endl;
@@ -1221,25 +1258,22 @@ void CallersData::File::add_defined_function(CallersData::FctDef* fct_def, std::
             << fct_def->def_line << "\"" << std::endl;
 
   // Check whether the defined function has well to be added to the current file.
-  if(fct_def_filepath != this->get_filepath())
+  if(!this->is_same_file(fct_def_filepath, fct_def->def_file))
   {
-    if((this->kind != "inc") || (!boost::algorithm::ends_with(fct_def->def_file, this->filename)))
+    // the defined function does not belong to the current file
+
+    std::cout << "CallersData::File::add_defined_function:WARNING: The defined function \"" << fct_def->sign << "\" doesn't belong to the current file: "
+              << this->get_filepath() << ", so we try to open the right file..." << std::endl;
+
+    // check whether a json file is already present for the visited defined function
+    // if true, parse it and add the defined function only when necessary
+    // if false, create this json file and add the defined function
     {
-      // the defined function does not belong to the current file
-
-      std::cout << "CallersData::File::add_defined_function:WARNING: The defined function \"" << fct_def->sign << "\" doesn't belong to the current file: "
-                << this->get_filepath() << ", so we try to open the right file..." << std::endl;
-
-      // check whether a json file is already present for the visited defined function
-      // if true, parse it and add the defined function only when necessary
-      // if false, create this json file and add the defined function
-      {
-        boost::filesystem::path p(fct_def_filepath);
-        std::string basename = p.filename().string();
-        std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-        std::set<CallersData::File>::iterator file = otherJsonFiles->create_or_get_file(basename, dirpath);
-        file->add_defined_function(fct_def, fct_def_filepath, otherJsonFiles);
-      }
+      boost::filesystem::path p(fct_def_filepath);
+      std::string basename = p.filename().string();
+      std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+      std::set<CallersData::File>::iterator file = otherJsonFiles->create_or_get_file(basename, dirpath);
+      file->add_defined_function(fct_def, fct_def_filepath, otherJsonFiles);
     }
   }
 
@@ -1272,25 +1306,22 @@ void CallersData::File::add_defined_function(MangledName fct_mangled, std::strin
   FctDef fct_def(fct_mangled, fct_sign, fct_virtuality, fct_def_file, fct_def_line, fct_decl_file, fct_decl_line, record);
 
   // Check whether the defined function has well to be added to the current file.
-  if(fct_def_filepath != this->get_filepath())
+  if(!this->is_same_file(fct_def_filepath, fct_def_file))
   {
-    if((this->kind != "inc") || (!boost::algorithm::ends_with(fct_def_file, this->filename)))
+    // the defined function does not belong to the current file
+
+    std::cout << "CallersData::File::add_defined_function:WARNING: The defined function \"" << fct_sign << "\" doesn't belong to the current file: "
+              << this->get_filepath() << ", so we try to open the right file..." << std::endl;
+
+    // check whether a json file is already present for the visited defined function
+    // if true, parse it and add the defined function only when necessary
+    // if false, create this json file and add the defined function
     {
-      // the defined function does not belong to the current file
-
-      std::cout << "CallersData::File::add_defined_function:WARNING: The defined function \"" << fct_sign << "\" doesn't belong to the current file: "
-                << this->get_filepath() << ", so we try to open the right file..." << std::endl;
-
-      // check whether a json file is already present for the visited defined function
-      // if true, parse it and add the defined function only when necessary
-      // if false, create this json file and add the defined function
-      {
-        boost::filesystem::path p(fct_def_file);
-        std::string basename = p.filename().string();
-        std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-        std::set<CallersData::File>::iterator file = otherJsonFiles->create_or_get_file(basename, dirpath);
-        file->add_defined_function(&fct_def, fct_def_file, otherJsonFiles);
-      }
+      boost::filesystem::path p(fct_def_file);
+      std::string basename = p.filename().string();
+      std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+      std::set<CallersData::File>::iterator file = otherJsonFiles->create_or_get_file(basename, dirpath);
+      file->add_defined_function(&fct_def, fct_def_file, otherJsonFiles);
     }
   }
 
@@ -1345,7 +1376,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
   std::set<CallersData::FctDecl>::const_iterator callee;
 
   // Check whether the caller function belongs to the current file.
-  if( fc->caller.def_file == this->get_filepath() )
+  if(this->is_same_file(fc->caller.def_file))
 
     // the caller function belongs to the current file
     {
@@ -1360,7 +1391,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
       assert(caller != defined->end());
 
       // Check whether the callee function belongs to the current file.
-      if( fc->callee.file == this->get_filepath() )
+      if(this->is_same_file(fc->callee.file))
 
 	// the callee function belongs to the current file
 	{
@@ -1449,7 +1480,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
       assert(caller != caller_file->defined->end());
 
       // check whether the callee function belongs to the current file or not
-      if( fc->callee.file == this->get_filepath() )
+      if(this->is_same_file(fc->callee.file))
 
 	// the callee function belongs to the current file
 	{
@@ -1534,7 +1565,7 @@ void CallersData::File::try_to_add_redeclared_and_redeclaration_methods(FctDecl 
     assert(fct_decl->recordFilePath != CALLERS_DEFAULT_NO_RECORD_PATH);
 
     // Make sure the fct_decl belongs to the current file
-    assert((fct_filepath == this->get_filepath()) || (fct_decl->file == this->filename));
+    assertSameFile(fct_filepath, fct_decl->file);
 
     // the fct_decl's belongs to the current file
     std::cout << "The fct_decl \"" << fct_decl->sign << "\" belongs to the current file" << std::endl;
@@ -1562,10 +1593,7 @@ void CallersData::File::try_to_add_redeclared_and_redeclaration_methods(FctDecl 
 
       // add a redeclared method to the child method declaration
       {
-        std::ostringstream pos;
-        pos << base_virt_method->line;
-        std::string base_virt_method_pos = record->file + ":" + pos.str();
-        CallersData::ExtFctDecl base_virtual_method(base_virt_method->mangled, base_virt_method->sign, base_virt_method_pos);
+        CallersData::ExtFctDecl base_virtual_method( redecl_method->second.mangled, redecl_method->second.sign, redecl_method->second.fctLoc);
         fct_decl->add_redeclared_method(base_virtual_method);
       }
 
@@ -1595,7 +1623,7 @@ void CallersData::File::add_redeclared_method(FctDecl *fct_decl, std::string fct
     std::cout << "CallersData::File::add_redeclared_method:DEBUG: sign=\"" << fct_decl->sign << "\", record=\"" << fct_decl->recordName << "\"" << std::endl;
 
     // Check whether the fct_decl belongs to the current file
-    if(fct_filepath == this->get_filepath())
+    if(this->is_same_file(fct_decl->filepath, fct_filename))
 
       // the fct_decl's record belongs to the current file
       {
@@ -1650,7 +1678,7 @@ void CallersData::File::add_redeclaration(FctDecl *fct_decl, std::string fct_fil
     std::cout << "CallersData::File::add_redeclaration:DEBUG: sign=\"" << fct_decl->sign << "\", record=\"" << fct_decl->recordName << "\"" << std::endl;
 
     // Check whether the fct_decl belongs to the current file
-    if(fct_filepath == this->get_filepath())
+    if(this->is_same_file(fct_decl->filepath, fct_filename))
 
       // the fct_decl's record belongs to the current file
       {

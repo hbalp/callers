@@ -319,7 +319,19 @@ namespace CallersData
 
   std::ostream &operator<<(std::ostream &output, const ExtFct &fct);
 
-  class FctDecl
+  class Fct
+  {
+    public:
+      Fct(std::string sign);
+      Fct(MangledName mangled, std::string sign, Virtuality is_virtual);
+      Fct(const Fct& copy_from_me);
+      ~Fct();
+      MangledName mangled = "unknownFctMangledName";
+      std::string sign = "unknownFctSign";
+      Virtuality virtuality = VNoVirtual;
+  };
+
+  class FctDecl : public Fct
   {
     friend class Visitor;
     friend class File;
@@ -351,10 +363,7 @@ namespace CallersData
       void output_redefinitions(std::ostream &js) const;
       void output_json_desc(std::ostream &js) const;
 
-      MangledName mangled = "unknownFctDeclMangledName";
-      std::string sign = "unknownFctDeclSign";
       std::string file = CALLERS_NO_FCT_DECL_FILE;
-      Virtuality virtuality = VNoVirtual;
       int line = -1;
       std::set<std::string> *threads;
       std::set<ExtFctDecl> *redeclared;
@@ -376,7 +385,7 @@ namespace CallersData
 
   bool operator< (const FctDecl& fct1, const FctDecl& fct2);
 
-  class FctDef
+  class FctDef : public Fct
   {
     friend class File;
     public:
@@ -402,9 +411,6 @@ namespace CallersData
       void output_external_callees(std::ofstream &js) const;
       void output_json_desc(std::ofstream &js) const;
 
-      MangledName mangled = "unknownFctDefMangledName";
-      std::string sign = "unknownFctSign";
-      Virtuality virtuality = VNoVirtual;
       std::string def_file = CALLERS_NO_FCT_DEF_FILE;
       int def_line = -1;
       std::string decl_file = CALLERS_NO_FCT_DECL_FILE;

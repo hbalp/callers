@@ -2660,6 +2660,26 @@ bool CallersData::operator< (const CallersData::Thread& thread1, const CallersDa
   return thread1.id < thread2.id;
 }
 
+/******************************************* class Fct ******************************************/
+
+CallersData::Fct::Fct(std::string sign) : sign(sign) {}
+
+CallersData::Fct::Fct(MangledName mangled, std::string sign, Virtuality is_virtual)
+  : mangled(mangled),
+    sign(sign),
+    virtuality(is_virtual)
+{}
+
+CallersData::Fct::~Fct() {}
+
+CallersData::Fct::Fct(const CallersData::Fct& copy_from_me)
+{
+  std::cout << "Fct copy constructor" << std::endl;
+  mangled = copy_from_me.mangled;
+  sign = copy_from_me.sign;
+  virtuality = copy_from_me.virtuality;
+}
+
 /***************************************** class FctDecl ****************************************/
 
 void CallersData::FctDecl::allocate()
@@ -2687,10 +2707,8 @@ CallersData::FctDecl::~FctDecl()
 
 CallersData::FctDecl::FctDecl(MangledName mangled, std::string sign, Virtuality is_virtual,
                               std::string filepath, int line, bool is_builtin)
-  : mangled(mangled),
-    sign(sign),
+  : Fct(mangled, sign, is_virtual),
     file(filepath),
-    virtuality(is_virtual),
     line(line),
     is_builtin(is_builtin)
 {
@@ -2713,10 +2731,8 @@ CallersData::FctDecl::FctDecl(MangledName mangled, std::string sign, Virtuality 
 
 CallersData::FctDecl::FctDecl(MangledName mangled, std::string sign, Virtuality is_virtual,
                               std::string filepath, int line, std::string recordName, std::string recordFilePath, bool is_builtin)
-  : mangled(mangled),
-    sign(sign),
+  : Fct(mangled, sign, is_virtual),
     file(filepath),
-    virtuality(is_virtual),
     line(line),
     recordName(recordName),
     recordFilePath(recordFilePath),
@@ -2754,7 +2770,7 @@ CallersData::FctDecl::FctDecl(MangledName mangled, std::string sign, Virtuality 
 }
 
 CallersData::FctDecl::FctDecl(std::string sign, std::string filepath)
-  : sign(sign),
+  : Fct(sign),
     file(filepath)
 {
   allocate();
@@ -2762,13 +2778,11 @@ CallersData::FctDecl::FctDecl(std::string sign, std::string filepath)
 }
 
 CallersData::FctDecl::FctDecl(const CallersData::FctDecl& copy_from_me)
+  : Fct(copy_from_me.mangled, copy_from_me.sign, copy_from_me.virtuality)
 {
   allocate();
   std::cout << "FctDecl copy constructor" << std::endl;
-  mangled = copy_from_me.mangled;
-  sign = copy_from_me.sign;
   file = copy_from_me.file;
-  virtuality = copy_from_me.virtuality;
   line = copy_from_me.line;
   recordName = copy_from_me.recordName;
   recordFilePath = copy_from_me.recordFilePath;
@@ -3277,42 +3291,6 @@ CallersData::FctDef::~FctDef()
   delete extcallees;
 }
 
-/*
-CallersData::FctDef::FctDef(const char* mangled,
-                            const char* sign,
-                            Virtuality is_virtual,
-                            const char* def_filepath,
-                            const int def_line,
-                            const char* decl_filepath,
-                            const int decl_line,
-                            const char* record)
-  : mangled(mangled),
-    sign(sign),
-    virtuality(is_virtual),
-    def_file(def_filepath),
-    def_line(def_line),
-    decl_file(decl_filepath),
-    decl_line(decl_line),
-    record(record)
-{
-  assert(def_file != CALLERS_NO_FCT_DEF_FILE);
-  allocate();
-  std::string sgn(sign);
-  std::string rec(record);
-  if(sgn.find("::") != std::string::npos)
-    assert(rec != CALLERS_DEFAULT_RECORD_NAME);
-  if(rec == CALLERS_DEFAULT_RECORD_NAME)
-  {
-    std::cout << "Create function definition: " << std::endl;
-  }
-  else
-  {
-    std::cout << "Create " << rec << "'s method definition: " << std::endl;
-  }
-  this->print_cout(sign, is_virtual, def_file, def_line, rec);
-}
-*/
-
 CallersData::FctDef::FctDef(MangledName mangled,
                             std::string sign,
                             Virtuality is_virtual,
@@ -3321,9 +3299,7 @@ CallersData::FctDef::FctDef(MangledName mangled,
                             std::string decl_file,
                             int decl_line,
                             std::string record)
-  : mangled(mangled),
-    sign(sign),
-    virtuality(is_virtual),
+  : Fct(mangled, sign, is_virtual),
     def_file(def_filepath),
     def_line(def_line),
     decl_file(decl_file),
@@ -3352,12 +3328,10 @@ CallersData::FctDef::FctDef(MangledName mangled,
 }
 
 CallersData::FctDef::FctDef(const CallersData::FctDef& copy_from_me)
+  : Fct(copy_from_me.mangled, copy_from_me.sign, copy_from_me.virtuality)
 {
   allocate();
   std::cout << "FctDef copy constructor" << std::endl;
-  mangled = copy_from_me.mangled;
-  sign = copy_from_me.sign;
-  virtuality = copy_from_me.virtuality;
   def_file = copy_from_me.def_file;
   def_line = copy_from_me.def_line;
   decl_file = copy_from_me.decl_file;
@@ -3371,24 +3345,11 @@ CallersData::FctDef::FctDef(const CallersData::FctDef& copy_from_me)
       threads->insert(*i);
     };
 
-  // // copy local callers
-  // for( i=copy_from_me.locallers->begin(); i!=copy_from_me.locallers->end(); ++i )
-  //   {
-  //     locallers->insert(*i);
-  //   };
-
   // copy local callees
   for( i=copy_from_me.locallees->begin(); i!=copy_from_me.locallees->end(); ++i )
     {
       locallees->insert(*i);
     };
-
-  // // copy external callers
-  // std::set<ExtFctDef>::const_iterator x;
-  // for( x=copy_from_me.extcallers->begin(); x!=copy_from_me.extcallers->end(); ++x )
-  //   {
-  //     extcallers->insert(*x);
-  //   };
 
   // copy external callees
   std::set<ExtFctDecl>::const_iterator x;
@@ -3405,12 +3366,6 @@ void CallersData::FctDef::add_thread(std::string thread_id) const
   this->threads->insert(thread_id);
 }
 
-// void CallersData::FctDef::add_local_caller(MangledName mangled, std::string sign) const
-// {
-//   std::cout << "Add local caller \"" << sign << "\" to function \"" << sign << "\"" << std::endl;
-//   locallers->insert(sign);
-// }
-
 void CallersData::FctDef::add_local_callee(std::string callee_sign) const
 {
   if(this->record == CALLERS_DEFAULT_RECORD_NAME)
@@ -3423,16 +3378,6 @@ void CallersData::FctDef::add_local_callee(std::string callee_sign) const
   }
   locallees->insert(sign);
 }
-
-// void CallersData::FctDef::add_external_caller(MangledName mangled, std::string sign, Virtuality virtuality,
-// 					      std::string file, int line) const
-// {
-//   std::cout << "Add external caller \"" << sign << "\" to callee function definition \"" << sign << "\"" << std::endl;
-//   std::cout << "Caller function is located at: " << file << ":" << line << std::endl;
-//   std::string caller_decl = file + ":" + line;
-//   ExtFctDef extfct(sign, virtuality, caller_file);
-//   extcallers->insert(extfct);
-// }
 
 void CallersData::FctDef::add_external_callee(MangledName callee_builtin, std::string callee_sign, std::string callee_decl_file_pos) const
 {
@@ -3482,29 +3427,6 @@ void CallersData::FctDef::add_builtin_callee(MangledName builtin_mangled, std::s
   extcallees->insert(extfct);
 }
 
-// void CallersData::FctDef::output_local_callers(std::ofstream &js) const
-// {
-//   if (not locallers->empty())
-//     {
-//       js << ", \"locallers\": [";
-//       std::set<std::string>::const_iterator i, last;
-//       //last = std::prev(locallers.end(); // requires C++ 11
-//       last = --locallers->end();
-//       for( i=locallers->begin(); i!=locallers->end(); ++i)
-//       {
-//         if(i != last)
-//         {
-//           js << "\"" << *i << "\", ";
-//         }
-//         else
-//         {
-//          js << "\"" << *i << "\"";
-//         }
-//       };
-//       js << "]";
-//     }
-// }
-
 void CallersData::FctDef::output_threads(std::ofstream &js) const
 {
   if (not threads->empty())
@@ -3551,29 +3473,6 @@ void CallersData::FctDef::output_local_callees(std::ofstream &js) const
       js << "]";
     }
 }
-
-// void CallersData::FctDef::output_external_callers(std::ofstream &js) const
-// {
-//   if( not extcallers->empty())
-//     {
-//       js << ", \"extcallers\": [";
-//       std::set<ExtFctDef>::const_iterator x, extlast;
-//       //last = std::prev(extcallers.end(); // requires C++ 11
-//       extlast = extcallers->empty() ? extcallers->end() : --extcallers->end();
-//       for( x=extcallers->begin(); x!=extcallers->end(); ++x )
-// 	{
-// 	  if(x != extlast)
-// 	    {
-// 	      js << *x << ", ";
-// 	    }
-// 	  else
-// 	    {
-// 	      js << *x;
-// 	    }
-// 	};
-//       js << "]";
-//     }
-// }
 
 void CallersData::FctDef::output_external_callees(std::ofstream &js) const
 {

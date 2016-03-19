@@ -718,7 +718,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                   }
 
                   this->get_or_create_declared_function(&fctDecl, filepath, files);
-                  std::cout << "Parsed declared function s[" << s << "]:\"" << symbol << "\"" << std::endl;
+                  std::cout << "Parsed declared function s[" << s << "]:\"" << symbol << "\" in file " << this->filepath << std::endl;
                 }
             }
           }
@@ -1163,11 +1163,6 @@ CallersData::File::get_or_create_declared_function(CallersData::FctDecl* fct, st
   std::cout << "Register function \"" << fct->sign
 	    << "\" declared in file \"" << fct->file << ":"
 	    << fct->line << "\"" << std::endl;
-
-  if(fct->file == "test_dummy.h")
-  {
-    std::cout << "HBDBG to be debugged..." << std::endl;
-  }
 
   std::set<CallersData::FctDecl>::const_iterator fct_decl;
 
@@ -2939,7 +2934,8 @@ void CallersData::FctDecl::add_definition(MangledName def_mangled, std::string f
 
 void CallersData::FctDecl::add_external_caller(MangledName caller_mangled, std::string caller_sign, std::string caller_file_pos) const
 {
-  std::cout << "Add external caller \"" << caller_sign << "\" to callee function declaration \"" << this->sign << "\"" << std::endl;
+  std::cout << "Add external caller \"" << caller_sign << "\" to callee function declaration \"" << this->sign << "\"" << std::endl
+;
   // {
   //   // BEGIN DEBUG SECTION
   //   std::cout << "CallersData::FctDecl::add_external_caller:DEBUG:BEGIN: before addition" << std::endl;
@@ -2947,9 +2943,11 @@ void CallersData::FctDecl::add_external_caller(MangledName caller_mangled, std::
   //   std::cout << "CallersData::FctDecl::add_external_caller:DEBUG:END" << std::endl;
   //   // BEGIN DEBUG SECTION
   // }
+
   std::cout << "Caller function is located at: " << caller_file_pos << std::endl;
   ExtFctDef extfct(caller_mangled, caller_sign, caller_file_pos);
-  // extcallers->insert(extfct);
+  extcallers->insert(extfct);
+
   // {
   //   // BEGIN DEBUG SECTION
   //   std::cout << "CallersData::FctDecl::add_external_caller:DEBUG:BEGIN: after addition" << std::endl;
@@ -2957,6 +2955,7 @@ void CallersData::FctDecl::add_external_caller(MangledName caller_mangled, std::
   //   std::cout << "CallersData::FctDecl::add_external_caller:DEBUG:END" << std::endl;
   //   // BEGIN DEBUG SECTION
   // }
+
 }
 
 void CallersData::FctDecl::add_external_caller(MangledName caller_mangled, std::string caller_sign, std::string caller_file, int caller_line) const

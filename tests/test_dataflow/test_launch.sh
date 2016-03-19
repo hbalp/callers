@@ -38,25 +38,13 @@ then
 
     # List all defined symbols in file defined_symbols.json
     list_defined_symbols defined_symbols.json
-    #read_defined_symbols defined_symbols.json file.callers.gen.json
-
-    # # add declarations to json files
-    # source add_declarations.sh $callers_json_rootdir
-
-    # # add definitions to json files
-    # source add_definitions.sh $callers_json_rootdir
-
-    # # add extcallees to json files
-    # source add_extcallees.sh $callers_json_rootdir
-
-    # # add extcallers to json files
-    # source add_extcallers.sh $callers_json_rootdir
 
     ## generate callee's tree from main entry point
     source extract_fcg.sh callees ${canonical_pwd}/test_dataflow.cpp "main" "int main()" files
+    # source extract_fcg.sh callees ${canonical_pwd}/test_dataflow.c "main" "int main()" files
 
     ## generate caller's tree from main entry point
-    #source extract_fcg.sh callers `pwd`/test_dataflow.cpp "main" "int main()" files
+    # source extract_fcg.sh callers `pwd`/test_dataflow.cpp "main" "int main()" files
 
     source callgraph_to_ecore.sh $callers_json_rootdir
     source callgraph_to_dot.sh $callers_json_rootdir files

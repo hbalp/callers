@@ -119,7 +119,7 @@ bool decode_function_location(std::string fct_pos, std::string& fct_file, int& f
   boost::algorithm::split_regex(loc, fct_pos, boost::regex(":"));
   std::vector<std::string>::iterator l = loc.begin();
   fct_file = *l++;
-  std::cout << "decode_function_location: fct_file=" << fct_file << std::endl;
+  // std::cout << "decode_function_location: fct_file=" << fct_file << std::endl;
   if( l != loc.end())
   {
     std::string line = *l++;
@@ -134,7 +134,7 @@ bool decode_function_location(std::string fct_pos, std::string& fct_file, int& f
       std::cerr << "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" << std::endl;
       exit(9137);
     }
-    std::cout << "decode_function_location: fct_line=" << line << std::endl;
+    // std::cout << "decode_function_location: fct_line=" << line << std::endl;
   }
   return true;
 }
@@ -374,11 +374,11 @@ CallersData::File::File(const CallersData::File& copy_from_me)
   threads = new std::set<CallersData::Thread>;
   calls = new std::set<CallersData::FctCall>;
 
-  std::cout << "File Copy Constructor of file \"" << filename
-	    << "\" defining " << copy_from_me.records->size()
-	    << " classes, " << copy_from_me.defined->size() << " functions"
-	    << " and " << copy_from_me.calls->size() << " function calls"
-	    << std::endl;
+  // std::cout << "File Copy Constructor of file \"" << filename
+  //           << "\" defining " << copy_from_me.records->size()
+  //           << " classes, " << copy_from_me.defined->size() << " functions"
+  //           << " and " << copy_from_me.calls->size() << " function calls"
+  //           << std::endl;
 
   // copy namespaces definitions
   std::set<Namespace>::const_iterator n;
@@ -503,7 +503,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                           int debut = bc_debut.GetInt();
                           int fin = bc_fin.GetInt();
 
-                          std::cout << "Parsed parent record: \"" << parent << std::endl;
+                          // std::cout << "Parsed parent record: \"" << parent << std::endl;
                           CallersData::Inheritance base(parent, file, debut, fin);
                           record.add_base_class(base);
                         }
@@ -529,7 +529,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                           int debut = bc_debut.GetInt();
                           int fin = bc_fin.GetInt();
 
-                          std::cout << "Parsed child record: \"" << child << std::endl;
+                          // std::cout << "Parsed child record: \"" << child << std::endl;
                           CallersData::Inheritance fils(child, file, debut, fin);
                           record.add_child_class(fils);
                         }
@@ -546,14 +546,14 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                         {
                           const rapidjson::Value& def = methods[s];
                           std::string meth_sign = def.GetString();
-                          std::cout << "Parsed method: \"" << meth_sign << std::endl;
+                          // std::cout << "Parsed method: \"" << meth_sign << std::endl;
                           record.add_method(meth_sign);
                         }
                     }
                   }
 
                   this->get_or_create_record(&record, files);
-                  std::cout << "Parsed record r[" << s << "]:\"" << name << "\"" << std::endl;
+                  // std::cout << "Parsed record r[" << s << "]:\"" << name << "\"" << std::endl;
                 }
             }
           }
@@ -602,11 +602,29 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                     }
 
                   int pos = line.GetInt();
-                  // std::ostringstream spos;
-                  // spos << pos;
-                  // std::string location(filepath + ":" + spos.str());
-                  // symbol_location.insert(SymbLoc::value_type(symbol, location));
                   CallersData::FctDecl fctDecl(mangled, symbol, virtuality, this->filename, pos, recordName, recordFilePath);
+
+                  if(symb.HasMember("params"))
+                  {
+                    const rapidjson::Value& params = symb["params"];
+                    if(params.IsArray())
+                    {
+                      // rapidjson uses SizeType instead of size_t
+                      for (rapidjson::SizeType s = 0; s < params.Size(); s++)
+                        {
+                          const rapidjson::Value& param = params[s];
+                          const rapidjson::Value& p_name = param["name"];
+                          const rapidjson::Value& p_type = param["kind"];
+
+                          std::string param_name = p_name.GetString();
+                          std::string param_type = p_type.GetString();
+
+                          // std::cout << "Parsed function parameter: param=\"" << param_name << "\", type=" << param_type << "\"" << std::endl;
+                          CallersData::Parameter parameter(param_name, param_type);
+                          fctDecl.add_parameter(parameter);
+                        }
+                    }
+                  }
 
                   if(symb.HasMember("definitions"))
                   {
@@ -618,13 +636,13 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                         {
                           const rapidjson::Value& def = definitions[s];
                           std::string def_pos = def.GetString();
-                          std::cout << "Parsed function def pos: \"" << def_pos << std::endl;
+                          // std::cout << "Parsed function def pos: \"" << def_pos << std::endl;
                           /* std::string fct_def_pos = id_filter_prefix("local:", def_pos);
                           if(fct_def_pos != def_pos)
                           {
                             fct_def_pos = dirpath + filename + fct_def_pos;
                           }
-                          std::cout << "Completed function def pos: \"" << fct_def_pos << std::endl; */
+                          // std::cout << "Completed function def pos: \"" << fct_def_pos << std::endl; */
                           fctDecl.add_definition(symbol, /*fct_*/def_pos);
                         }
                     }
@@ -647,7 +665,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                           MangledName mangled = mgl.GetString();
                           std::string extfct_decl_loc = def.GetString();
 
-                          std::cout << "Parsed redeclared method: sign=\"" << sign << "\", def=" << extfct_decl_loc << "\"" << std::endl;
+                          // std::cout << "Parsed redeclared method: sign=\"" << sign << "\", def=" << extfct_decl_loc << "\"" << std::endl;
                           CallersData::ExtFctDecl redeclared_method(mangled, sign, extfct_decl_loc);
                           fctDecl.add_redeclared_method(redeclared_method);
                         }
@@ -671,7 +689,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                           MangledName mangled = mgl.GetString();
                           std::string extfct_decl_loc = def.GetString();
 
-                          std::cout << "Parsed function redeclaration: sign=\"" << sign << "\", def=" << extfct_decl_loc << "\"" << std::endl;
+                          // std::cout << "Parsed function redeclaration: sign=\"" << sign << "\", def=" << extfct_decl_loc << "\"" << std::endl;
                           CallersData::ExtFctDecl redeclaration(mangled, sign, extfct_decl_loc);
                           fctDecl.add_redeclaration(redeclaration);
                         }
@@ -688,7 +706,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                         {
                           const rapidjson::Value& def = locallers[s];
                           std::string localler = def.GetString();
-                          std::cout << "Parsed function localler: \"" << localler << std::endl;
+                          // std::cout << "Parsed function localler: \"" << localler << std::endl;
                           fctDecl.add_local_caller(localler);
                         }
                     }
@@ -711,14 +729,14 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                           MangledName mangled = mgl.GetString();
                           std::string extfct_def_loc = def.GetString();
 
-                          std::cout << "Parsed function extcaller: sign=\"" << sign << "\", def=" << extfct_def_loc << "\"" << std::endl;
+                          // std::cout << "Parsed function extcaller: sign=\"" << sign << "\", def=" << extfct_def_loc << "\"" << std::endl;
                           fctDecl.add_external_caller(mangled, sign, extfct_def_loc);
                         }
                     }
                   }
 
                   this->get_or_create_declared_function(&fctDecl, filepath, files);
-                  std::cout << "Parsed declared function s[" << s << "]:\"" << symbol << "\" in file " << this->filepath << std::endl;
+                  // std::cout << "Parsed declared function s[" << s << "]:\"" << symbol << "\" in file " << this->filepath << std::endl;
                 }
             }
           }
@@ -789,7 +807,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                         {
                           const rapidjson::Value& def = locallees[s];
                           std::string locallee = def.GetString();
-                          std::cout << "Parsed function locallee: \"" << locallee << std::endl;
+                          // std::cout << "Parsed function locallee: \"" << locallee << std::endl;
                           fctDef.add_local_callee(locallee);
                         }
                     }
@@ -812,7 +830,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                           MangledName mangled = mgl.GetString();
                           std::string extfct_decl_loc = def.GetString();
 
-                          std::cout << "Parsed function extcallee: sign=\"" << sign << "\", def=" << extfct_decl_loc << "\"" << std::endl;
+                          // std::cout << "Parsed function extcallee: sign=\"" << sign << "\", def=" << extfct_decl_loc << "\"" << std::endl;
                           fctDef.add_external_callee(mangled, sign, extfct_decl_loc);
                         }
                     }
@@ -820,7 +838,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
 
                   this->add_defined_function(&fctDef, filepath, files);
                   // this->add_defined_function(mangled, symbol, virtuality, this->file, def_pos, filepath, decl_file, decl_line, record, files);
-                  std::cout << "Parsed symbol s[" << s << "]:\"" << symbol << "\"" << std::endl;
+                  // std::cout << "Parsed symbol s[" << s << "]:\"" << symbol << "\"" << std::endl;
                 }
             }
           }
@@ -920,17 +938,18 @@ CallersData::File::create_or_get_namespace(std::string qualifiers, const clang::
   search_result = namespaces->find(searched_nspc);
   if(search_result != namespaces->end())
     {
-      std::cout << "The namespace \"" << qualifiers << "\" is already present." << std::endl;
+      // std::cout << "The namespace \"" << qualifiers << "\" is already present." << std::endl;
     }
   else
     {
       CallersData::Namespace c_namespace(qualifiers, *nspc);
       this->add_namespace(c_namespace);
       search_result = namespaces->find(searched_nspc);
-      if(search_result != namespaces->end())
-        {
-          std::cout << "The namespace \"" << qualifiers << "\" is well present now !" << std::endl;
-        }
+      assert(search_result != namespaces->end());
+      // if(search_result != namespaces->end())
+      //   {
+      //     std::cout << "The namespace \"" << qualifiers << "\" is well present now !" << std::endl;
+      //   }
     }
   return search_result;
 }
@@ -964,13 +983,13 @@ CallersData::File::get_or_create_record(CallersData::Record* record, CallersData
   if(this->is_same_file(record->file))
     // the declared function belongs to the current file
     {
-      std::cout << "The declared function belongs to the current file, so we look for it locally\n" << std::endl;
+      // std::cout << "The declared function belongs to the current file, so we look for it locally\n" << std::endl;
       search_record = this->get_or_create_local_record(record);
     }
   else
     // the declared function doesn't belong to the current file
     {
-      std::cout << "The declared record doesn't belong to the current file" << std::endl;
+      // std::cout << "The declared record doesn't belong to the current file" << std::endl;
       // check first whether a json file is already present for the declared record
       // if true, parse it and return the declared record when found
       // if false, create it and return the declared record when found
@@ -2310,18 +2329,6 @@ void CallersData::Record::add_child_class(CallersData::Inheritance bclass) const
 	    << std::endl;
 }
 
-// void CallersData::Record::add_base_class(std::string name, std::string file,
-//                                          int begin, int end) const
-// {
-//   Inheritance bclass(name, file, begin, end);
-//   inherits->insert(bclass);
-//   std::cout << "Create inheritance \"" << name
-// 	    << "\" located in file \"" << file << "\""
-// 	    << " in record " << this->name
-// 	    << ", nb_inherits=" << inherits->size()
-// 	    << std::endl;
-// }
-
 void CallersData::Record::print_cout() const
 {
   std::ostringstream debut;
@@ -2354,29 +2361,6 @@ void CallersData::Record::print_cout() const
 
   std::cout << "]}";
 }
-
-/*
-// output_base_classes
-// output_child_classes
-
-void CallersData::Record::output_json_desc(std::ofstream &js) const
-{
-  std::ostringstream debut;
-  debut << begin;
-  std::ostringstream fin;
-  fin << end;
-  js << "{\"name\":\"" << name
-     << "\",\"kind\":\"" << RecordKind[kind]
-     << "\",\"debut\":" << begin.str()
-     << ",\"fin\":" << end.str();
-
-  this->output_base_classes(js);
-
-  this->output_child_classes(js);
-
-  js << "}";
-}
-*/
 
 void CallersData::Record::output_json_desc(std::ofstream &js) const
 {
@@ -2460,7 +2444,6 @@ void CallersData::Record::output_json_desc(std::ofstream &js) const
   //         js << "}";
   //       }
   //   }
-
 
   // js << "],\"redeclarations\":[";
 
@@ -2684,6 +2667,7 @@ CallersData::Fct::Fct(const CallersData::Fct& copy_from_me)
 
 void CallersData::FctDecl::allocate()
 {
+  parameters = new std::set<Parameter>;
   threads = new std::set<std::string>;
   redeclared = new std::set<ExtFctDecl>;
   redeclarations = new std::set<ExtFctDecl>;
@@ -2696,6 +2680,7 @@ void CallersData::FctDecl::allocate()
 
 CallersData::FctDecl::~FctDecl()
 {
+  delete parameters;
   delete threads;
   delete redeclared;
   delete redeclarations;
@@ -2788,6 +2773,13 @@ CallersData::FctDecl::FctDecl(const CallersData::FctDecl& copy_from_me)
   recordFilePath = copy_from_me.recordFilePath;
   is_builtin = copy_from_me.is_builtin;
 
+  // copy parameters
+  std::set<Parameter>::const_iterator p;
+  for(p=copy_from_me.parameters->begin(); p!=copy_from_me.parameters->end(); ++p )
+    {
+      parameters->insert(*p);
+    };
+
   // copy threads
   std::set<std::string>::const_iterator i;
   for(i=copy_from_me.threads->begin(); i!=copy_from_me.threads->end(); ++i )
@@ -2835,6 +2827,36 @@ CallersData::FctDecl::FctDecl(const CallersData::FctDecl& copy_from_me)
     }
 }
 
+void CallersData::FctDecl::add_parameter(const CallersData::Parameter& parameter) const
+{
+  std::cout << "Check whether the parameter \"" << parameter.name << "\" is already present or not..." << std::endl;
+
+  std::set<CallersData::Parameter>::iterator search_result;
+  search_result = parameters->find(parameter);
+  if(search_result != parameters->end())
+    {
+      std::cout << "Already present parameter \"" << parameter.name
+                << "\" in function \"" << this->sign << "\", so do not add it twice."
+                << std::endl;
+    }
+  else
+    {
+      std::cout << "Add parameter \"" << parameter.name
+                << "\" to function \"" << this->sign << "\". "
+                << std::endl;
+      CallersData::Parameter param (parameter);
+      parameters->insert(param);
+      search_result = parameters->find(parameter);
+      assert(search_result != parameters->end());
+      // if(search_result != parameters->end())
+      //   {
+      //     std::cout << "the parameter \"" << parameter.name << "\" is well present now !" << std::endl;
+      //     this->print_cout();
+      //   }
+    }
+  return;
+}
+
 void CallersData::FctDecl::add_thread(std::string thread_id) const
 {
   assert(thread_id != CALLERS_DEFAULT_NO_THREAD_ID);
@@ -2877,11 +2899,12 @@ void CallersData::FctDecl::add_redeclared_method(const CallersData::ExtFctDecl& 
       CallersData::ExtFctDecl redecl (redecl_method);
       redeclared->insert(redecl);
       search_result = redeclared->find(redecl_method);
-      if(search_result != redeclared->end())
-        {
-          std::cout << "the redeclared method \"" << redecl_method.sign << "\" is well present now !" << std::endl;
-          this->print_cout();
-        }
+      assert(search_result != redeclared->end());
+      // if(search_result != redeclared->end())
+      //   {
+      //     std::cout << "the redeclared method \"" << redecl_method.sign << "\" is well present now !" << std::endl;
+      //     this->print_cout();
+      //   }
     }
   return;
 }
@@ -2908,11 +2931,12 @@ void CallersData::FctDecl::add_redeclaration(const CallersData::ExtFctDecl& rede
       CallersData::ExtFctDecl redecl (redecl_method);
       redeclarations->insert(redecl);
       search_result = redeclarations->find(redecl_method);
-      if(search_result != redeclarations->end())
-        {
-          std::cout << "the redeclaration \"" << redecl_method.sign << "\" is well present now !" << std::endl;
-          this->print_cout();
-        }
+      assert(search_result != redeclarations->end());
+      // if(search_result != redeclarations->end())
+      //   {
+      //     std::cout << "the redeclaration \"" << redecl_method.sign << "\" is well present now !" << std::endl;
+      //     this->print_cout();
+      //   }
     }
   return;
 }
@@ -3024,6 +3048,35 @@ void CallersData::FctDecl::add_redefinition(MangledName redef_mangled, std::stri
 
   ExtFctDef extfct (redef_mangled, redef_sign, redef_decl_location);
   redefinitions->insert(extfct);
+}
+
+namespace CallersData
+{
+  std::ostream &operator<<(std::ostream &output, const Parameter &param);
+}
+
+void CallersData::FctDecl::output_parameters(std::ostream &js) const
+{
+  if(not parameters->empty())
+    {
+      js << ", \"params\": [";
+
+      std::set<Parameter>::const_iterator p, last;
+      //last = std::prev(parameters.end(); // requires C++ 11
+      last = parameters->empty() ? parameters->end() : --parameters->end();
+      for( p=parameters->begin(); p!=parameters->end(); ++p )
+      {
+        if(p != last)
+        {
+          js << *p << ", ";
+        }
+        else
+        {
+          js << *p;
+        }
+      };
+      js << "]";
+    }
 }
 
 void CallersData::FctDecl::output_threads(std::ostream &js) const
@@ -3222,6 +3275,7 @@ void CallersData::FctDecl::output_json_desc(std::ostream &js) const
     }
   }
 
+  this->output_parameters(js);
   this->output_threads(js);
   this->output_redeclared_methods(js);
   this->output_redeclarations(js);
@@ -3241,29 +3295,6 @@ void CallersData::FctDecl::print_cout() const
   this->output_json_desc(*std_out);
 }
 
-// void CallersData::FctDecl::print_cout(std::string sign, Virtuality virtuality, std::string file, int line, std::string record) const
-// {
-//   std::ostringstream loc;
-//   loc << line;
-
-//   std::cout << "{\"sign\":\"" << sign
-// 	    << "\",\"line\":\"" << loc.str()
-// 	    << "\",\"virtuality\":\""
-// 	    << ((virtuality == CallersData::VNoVirtual) ? "no"
-// 		: ((virtuality == CallersData::VVirtualDeclared) ? "declared"
-// 		   : ((virtuality == CallersData::VVirtualDefined) ? "defined"
-// 		      : "pure")))
-// 	    << "\",\"file\":\"" << file
-//             << "\", \"mangled\": \"" << mangled << "\"";
-
-//   if(record != CALLERS_DEFAULT_RECORD_NAME )
-//   {
-//     std::cout << ", \"record\": \"" << record << "\"";
-//   }
-//   std::cout << "\"}"
-// 	    << std::endl;
-// }
-
 /* public functions */
 
 bool CallersData::operator< (const CallersData::FctDecl& fct1, const CallersData::FctDecl& fct2)
@@ -3276,18 +3307,14 @@ bool CallersData::operator< (const CallersData::FctDecl& fct1, const CallersData
 void CallersData::FctDef::allocate()
 {
   threads = new std::set<std::string>;
-  // locallers  = new std::set<std::string>;
   locallees  = new std::set<std::string>;
-  // extcallers = new std::set<ExtFctDef>;
   extcallees = new std::set<ExtFctDecl>;
 }
 
 CallersData::FctDef::~FctDef()
 {
   delete threads;
-  // delete locallers;
   delete locallees;
-  // delete extcallers;
   delete extcallees;
 }
 
@@ -3312,10 +3339,11 @@ CallersData::FctDef::FctDef(MangledName mangled,
   assert(decl_file != CALLERS_NO_FILE_PATH);
   assert(decl_file != CALLERS_NO_FCT_DECL_FILE);
 
-  // assert(decl_file != CALLERS_NO_FCT_DECL_FILE);
   allocate();
+
   if(sign.find("::") != std::string::npos)
     assert(record != CALLERS_DEFAULT_RECORD_NAME);
+
   if(record == CALLERS_DEFAULT_RECORD_NAME)
   {
     std::cout << "Create function definition: " << std::endl;
@@ -3678,4 +3706,55 @@ std::ostream &CallersData::operator<<(std::ostream &output, const ExtFctDef &fct
   output << "\",\"def\":\"" << fct.fctLoc;
   output << "\",\"mangled\":\"" << fct.mangled << "\"}";
   return output;
+}
+
+/******************************************* class Data ******************************************/
+
+CallersData::Data::Data() {}
+
+CallersData::Data::~Data() {}
+
+CallersData::Data::Data(const CallersData::Data& copy_from_me)
+{
+  // std::cout << "Data copy constructor" << std::endl;
+}
+
+/******************************************* class NamedData ******************************************/
+
+CallersData::NamedData::NamedData(std::string name) : name(name) {}
+
+CallersData::NamedData::~NamedData() {}
+
+CallersData::NamedData::NamedData(const CallersData::NamedData& copy_from_me) : Data()
+{
+  // std::cout << "NamedData copy constructor" << std::endl;
+  name = copy_from_me.name;
+}
+
+/******************************************* class Parameter ******************************************/
+
+CallersData::Parameter::Parameter(std::string name, std::string type) : NamedData(name), type(type) {}
+
+CallersData::Parameter::~Parameter() {}
+
+CallersData::Parameter::Parameter(const CallersData::Parameter& copy_from_me)
+: NamedData(copy_from_me.name)
+{
+  // std::cout << "Parameter copy constructor" << std::endl;
+  type = copy_from_me.type;
+}
+
+namespace CallersData {
+
+  bool operator< (const Parameter& param1, const Parameter& param2)
+  {
+    return param1.name < param2.name;
+  }
+
+  std::ostream &operator<<(std::ostream &output, const Parameter &param)
+  {
+    output << "{\"name\":\"" << param.name;
+    output << "\",\"kind\":\"" << param.type << "\"}";
+    return output;
+  }
 }

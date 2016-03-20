@@ -1724,23 +1724,7 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
               << " defined at file " << fctDef_filepath << ':' << fctDef_line
               << " and declared at file " << fctDecl_file << ':' << fctDecl_line << std::endl;
 
-        // // check whether the function is really defined in this file
-        // if(fctDef_filepath == currentJsonFile->get_filepath())
-        //   // if true, add the function definition to the current json file
-        //   {
-            currentJsonFile->add_defined_function(&fctDef, fctDef_filepath, &otherJsonFiles);
-        //   }
-        // else
-        //   // otherwise, check whether a json file is already present for the visited defined function
-        //   // if true, parse it and add the defined function only when necessary
-        //   // if false, create this json file and add the defined function
-        //   {
-        //     boost::filesystem::path p(fctDef_filepath);
-        //     std::string basename = p.filename().string();
-        //     std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-        //     std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
-        //     file->add_defined_function(&fctDef, fctDef_filepath, &otherJsonFiles);
-        //   }
+        currentJsonFile->add_defined_function(&fctDef, fctDef_filepath, &otherJsonFiles);
 
         // Complete the function definition with a new "declaration" entry
         CallersData::FctDecl fctDecl(fctDef_mangledName, fctDef_sign, virtualityDecl, fctDecl_file, fctDecl_line, fctDecl_recordName, fctDecl_recordFilePath);
@@ -1752,23 +1736,29 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
         }
         fctDecl.add_definition(fctDef_sign, fctDef_pos);
 
-        // // check whether the function is really declared in this file
-        // if(fctDecl_file == currentJsonFile->get_filepath())
-        //   // if true, add the function declaration to the current json file
-        //   {
-            currentJsonFile->get_or_create_declared_function(&fctDecl, fctDecl_file, &otherJsonFiles);
-        //   }
-        // else
-        //   // otherwise, check whether a json file is already present for the visited function
-        //   // if true, parse it and add the defined function only when necessary
-        //   // if false, create this json file and add the defined function
-        //   {
-        //     boost::filesystem::path p(fctDecl_file);
-        //     std::string basename = p.filename().string();
-        //     std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-        //     std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
-        //     file->get_or_create_declared_function(&fctDecl, fctDecl_file, &otherJsonFiles);
-        //   }
+        currentJsonFile->get_or_create_declared_function(&fctDecl, fctDecl_file, &otherJsonFiles);
+
+   return true;
+}
+
+// Visit function parameters
+bool CallersAction::Visitor::VisitFunctionParameters(const clang::FunctionDecl& function, const CallersData::FctDecl& fct_decl)
+{
+#ifdef CLANG_VERSION_GREATER_OR_EQUAL_3_3_5
+   auto paramIter = function.param_begin(),
+        paramIterEnd = function.param_end();
+#else
+   auto paramIter = function.arg_begin(),
+        paramIterEnd = function.arg_end();
+#endif
+
+   for (; paramIter != paramIterEnd; ++paramIter)
+   {
+      std::string param_name = (*paramIter)->getName();
+      std::string param_type = printType((*paramIter)->getType());
+      CallersData::Parameter param(param_name, param_type);
+      fct_decl.add_parameter(param);
+   };
    return true;
 }
 
@@ -1784,7 +1774,7 @@ CallersAction::Visitor::VisitFunctionDeclaration(clang::FunctionDecl* function) 
 
         MangledName fct_mangledName;
         this->getMangledName(mangle_context_, function, &fct_mangledName);
-        osOut << "Debug mangledName ok: " << fct_mangledName << '\n';
+        // osOut << "Debug mangledName ok: " << fct_mangledName << '\n';
 
         auto methodDef = llvm::dyn_cast<clang::CXXMethodDecl>(function);
         std::string fct_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
@@ -1801,23 +1791,10 @@ CallersAction::Visitor::VisitFunctionDeclaration(clang::FunctionDecl* function) 
 
         CallersData::FctDecl fctDecl(fct_mangledName, fct_sign, virtualityDecl, fct_filepath, fct_line, fct_recordName, fct_recordFilePath);
 
-        // // check whether the function is really defined in this file
-        // if(fct_filepath == currentJsonFile->get_filepath())
-        //   // if true, add the function to the current json file
-        //   {
-            currentJsonFile->get_or_create_declared_function(&fctDecl, fct_filepath, &otherJsonFiles);
-        //   }
-        // else
-        //   // otherwise, check whether a json file is already present for the visited function
-        //   // if true, parse it and add the defined function only when necessary
-        //   // if false, create this json file and add the defined function
-        //   {
-        //     boost::filesystem::path p(fct_filepath);
-        //     std::string basename = p.filename().string();
-        //     std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-        //     std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
-        //     file->get_or_create_declared_function(&fctDecl, fct_filepath, &otherJsonFiles);
-        //   }
+        VisitFunctionParameters(*function, fctDecl);
+
+        currentJsonFile->get_or_create_declared_function(&fctDecl, fct_filepath, &otherJsonFiles);
+
     return true;
 }
 
@@ -1860,23 +1837,8 @@ CallersAction::Visitor::VisitMethodDeclaration(clang::CXXMethodDecl* methodDecl)
 
         CallersData::FctDecl fctDecl(fct_mangledName, fct_sign, virtualityDecl, fct_filepath, fct_line, fct_recordName, fct_recordFilePath);
 
-        // // check whether the function is really defined in this file
-        // if(fct_filepath == currentJsonFile->get_filepath())
-        //   // if true, add the function to the current json file
-        //   {
-            currentJsonFile->get_or_create_declared_function(&fctDecl, fct_filepath, &otherJsonFiles);
-        //   }
-        // else
-        //   // otherwise, check whether a json file is already present for the visited function
-        //   // if true, parse it and add the defined function only when necessary
-        //   // if false, create this json file and add the defined function
-        //   {
-        //     boost::filesystem::path p(fct_filepath);
-        //     std::string basename = p.filename().string();
-        //     std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-        //     std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
-        //     file->get_or_create_declared_function(&fctDecl, fct_filepath, &otherJsonFiles);
-        //   }
+        currentJsonFile->get_or_create_declared_function(&fctDecl, fct_filepath, &otherJsonFiles);
+
     return true;
 }
 

@@ -9,6 +9,13 @@ int f(char *val, int denom, Toto toto)
   return div;
 }
 
+int g(char *val, int denom, Toto toto)
+{
+  printf("int g(val=%s, denom=%d, toto.name=%s, toto.nb=%d)\n", val, denom, toto.name, toto.nb);
+  int res = f(val, denom, toto);
+  return res;
+}
+
 int main()
 {
   printf("dataflow test\n");
@@ -17,7 +24,7 @@ int main()
   toto.name = tutu;
   int denom = 5;
   char label[] = "division: ";
-  int ret = f(label, denom, toto);
+  int ret = g(label, denom, toto);
   printf("div=20/%d=%d\n", denom, ret);
   return ret;
 }

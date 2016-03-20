@@ -331,6 +331,8 @@ namespace CallersData
       Virtuality virtuality = VNoVirtual;
   };
 
+  class Parameter;
+
   class FctDecl : public Fct
   {
     friend class Visitor;
@@ -343,6 +345,7 @@ namespace CallersData
       FctDecl(const FctDecl& copy_from_me);
       ~FctDecl();
 
+      void add_parameter(const CallersData::Parameter& parameter) const;
       void add_local_caller(std::string caller_sign) const;
       void add_external_caller(MangledName mangled, std::string sign, std::string file_pos) const;
       void add_external_caller(MangledName mangled, std::string sign, std::string file, int line) const;
@@ -354,6 +357,7 @@ namespace CallersData
       void add_redefinition(MangledName fct_mangled, std::string fct_sign, Virtuality redef_virtuality, std::string redef_file, int redef_line, std::string record) const;
       void add_thread(std::string thread) const;
 
+      void output_parameters(std::ostream &js) const;
       void output_threads(std::ostream &js) const;
       void output_local_callers(std::ostream &js) const;
       void output_external_callers(std::ostream &js) const;
@@ -365,6 +369,7 @@ namespace CallersData
 
       std::string file = CALLERS_NO_FCT_DECL_FILE;
       int line = -1;
+      std::set<Parameter> *parameters;
       std::set<std::string> *threads;
       std::set<ExtFctDecl> *redeclared;
       std::set<ExtFctDecl> *redeclarations;
@@ -445,6 +450,32 @@ namespace CallersData
       FctDecl callee;
     private:
       std::string id;
+  };
+
+  class Data
+  {
+    public:
+      Data();
+      Data(const Data& copy_from_me);
+      ~Data();
+  };
+
+  class NamedData : public Data
+  {
+    public:
+      NamedData(std::string name);
+      NamedData(const NamedData& copy_from_me);
+      ~NamedData();
+      std::string name;
+  };
+
+  class Parameter : public NamedData
+  {
+    public:
+      Parameter(std::string name, std::string type);
+      Parameter(const Parameter& copy_from_me);
+      ~Parameter();
+      std::string type;
   };
 
 }

@@ -41,23 +41,23 @@ then
     list_defined_symbols defined_symbols.gen.json
     #read_defined_symbols.native defined_symbols.json file.callers.gen.json
 
-    # add declarations to json files
-    source add_declarations.sh $callers_json_rootdir
+    # # add declarations to json files
+    # source add_declarations.sh $callers_json_rootdir
 
-    # add definitions to json files
-    source add_definitions.sh $callers_json_rootdir
+    # # add definitions to json files
+    # source add_definitions.sh $callers_json_rootdir
 
-    # add extcallees to json files
-    source add_extcallees.sh $callers_json_rootdir
+    # # add extcallees to json files
+    # source add_extcallees.sh $callers_json_rootdir
 
-    # add extcallers to json files
-    source add_extcallers.sh $callers_json_rootdir
+    # # add extcallers to json files
+    # source add_extcallers.sh $callers_json_rootdir
 
-    # add inherited to json files
-    source add_inherited.sh $callers_json_rootdir
+    # # add inherited to json files
+    # source add_inherited.sh $callers_json_rootdir
 
-    # add virtual function calls to json files
-    source add_virtual_function_calls.sh $callers_json_rootdir
+    # # add virtual function calls to json files
+    # source add_virtual_function_calls.sh $callers_json_rootdir
 
     # generate callee's tree from main entry point
     source extract_fcg.sh callees $canonical_pwd/test_local_callcycle.c "main" "int main()" files

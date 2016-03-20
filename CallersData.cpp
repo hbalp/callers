@@ -946,10 +946,7 @@ CallersData::File::create_or_get_namespace(std::string qualifiers, const clang::
       this->add_namespace(c_namespace);
       search_result = namespaces->find(searched_nspc);
       assert(search_result != namespaces->end());
-      // if(search_result != namespaces->end())
-      //   {
-      //     std::cout << "The namespace \"" << qualifiers << "\" is well present now !" << std::endl;
-      //   }
+      //std::cout << "The namespace \"" << qualifiers << "\" is well present now !" << std::endl;
     }
   return search_result;
 }
@@ -2848,11 +2845,7 @@ void CallersData::FctDecl::add_parameter(const CallersData::Parameter& parameter
       parameters->insert(param);
       search_result = parameters->find(parameter);
       assert(search_result != parameters->end());
-      // if(search_result != parameters->end())
-      //   {
-      //     std::cout << "the parameter \"" << parameter.name << "\" is well present now !" << std::endl;
-      //     this->print_cout();
-      //   }
+      //std::cout << "the parameter \"" << parameter.name << "\" is well present now !" << std::endl;
     }
   return;
 }
@@ -2874,7 +2867,8 @@ void CallersData::FctDecl::add_local_caller(std::string caller_sign) const
   {
     std::cout << "Add local caller \"" << caller_sign << "\" to callee method declaration \"" << this->sign << "\"" << std::endl;
   }
-  locallers->insert(sign);
+  assert(this->sign != caller_sign);
+  locallers->insert(caller_sign);
 }
 
 void CallersData::FctDecl::add_redeclared_method(const CallersData::ExtFctDecl& redecl_method) const
@@ -2900,11 +2894,7 @@ void CallersData::FctDecl::add_redeclared_method(const CallersData::ExtFctDecl& 
       redeclared->insert(redecl);
       search_result = redeclared->find(redecl_method);
       assert(search_result != redeclared->end());
-      // if(search_result != redeclared->end())
-      //   {
-      //     std::cout << "the redeclared method \"" << redecl_method.sign << "\" is well present now !" << std::endl;
-      //     this->print_cout();
-      //   }
+      //std::cout << "the redeclared method \"" << redecl_method.sign << "\" is well present now !" << std::endl;
     }
   return;
 }
@@ -2932,11 +2922,7 @@ void CallersData::FctDecl::add_redeclaration(const CallersData::ExtFctDecl& rede
       redeclarations->insert(redecl);
       search_result = redeclarations->find(redecl_method);
       assert(search_result != redeclarations->end());
-      // if(search_result != redeclarations->end())
-      //   {
-      //     std::cout << "the redeclaration \"" << redecl_method.sign << "\" is well present now !" << std::endl;
-      //     this->print_cout();
-      //   }
+      //std::cout << "the redeclaration \"" << redecl_method.sign << "\" is well present now !" << std::endl;
     }
   return;
 }
@@ -3404,7 +3390,8 @@ void CallersData::FctDef::add_local_callee(std::string callee_sign) const
   {
     std::cout << "Add local callee method \"" << callee_sign << "\" to function \"" << this->sign << "\", record=" << this->record << std::endl;
   }
-  locallees->insert(sign);
+  assert(this->sign != callee_sign);
+  locallees->insert(callee_sign);
 }
 
 void CallersData::FctDef::add_external_callee(MangledName callee_builtin, std::string callee_sign, std::string callee_decl_file_pos) const

@@ -38,23 +38,23 @@ then
     list_defined_symbols defined_symbols.json `pwd` dir.callers.gen.json
     #read_defined_symbols.native defined_symbols.json file.callers.gen.json
 
-    # add declarations to json files
-    source add_declarations.sh `pwd` $includes_directories
+    # # add declarations to json files
+    # source add_declarations.sh `pwd` $includes_directories
 
-    # add definitions to json files
-    source add_definitions.sh `pwd` $includes_directories
+    # # add definitions to json files
+    # source add_definitions.sh `pwd` $includes_directories
 
-    # add extcallees to json files
-    source add_extcallees.sh `pwd` defined_symbols.json
+    # # add extcallees to json files
+    # source add_extcallees.sh `pwd` defined_symbols.json
 
-    # add extcallers to json files
-    source add_extcallers.sh .
+    # # add extcallers to json files
+    # source add_extcallers.sh .
 
-    # add inherited to json files
-    source add_inherited.sh .
+    # # add inherited to json files
+    # source add_inherited.sh .
 
-    # add virtual function calls to json files
-    source add_virtual_function_calls.sh `pwd`
+    # # add virtual function calls to json files
+    # source add_virtual_function_calls.sh `pwd`
 
     source indent_jsonfiles.sh .
 

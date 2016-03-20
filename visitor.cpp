@@ -1013,6 +1013,8 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
    CallersData::FctDecl callee(callee_decl_mangledName, callee_decl_sign, callee_decl_virtuality, callee_decl_file, callee_decl_line,
                                callee_recordName, callee_recordFilePath);
 
+   VisitFunctionParameters(*constr, callee);
+
    CallersData::FctCall fc(caller, callee);
 
    currentJsonFile->add_function_call(&fc, &otherJsonFiles);
@@ -1076,6 +1078,8 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
             : (calleeMethod->isPure() ? CallersData::VVirtualPure
             : (calleeMethod->isThisDeclarationADefinition() ? CallersData::VVirtualDefined : CallersData::VVirtualDeclared)),
           callee_filepath, callee_filepos, callee_recordName, callee_recordFilePath);
+
+      VisitFunctionParameters(function, callee);
 
       CallersData::FctCall fc(caller, callee);
 
@@ -1142,6 +1146,8 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
                                      callee_filepath, callee_filepos,
                                      callee_recordName, callee_recordFilePath);
 
+         VisitFunctionParameters(*destructor, callee);
+
 	 CallersData::FctCall fc(caller, callee);
 
 	 currentJsonFile->add_function_call(&fc, &otherJsonFiles);
@@ -1203,6 +1209,8 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
 
       CallersData::FctDecl callee(fct_mangledName, callee_sign, CallersData::VNoVirtual, callee_filepath,
                                   callee_filepos, callee_recordName, callee_recordFilePath);
+
+      VisitFunctionParameters(operatorNew, callee);
 
       CallersData::FctCall fc(caller, callee);
 
@@ -1419,6 +1427,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
       CallersData::FctDef caller_def(caller_mangled, caller_sign, caller_virtuality, caller_def_file, caller_def_line, caller_decl_file, caller_decl_line, caller_recordName);
 
       CallersData::FctDecl callee_decl(callee_mangled, callee_sign, callee_virtuality, callee_decl_file, callee_decl_line, callee_recordName, callee_recordFilePath);
+      VisitFunctionParameters(*callee, callee_decl);
 
       CallersData::FctCall fc(caller_def, callee_decl);
       currentJsonFile->add_function_call(&fc, &otherJsonFiles);
@@ -1728,6 +1737,7 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
 
         // Complete the function definition with a new "declaration" entry
         CallersData::FctDecl fctDecl(fctDef_mangledName, fctDef_sign, virtualityDecl, fctDecl_file, fctDecl_line, fctDecl_recordName, fctDecl_recordFilePath);
+        VisitFunctionParameters(*functionDecl, fctDecl);
         if(fctDef_filepath == fctDecl_file)
         {
           std::ostringstream sline;
@@ -1836,7 +1846,7 @@ CallersAction::Visitor::VisitMethodDeclaration(clang::CXXMethodDecl* methodDecl)
         }
 
         CallersData::FctDecl fctDecl(fct_mangledName, fct_sign, virtualityDecl, fct_filepath, fct_line, fct_recordName, fct_recordFilePath);
-
+        VisitFunctionParameters(*methodDecl, fctDecl);
         currentJsonFile->get_or_create_declared_function(&fctDecl, fct_filepath, &otherJsonFiles);
 
     return true;

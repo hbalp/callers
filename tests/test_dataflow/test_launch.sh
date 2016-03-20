@@ -1,8 +1,7 @@
 #!/bin/bash
 
 #canonical_pwd="$PWD"
-canonical_pwd="/net/alpha.sc2.theresis.org/$PWD"
-#canonical_pwd="/net/alpha.sc2.theresis.org/works$PWD"
+canonical_pwd="/net/alpha.sc2.theresis.org$PWD"
 
 build_tool="cmake"
 #build_tool="scan-callers"

@@ -2826,21 +2826,21 @@ CallersData::FctDecl::FctDecl(const CallersData::FctDecl& copy_from_me)
 
 void CallersData::FctDecl::add_parameter(const CallersData::Parameter& parameter) const
 {
-  std::cout << "Check whether the parameter \"" << parameter.name << "\" is already present or not..." << std::endl;
+  // std::cout << "Check whether the parameter \"" << parameter.name << "\" is already present or not..." << std::endl;
 
   std::set<CallersData::Parameter>::iterator search_result;
   search_result = parameters->find(parameter);
   if(search_result != parameters->end())
     {
-      std::cout << "Already present parameter \"" << parameter.name
-                << "\" in function \"" << this->sign << "\", so do not add it twice."
-                << std::endl;
+      // std::cout << "Already present parameter \"" << parameter.name
+      //           << "\" in function \"" << this->sign << "\", so do not add it twice."
+      //           << std::endl;
     }
   else
     {
-      std::cout << "Add parameter \"" << parameter.name
-                << "\" to function \"" << this->sign << "\". "
-                << std::endl;
+      // std::cout << "Add parameter \"" << parameter.name
+      //           << "\" to function \"" << this->sign << "\". "
+      //           << std::endl;
       CallersData::Parameter param (parameter);
       parameters->insert(param);
       search_result = parameters->find(parameter);

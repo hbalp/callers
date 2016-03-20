@@ -1,12 +1,14 @@
 #!/bin/bash
 
+#canonical_pwd="$PWD"
+canonical_pwd="/net/alpha.sc2.theresis.org$PWD"
+
 common=`which common.sh`
 
 source $common
 
 ## generate callee's tree from main entry point
-#source extract_fcg.sh callees `pwd`/test_dataflow.c "main" "int main()" files
-source extract_fcg.sh callees `pwd`/test_dataflow.cpp "main" "int main()" files
+source extract_fcg.sh callees ${canonical_pwd}/test_dataflow.cpp "main" "int main()" files
 
 # ## generate caller's tree from main entry point
 # #source extract_fcg.sh callers `pwd`/test_dataflow.cpp "main" "int main()" files

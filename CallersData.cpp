@@ -2859,6 +2859,12 @@ void CallersData::FctDecl::add_thread(std::string thread_id) const
 
 void CallersData::FctDecl::add_local_caller(std::string caller_sign) const
 {
+  if(this->sign == caller_sign)
+  {
+    std::cout << "WARNING: Do not add recursive local call from caller function \"" << caller_sign << "\" to itself \" ! " << std::endl;
+    return;
+  }
+
   if(recordName == CALLERS_DEFAULT_RECORD_NAME)
   {
     std::cout << "Add local caller \"" << caller_sign << "\" to callee function declaration \"" << this->sign << "\"" << std::endl;
@@ -2867,7 +2873,7 @@ void CallersData::FctDecl::add_local_caller(std::string caller_sign) const
   {
     std::cout << "Add local caller \"" << caller_sign << "\" to callee method declaration \"" << this->sign << "\"" << std::endl;
   }
-  assert(this->sign != caller_sign);
+
   locallers->insert(caller_sign);
 }
 
@@ -3382,6 +3388,12 @@ void CallersData::FctDef::add_thread(std::string thread_id) const
 
 void CallersData::FctDef::add_local_callee(std::string callee_sign) const
 {
+  if(this->sign == callee_sign)
+  {
+    std::cerr << "WARNING: Do not add recursive local call from callee function \"" << callee_sign << "\" to itself \" ! " << std::endl;
+    return;
+  }
+
   if(this->record == CALLERS_DEFAULT_RECORD_NAME)
   {
     std::cout << "Add local callee function \"" << callee_sign << "\" to function \"" << this->sign << "\"" << std::endl;
@@ -3390,7 +3402,7 @@ void CallersData::FctDef::add_local_callee(std::string callee_sign) const
   {
     std::cout << "Add local callee method \"" << callee_sign << "\" to function \"" << this->sign << "\", record=" << this->record << std::endl;
   }
-  assert(this->sign != callee_sign);
+
   locallees->insert(callee_sign);
 }
 

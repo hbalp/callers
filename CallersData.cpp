@@ -556,6 +556,58 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                     }
                   }
 
+                  if(rc.HasMember("members"))
+                  {
+                    const rapidjson::Value& members = rc["members"];
+                    if(members.IsArray())
+                    {
+                      // rapidjson uses SizeType instead of size_t.
+                      for (rapidjson::SizeType s = 0; s < members.Size(); s++)
+                        {
+                          const rapidjson::Value& mb = members[s];
+                          const rapidjson::Value& mb_member = mb["member"];
+                          const rapidjson::Value& mb_kind = mb["kind"];
+
+                          std::string member = mb_member.GetString();
+                          std::string kind = mb_kind.GetString();
+                          // std::cout << "Parsed member: \"" << member << ", kind: " << kind << std::endl;
+                          record.add_member(member, kind);
+                        }
+                    }
+                  }
+
+                  if(rc.HasMember("calls"))
+                  {
+                    const rapidjson::Value& calls = rc["calls"];
+                    if(calls.IsArray())
+                    {
+                      // rapidjson uses SizeType instead of size_t.
+                      for (rapidjson::SizeType s = 0; s < calls.Size(); s++)
+                        {
+                          const rapidjson::Value& def = calls[s];
+                          std::string called_record = def.GetString();
+                          std::cout << "Parsed called record: \"" << called_record << std::endl;
+                          record.add_record_call(called_record);
+                        }
+                    }
+                  }
+
+                  if(rc.HasMember("called"))
+                  {
+                    const rapidjson::Value& called = rc["called"];
+                    if(called.IsArray())
+                    {
+                      // rapidjson uses SizeType instead of size_t.
+                      for (rapidjson::SizeType s = 0; s < called.Size(); s++)
+                        {
+                          const rapidjson::Value& def = called[s];
+                          std::string caller_record = def.GetString();
+                          std::cout << "Parsed caller record: \"" << caller_record << std::endl;
+                          record.add_record_called(caller_record);
+                        }
+                    }
+                  }
+
                   this->get_or_create_record(&record, files);
                   // std::cout << "Parsed record r[" << s << "]:\"" << name << "\"" << std::endl;
                 }
@@ -1523,17 +1575,17 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 	{
 	  std::cout << "The callee function is defined externally as the caller !!!" << std::endl;
 
-	  // check first whether a json file is already present for the callee function
-	  // if true, parse it and add the defined function only when necessary
-	  // if false, create the callee json file and add the defined function
-	  boost::filesystem::path p(fc->callee.file);
-	  std::string callee_basename = p.filename().string();
-	  std::string callee_dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-	  std::set<CallersData::File>::iterator callee_file = files->create_or_get_file(callee_basename, callee_dirpath);
-	  //CallersData::File callee_file(callee_basename, callee_dirpath);
-	  //callee_file.parse_json_file();
-	  CallersData::FctDecl callee_decl(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.file, fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
-	  callee_file->get_or_create_declared_function(&callee_decl, fc->callee.file, files);
+          // check first whether a json file is already present for the callee function
+          // if true, parse it and add the defined function only when necessary
+          // if false, create the callee json file and add the defined function
+          boost::filesystem::path p(fc->callee.file);
+          std::string callee_basename = p.filename().string();
+          std::string callee_dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+          std::set<CallersData::File>::iterator callee_file = files->create_or_get_file(callee_basename, callee_dirpath);
+          //CallersData::File callee_file(callee_basename, callee_dirpath);
+          //callee_file.parse_json_file();
+          CallersData::FctDecl callee_decl(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.file, fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
+          callee_file->get_or_create_declared_function(&callee_decl, fc->callee.file, files);
 
 	  // get a reference to the related defined function
 	  callee = callee_file->declared->find(callee_decl);
@@ -1562,6 +1614,32 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 	      caller->add_external_callee(fc->callee.mangled, fc->callee.sign, fc->callee.file, fc->callee.line);
 	    }
 	}
+    }
+
+    // Check whether the caller function is a method of a record different from callee method
+    if((fc->caller.record != fc->callee.recordName)&&
+       (fc->caller.record != CALLERS_DEFAULT_NO_RECORD_NAME))
+    {
+       // get the fct caller's record declaration
+      CallersData::Record caller_rc(fc->caller.record, fc->caller.decl_file);
+      std::set<CallersData::Record>::iterator caller_record = this->get_or_create_record(&caller_rc, files);
+      assert(caller_record != records->end());
+
+      // Check whether the called function is a method
+      if((fc->callee.recordName != CALLERS_DEFAULT_NO_RECORD_NAME) &&
+         (fc->callee.recordFilePath != CALLERS_DEFAULT_NO_RECORD_PATH))
+        {
+          // Add a record call to the caller record
+          caller_record->add_record_call(fc->callee.recordName);
+
+           // get the called function's record declaration
+          CallersData::Record callee_rc(fc->callee.recordName, fc->callee.recordFilePath);
+          std::set<CallersData::Record>::iterator callee_record = this->get_or_create_record(&callee_rc, files);
+          assert(callee_record != records->end());
+
+          // Add a record called to the callee record
+          callee_record->add_record_called(fc->caller.record);
+        }
     }
 }
 
@@ -2106,7 +2184,7 @@ void CallersData::Inheritance::output_json_desc(std::ofstream &js) const
      << ",\"fin\":" << end << "}";
 }
 
-bool CallersData::operator< (const CallersData::Inheritance& inheritance1, 
+bool CallersData::operator< (const CallersData::Inheritance& inheritance1,
 			     const CallersData::Inheritance& inheritance2)
 {
   return inheritance1.name < inheritance2.name;
@@ -2119,8 +2197,11 @@ void CallersData::Record::allocate()
   inherits = new std::set<CallersData::Inheritance>;
   inherited = new std::set<CallersData::Inheritance>;
   methods = new std::set<std::string>;
+  members = new std::set<std::pair<std::string, std::string>>;
   redeclared_methods = new std::set<std::pair<std::string, CallersData::ExtFctDecl>>;
   redeclarations = new std::set<std::pair<std::string, CallersData::ExtFctDecl>>;
+  calls = new std::set<std::string>;
+  called = new std::set<std::string>;
 }
 
 CallersData::Record::~Record()
@@ -2128,8 +2209,11 @@ CallersData::Record::~Record()
   delete inherits;
   delete inherited;
   delete methods;
+  delete members;
   delete redeclared_methods;
   delete redeclarations;
+  delete calls;
+  delete called;
 }
 
 CallersData::Record::Record(std::string name, std::string file)
@@ -2162,8 +2246,8 @@ CallersData::Record::Record(const CallersData::Record& copy_from_me)
   file = copy_from_me.file;
   begin = copy_from_me.begin;
   end = copy_from_me.end;
-  std::set<Inheritance>::const_iterator b;
 
+  std::set<Inheritance>::const_iterator b;
   for(b=copy_from_me.inherits->begin(); b!=copy_from_me.inherits->end(); ++b)
     {
       inherits->insert(*b);
@@ -2180,6 +2264,12 @@ CallersData::Record::Record(const CallersData::Record& copy_from_me)
       methods->insert(*m);
     }
 
+  std::set<std::pair<std::string, std::string>>::const_iterator f;
+  for(f=copy_from_me.members->begin(); f!=copy_from_me.members->end(); ++f)
+    {
+      members->insert(*f);
+    }
+
   std::set<std::pair<std::string,CallersData::ExtFctDecl>>::const_iterator rm;
   for(rm=copy_from_me.redeclared_methods->begin(); rm!=copy_from_me.redeclared_methods->end(); ++rm)
     {
@@ -2190,6 +2280,17 @@ CallersData::Record::Record(const CallersData::Record& copy_from_me)
     {
       redeclarations->insert(*rm);
     }
+
+  std::set<std::string>::const_iterator cr;
+  for(cr=copy_from_me.calls->begin(); cr!=copy_from_me.calls->end(); ++cr)
+    {
+      calls->insert(*cr);
+    }
+
+  for(cr=copy_from_me.called->begin(); cr!=copy_from_me.called->end(); ++cr)
+    {
+      called->insert(*cr);
+    }
 }
 
 void CallersData::Record::add_method(std::string method) const
@@ -2198,6 +2299,32 @@ void CallersData::Record::add_method(std::string method) const
   std::cout << "Add method \"" << method
 	    << " to class " << this->name
 	    << std::endl;
+}
+
+void CallersData::Record::add_member(std::string member, std::string type) const
+{
+  members->insert(std::make_pair(member, type));
+  std::cout << "Add member \"" << member << " with type " << type
+	    << " to class " << this->name
+	    << std::endl;
+}
+
+void CallersData::Record::add_record_call(std::string calleeRecordName) const
+{
+  calls->insert(calleeRecordName);
+  std::cout << "Add call from record " << this->name
+            << " to another record \"" << calleeRecordName
+	    << std::endl;
+  assert(this->name != calleeRecordName);
+}
+
+void CallersData::Record::add_record_called(std::string callerRecordName) const
+{
+  called->insert(callerRecordName);
+  std::cout << "Add call to record " << this->name
+            << " from record \"" << callerRecordName
+	    << std::endl;
+  assert(this->name != callerRecordName);
 }
 
 void CallersData::Record::add_redeclared_method(std::string baseRecordName, CallersData::ExtFctDecl redecl_method) const
@@ -2434,6 +2561,53 @@ void CallersData::Record::output_json_desc(std::ofstream &js) const
       else
 	{
 	  js << "\"" << *m << "\"";
+	}
+    }
+
+  js << "],\"members\":[";
+
+  std::set<std::pair<std::string, std::string>>::const_iterator f, last_f;
+  last_f = members->empty() ? members->end() : --members->end();
+  for(f=members->begin(); f!=members->end(); ++f)
+    {
+      if(f != last_f)
+	{
+	  js << "{\"member\":\"" << f->first << "," << "\",\"kind\":" << f->second << "\"},";
+	}
+      else
+	{
+	  js << "{\"member\":\"" << f->first << "," << "\",\"kind\":" << f->second << "\"},";
+	}
+    }
+
+  js << "],\"calls\":[";
+
+  std::set<std::string>::const_iterator cr, last_cr;
+  last_cr = calls->empty() ? calls->end() : --calls->end();
+  for(cr=calls->begin(); cr!=calls->end(); ++cr)
+    {
+      if(cr != last_cr)
+	{
+	  js << "\"" << *cr << "\",";
+	}
+      else
+	{
+	  js << "\"" << *cr << "\"";
+	}
+    }
+
+  js << "],\"called\":[";
+
+  last_cr = called->empty() ? called->end() : --called->end();
+  for(cr=called->begin(); cr!=called->end(); ++cr)
+    {
+      if(cr != last_cr)
+	{
+	  js << "\"" << *cr << "\",";
+	}
+      else
+	{
+	  js << "\"" << *cr << "\"";
 	}
     }
 

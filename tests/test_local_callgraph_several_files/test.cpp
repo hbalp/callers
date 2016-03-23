@@ -32,16 +32,19 @@ int main()
   return 0;
 }
 
+namespace tintin {
+
+  int coucou1()
+  {
+    printf("coucou1()\n");
+    return 0;
+  }
+}
+
 B* A::get_b()
 {
   printf("get_b()\n");
   return &m_b;
-}
-
-int coucou1()
-{
-  printf("coucou1()\n");
-  return 0;
 }
 
 

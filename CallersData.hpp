@@ -173,7 +173,7 @@ namespace CallersData
 
   class ExtFctDecl;
 
-    /* Record class to store "class" or "struct" definitions */
+  /* Record class to store "class" or "struct" definitions */
   class Record
   {
     friend class File;
@@ -193,6 +193,9 @@ namespace CallersData
       // void add_friend_method(std::string name) const;
       // For the moment, all methods are considered the same.
       void add_method(std::string name) const;
+      void add_member(std::string member, std::string type) const;
+      void add_record_call(std::string otherRecordName) const;
+      void add_record_called(std::string otherRecordName) const;
       void add_redeclared_method(std::string base_class, ExtFctDecl redecl_method) const;
       void add_redeclaration(std::string base_class, ExtFctDecl redeclaration) const;
       std::set<std::pair<std::string, CallersData::ExtFctDecl>>::const_iterator get_redeclared_method(std::string method_sign) const;
@@ -213,6 +216,9 @@ namespace CallersData
     private:
       std::set<Inheritance> *inherits;
       std::set<std::string> *methods;
+      std::set<std::pair<std::string, std::string>> *members;
+      std::set<std::string> *calls;
+      std::set<std::string> *called;
       // std::set<std::string> *public_methods;
       // std::set<std::string> *private_methods;
       // std::set<std::string> *friend_methods;
@@ -282,9 +288,6 @@ namespace CallersData
 
   class ExtFct
   {
-    // friend class Record;
-    // friend class FctDecl;
-    // friend bool operator< (const CallersData::ExtFct& fct1, const CallersData::ExtFct& fct2);
     public:
       ExtFct(MangledName mangled, std::string sign, std::string fct_loc);
       ExtFct(const ExtFct& copy_from_me);

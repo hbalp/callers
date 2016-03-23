@@ -8,6 +8,7 @@ namespace Newly
     int D::c()
     {
       printf("D::c()\n");
+      ::tintin::coucou1();
       return 0;
     }
   };

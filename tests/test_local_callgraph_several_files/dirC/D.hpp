@@ -4,6 +4,10 @@
 #include <stdio.h>
 #include "C.hpp"
 
+namespace tintin {
+  int coucou1();
+}
+
 namespace Newly {
 
   namespace Added {

@@ -97,7 +97,8 @@ namespace CallersData
       std::set<CallersData::Record>::iterator get_or_create_local_record(CallersData::Record *record) const;
       // std::set<CallersData::Record>::iterator get_record(std::string recordName, std::string recordFilePath, Dir* allJsonFiles) const;
       // std::set<CallersData::Record>::iterator get_local_record(std::string recordName, std::string recordFilePath) const;
-      void try_to_add_redeclared_and_redeclaration_methods(FctDecl *fct_decl, std::string fct_filepath, Dir* allJsonFiles) const;
+      void try_to_add_redeclared_and_redeclaration_methods(Dir* allJsonFiles) const;
+      void try_to_add_redeclared_and_redeclaration_methods(const FctDecl& fct_decl, std::string fct_filepath, Dir* allJsonFiles) const;
       // void add_redeclared_method(FctDecl* fct_decl, std::string fct_filepath, Dir* allJsonFiles) const;
       // void add_redeclaration(FctDecl* fct_decl, std::string fct_filepath, Dir* allJsonFiles) const;
       void add_thread(Thread* thread, Dir *files) const;

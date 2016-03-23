@@ -250,15 +250,19 @@ std::set<CallersData::File>::iterator CallersData::Dir::create_or_get_file(std::
     }
   else
     {
-      //std::cout << "The file \"" << filepath << "\" is not yet opened." << std::endl;
-      std::cout << "Tries to open and parse the file \"" << filepath << "\"..." << std::endl;
+      std::cout << "The file \"" << filepath << "\" is not yet registered in dir." << std::endl;
       CallersData::File file(filename, dirpath);
-      file.parse_json_file(this);
       this->add_file(file);
       search_result = files.find(searched_file);
       if(search_result != files.end())
 	{
-	  std::cout << "The file \"" << filepath << "\" is well opened now !" << std::endl;
+	  std::cout << "The file \"" << filepath << "\" is well registered in dir \"" << this->dir << "\" now !" << std::endl;
+          std::cout << "Tries to open and parse the file \"" << filepath << "\"..." << std::endl;
+          file.parse_json_file(this);
+	  std::cout << "The file \"" << filepath << "\" is well opened and parsed now !" << std::endl;
+
+          // // complete the parsed fct_decl with a redeclared method when needed
+          // search_result->try_to_add_redeclared_and_redeclaration_methods(this);
 	}
       else
 	{
@@ -1140,9 +1144,6 @@ void CallersData::File::add_declared_function(CallersData::FctDecl* fct, std::st
 	    << fct->line << "\"" << std::endl;
   assertSameFile(fct_filepath);
 
-  // complete the fct_decl with a redeclared method when needed
-  this->try_to_add_redeclared_and_redeclaration_methods(fct, fct_filepath, files);
-
   declared->insert(*fct);
 }
 
@@ -1170,6 +1171,10 @@ CallersData::File::get_or_create_local_declared_function(CallersData::FctDecl *f
       // so a valid fct_decl should have been succesfully retrieved
       assert(search_result != this->declared->end());
     }
+
+  // complete the fct_decl with a redeclared method when needed
+  this->try_to_add_redeclared_and_redeclaration_methods(*search_result, decl_filepath, files);
+
   return search_result;
 }
 
@@ -1560,34 +1565,44 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
     }
 }
 
-void CallersData::File::try_to_add_redeclared_and_redeclaration_methods(FctDecl *fct_decl, std::string fct_filepath, CallersData::Dir* files) const
+void CallersData::File::try_to_add_redeclared_and_redeclaration_methods(CallersData::Dir* files) const
+{
+  // browse file functions declarations
+  std::set<FctDecl>::const_iterator d;
+  for(d=declared->begin(); d!=declared->end(); ++d)
+    {
+      this->try_to_add_redeclared_and_redeclaration_methods(*d, this->filepath, files);
+    }
+}
+
+void CallersData::File::try_to_add_redeclared_and_redeclaration_methods(const FctDecl& fct_decl, std::string fct_filepath, CallersData::Dir* files) const
 {
   // Check whether the input function decl is a method and its record is well defined
-  if((fct_decl->recordName != CALLERS_DEFAULT_NO_RECORD_NAME) &&
-     (fct_decl->recordName != CALLERS_DEFAULT_RECORD_BUILTIN))
+  if((fct_decl.recordName != CALLERS_DEFAULT_NO_RECORD_NAME) &&
+     (fct_decl.recordName != CALLERS_DEFAULT_RECORD_BUILTIN))
   {
-    std::cout << "CallersData::File::try_to_add_local_redeclared_and_redeclaration_methods:DEBUG: sign=\"" << fct_decl->sign
-              << "\", recordName=\"" << fct_decl->recordName << "\""
-              << "\", recordFile=\"" << fct_decl->recordFilePath << "\""
+    std::cout << "CallersData::File::try_to_add_local_redeclared_and_redeclaration_methods:DEBUG: sign=\"" << fct_decl.sign
+              << "\", recordName=\"" << fct_decl.recordName << "\""
+              << "\", recordFile=\"" << fct_decl.recordFilePath << "\""
               << "\", fct_file=\"" << fct_filepath << "\"" << std::endl;
 
     // check consistency of record file path
-    assert(fct_decl->recordFilePath != CALLERS_DEFAULT_RECORD_PATH);
-    assert(fct_decl->recordFilePath != CALLERS_DEFAULT_NO_RECORD_PATH);
+    assert(fct_decl.recordFilePath != CALLERS_DEFAULT_RECORD_PATH);
+    assert(fct_decl.recordFilePath != CALLERS_DEFAULT_NO_RECORD_PATH);
 
     // Make sure the fct_decl belongs to the current file
-    assertSameFile(fct_filepath, fct_decl->file);
+    assertSameFile(fct_filepath, fct_decl.file);
 
     // the fct_decl's belongs to the current file
-    std::cout << "The fct_decl \"" << fct_decl->sign << "\" belongs to the current file" << std::endl;
+    std::cout << "The fct_decl \"" << fct_decl.sign << "\" belongs to the current file" << std::endl;
 
     // get the fct_decl's record declaration
-    CallersData::Record rc(fct_decl->recordName, fct_decl->recordFilePath);
+    CallersData::Record rc(fct_decl.recordName, fct_decl.recordFilePath);
     std::set<CallersData::Record>::iterator record = this->get_or_create_record(&rc, files);
     assert(record != records->end());
 
     // check whether the current method is a redeclared method
-    auto redecl_method = record->get_redeclared_method(fct_decl->sign);
+    auto redecl_method = record->get_redeclared_method(fct_decl.sign);
     if(redecl_method != record->redeclared_methods->end())
     {
       std::string redecl_method_pos = CALLERS_NO_FCT_DECL_FILE;
@@ -1605,15 +1620,15 @@ void CallersData::File::try_to_add_redeclared_and_redeclaration_methods(FctDecl 
       // add a redeclared method to the child method declaration
       {
         CallersData::ExtFctDecl base_virtual_method( redecl_method->second.mangled, redecl_method->second.sign, redecl_method->second.fctLoc);
-        fct_decl->add_redeclared_method(base_virtual_method);
+        fct_decl.add_redeclared_method(base_virtual_method);
       }
 
       // add a redeclaration to the base virtual method
       {
         std::ostringstream pos;
-        pos << fct_decl->line;
-        std::string fct_decl_pos = fct_decl->file + ":" + pos.str();
-        CallersData::ExtFctDecl child_redeclared_method(fct_decl->mangled, fct_decl->sign, fct_decl_pos);
+        pos << fct_decl.line;
+        std::string fct_decl_pos = fct_decl.file + ":" + pos.str();
+        CallersData::ExtFctDecl child_redeclared_method(fct_decl.mangled, fct_decl.sign, fct_decl_pos);
         base_virt_method->add_redeclaration(child_redeclared_method);
       }
     }

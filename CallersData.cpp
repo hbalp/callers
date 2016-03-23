@@ -258,7 +258,7 @@ std::set<CallersData::File>::iterator CallersData::Dir::create_or_get_file(std::
 	{
 	  std::cout << "The file \"" << filepath << "\" is well registered in dir \"" << this->dir << "\" now !" << std::endl;
           std::cout << "Tries to open and parse the file \"" << filepath << "\"..." << std::endl;
-          file.parse_json_file(this);
+          search_result->parse_json_file(this);
 	  std::cout << "The file \"" << filepath << "\" is well opened and parsed now !" << std::endl;
 
           // // complete the parsed fct_decl with a redeclared method when needed

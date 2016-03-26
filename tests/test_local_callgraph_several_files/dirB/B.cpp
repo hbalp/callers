@@ -24,7 +24,7 @@ B::B()
 int B::b()
 {
   printf("b()\n");
-  c();
+  ::c();
   return 0;
 }
 

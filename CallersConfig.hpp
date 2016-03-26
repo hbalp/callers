@@ -34,6 +34,8 @@
 #define CALLERS_DEFAULT_NO_THREAD_ID   "noThread"
 #define CALLERS_DEFAULT_RECORD_BUILTIN "env"
 
+#define CALLERS_DEFAULT_NO_NAMESPACE_NAME "::"
+
 #define CALLERS_NO_FILE_PATH     "unknownFilePath"
 #define CALLERS_NO_FILE_NAME     "unknownFileName"
 #define CALLERS_NO_FCT_DEF_FILE  "unknownFctDefFile"

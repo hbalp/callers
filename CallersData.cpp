@@ -40,7 +40,7 @@ extern std::string getCanonicalAbsolutePath(const std::string& path);
 const std::string gc_root_prefix(CALLERS_ROOTDIR_PREFIX);
 
 // return true if the prefix is well present and false otherwise
-bool id_has_prefix(std::string prefix, std::string identifier)
+bool id_contains(std::string prefix, std::string identifier)
 {
   // Check whether the identifier does well begins with prefix
   bool has_prefix = boost::algorithm::contains(identifier, prefix);
@@ -51,7 +51,7 @@ bool id_has_prefix(std::string prefix, std::string identifier)
 void assert_rootdir_prefix(std::string path)
 {
   // Check whether the path does well begins with root dir prefix
-  bool has_prefix = id_has_prefix(gc_root_prefix, path);
+  bool has_prefix = id_contains(gc_root_prefix, path);
   assert(has_prefix == true);
   return;
 }
@@ -60,7 +60,7 @@ void assert_homedir_prefix(std::string path)
 {
   // Check whether the path does not begins with home dir prefix
   std::string home_prefix ("/tmp/callers/home");
-  bool has_prefix = id_has_prefix(home_prefix, path);
+  bool has_prefix = id_contains(home_prefix, path);
   if(has_prefix == true)
   {
     std::cerr << "DEBUG: Bad Directory prefix: /tmp/callers/home" << std::cerr;
@@ -74,7 +74,7 @@ void assert_homedir_prefix(std::string path)
 std::string check_rootdir_prefix(std::string path)
 {
   // Check whether the path dir does well begins with root dir prefix
-  bool has_prefix = id_has_prefix(gc_root_prefix, path);
+  bool has_prefix = id_contains(gc_root_prefix, path);
   if( has_prefix )
     {
       // the post-condition is ok, so nothing to do
@@ -94,13 +94,33 @@ std::string check_rootdir_prefix(std::string path)
 std::string id_filter_prefix(std::string prefix, std::string identifier)
 {
   // Check whether the string does well begins with the prefix
-  bool has_prefix = id_has_prefix(prefix, identifier);
+  bool has_prefix = id_contains(prefix, identifier);
   if( has_prefix )
     // remove the prefix from the input identifier
     {
       std::vector<std::string> parts;
       boost::algorithm::split_regex(parts, identifier, boost::regex(prefix));
       std::vector<std::string>::iterator part = parts.end();
+      std::string filtered_identifier = *part;
+      return filtered_identifier;
+    }
+  else
+    {
+      // the post-condition is ok, so nothing to do
+      return identifier;
+    }
+}
+
+std::string id_filter_suffix(std::string suffix, std::string identifier)
+{
+  // Check whether the string does well begins with the suffix
+  bool has_suffix = id_contains(suffix, identifier);
+  if( has_suffix )
+    // remove the suffix from the input identifier
+    {
+      std::vector<std::string> parts;
+      boost::algorithm::split_regex(parts, identifier, boost::regex(suffix));
+      std::vector<std::string>::iterator part = parts.begin();
       std::string filtered_identifier = *part;
       return filtered_identifier;
     }
@@ -657,8 +677,15 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                       virtuality = VNoVirtual;
                     }
 
+                  std::string nspc = CALLERS_DEFAULT_NO_NAMESPACE_NAME;
+                  if(symb.HasMember("nspc"))
+                    {
+                      const rapidjson::Value& nspc_value = symb["nspc"];
+                      std::string nspc = nspc_value.GetString();
+                    }
+
                   int pos = line.GetInt();
-                  CallersData::FctDecl fctDecl(mangled, symbol, virtuality, this->filename, pos, recordName, recordFilePath);
+                  CallersData::FctDecl fctDecl(mangled, symbol, virtuality, nspc, this->filename, pos, recordName, recordFilePath);
 
                   if(symb.HasMember("params"))
                   {
@@ -846,12 +873,19 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                       virtuality = VNoVirtual;
                     }
 
+                  std::string nspc = CALLERS_DEFAULT_NO_NAMESPACE_NAME;
+                  if(symb.HasMember("nspc"))
+                    {
+                      const rapidjson::Value& nspc_value = symb["nspc"];
+                      std::string nspc = nspc_value.GetString();
+                    }
+
                   int def_pos = def_line.GetInt();
                   // std::ostringstream sdef_pos;
                   // sdef_pos << def_pos;
                   // std::string def_location(filepath + ":" + sdef_pos.str());
                   // symbol_location.insert(SymbLoc::value_type(symbol, def_location));
-                  CallersData::FctDef fctDef(mangled, symbol, virtuality, this->filename, def_pos, decl_file, decl_line,  record);
+                  CallersData::FctDef fctDef(mangled, symbol, virtuality, nspc, this->filename, def_pos, decl_file, decl_line,  record);
 
                   if(symb.HasMember("locallees"))
                   {
@@ -1161,7 +1195,7 @@ void CallersData::File::add_thread(CallersData::Thread *thr, CallersData::Dir *f
   // Register the thread instance in the caller function def
   assert(thr->caller_file == this->filepath);
   // get a reference to the thread caller definition (if well present as expected)
-  CallersData::FctDef thr_caller_def(thr->caller_mangled, thr->caller_sign, thr->caller_virtuality,
+  CallersData::FctDef thr_caller_def(thr->caller_mangled, thr->caller_sign, thr->caller_virtuality, thr->caller_nspc,
                                      thr->caller_file, thr->caller_line, thr->caller_decl_file, thr->caller_decl_line,
                                      thr->caller_recordName /*, thr->caller_recordFilePath*/);
   auto caller_def = defined->find(thr_caller_def);
@@ -1172,7 +1206,7 @@ void CallersData::File::add_thread(CallersData::Thread *thr, CallersData::Dir *f
   // add the thread to the routine decl
   assert(thr->routine_file == this->filepath);
   // get a reference to the thread routine declaration (if well present as expected)
-  CallersData::FctDecl thr_routine_decl(thr->routine_mangled, thr->routine_sign, thr->routine_virtuality,
+  CallersData::FctDecl thr_routine_decl(thr->routine_mangled, thr->routine_sign, thr->routine_virtuality, thr->routine_nspc,
                                         thr->routine_file, thr->routine_line, thr->routine_recordName, thr->routine_recordFilePath);
   routine_decl = declared->find(thr_routine_decl);
   // ensure routine decl has really been found
@@ -1367,11 +1401,11 @@ void CallersData::File::add_defined_function(CallersData::FctDef* fct_def, std::
   }
 }
 
-void CallersData::File::add_defined_function(MangledName fct_mangled, std::string fct_sign, Virtuality fct_virtuality,
+void CallersData::File::add_defined_function(MangledName fct_mangled, std::string fct_sign, Virtuality fct_virtuality, std::string fct_nspc,
 					     std::string fct_def_file, int fct_def_line, std::string fct_def_filepath,
                                              std::string fct_decl_file, int fct_decl_line, std::string record, CallersData::Dir *otherJsonFiles) const
 {
-  FctDef fct_def(fct_mangled, fct_sign, fct_virtuality, fct_def_file, fct_def_line, fct_decl_file, fct_decl_line, record);
+  FctDef fct_def(fct_mangled, fct_sign, fct_virtuality, fct_nspc, fct_def_file, fct_def_line, fct_decl_file, fct_decl_line, record);
 
   // Check whether the defined function has well to be added to the current file.
   if(!this->is_same_file(fct_def_filepath, fct_def_file))
@@ -1451,9 +1485,9 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
       std::cout << "The caller function belongs to the current file" << std::endl;
 
       // adds the caller function to the defined functions of the current file
-      add_defined_function(fc->caller.mangled, fc->caller.sign, fc->caller.virtuality, fc->caller.def_file, fc->caller.def_line, fc->caller.def_file, fc->caller.decl_file, fc->caller.decl_line, fc->caller.record, files);
+      add_defined_function(fc->caller.mangled, fc->caller.sign, fc->caller.virtuality, fc->caller.nspc, fc->caller.def_file, fc->caller.def_line, fc->caller.def_file, fc->caller.decl_file, fc->caller.decl_line, fc->caller.record, files);
       // get a reference to the related defined function
-      CallersData::FctDef caller_fct(fc->caller.mangled, fc->caller.sign, fc->caller.virtuality, fc->caller.def_file, fc->caller.def_line, fc->caller.decl_file, fc->caller.decl_line, fc->caller.record);
+      CallersData::FctDef caller_fct(fc->caller.mangled, fc->caller.sign, fc->caller.virtuality, fc->caller.nspc, fc->caller.def_file, fc->caller.def_line, fc->caller.decl_file, fc->caller.decl_line, fc->caller.record);
       caller = defined->find(caller_fct);
       // ensure caller has really been found
       assert(caller != defined->end());
@@ -1466,12 +1500,12 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 	  std::cout << "The callee function belongs to the current file" << std::endl;
 
 	  // adds the callee function to the declared functions of the current file
-          CallersData::FctDecl fctDecl(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.file,
+          CallersData::FctDecl fctDecl(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.nspc, fc->callee.file,
                                        fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
           this->get_or_create_declared_function(&fctDecl, fc->callee.file, files);
 
 	  // get a reference to the related declared function
-	  CallersData::FctDecl callee_fct(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.file,
+	  CallersData::FctDecl callee_fct(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.nspc, fc->callee.file,
                                           fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
 	  callee = declared->find(callee_fct);
 	  // ensure callee has really been found
@@ -1497,7 +1531,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 	  std::set<CallersData::File>::iterator callee_file = files->create_or_get_file(callee_basename, callee_dirpath);
 	  //CallersData::File callee_file(callee_basename, callee_dirpath);
 	  //callee_file.parse_json_file();
-	  CallersData::FctDecl callee_decl(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.file,
+	  CallersData::FctDecl callee_decl(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.nspc, fc->callee.file,
                                            fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath, fc->callee.is_builtin);
 	  callee_file->get_or_create_declared_function(&callee_decl, fc->callee.file, files);
 
@@ -1539,7 +1573,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
       std::set<CallersData::File>::iterator caller_file = files->create_or_get_file(caller_basename, caller_dirpath);
       // CallersData::File caller_file(caller_basename, caller_dirpath);
       // caller_file.parse_json_file();
-      CallersData::FctDef caller_def(fc->caller.mangled, fc->caller.sign, fc->caller.virtuality,
+      CallersData::FctDef caller_def(fc->caller.mangled, fc->caller.sign, fc->caller.virtuality, fc->caller.nspc,
                                      fc->caller.def_file, fc->caller.def_line, fc->caller.decl_file, fc->caller.decl_line, fc->caller.record);
       caller_file->add_defined_function(&caller_def, fc->caller.def_file, files);
       // get a reference to the related defined function
@@ -1555,11 +1589,11 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 	  std::cout << "The callee function belongs to the current file" << std::endl;
 
 	  // adds the callee function to the declared functions of the current file
-          CallersData::FctDecl fctDecl(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.file, fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
+          CallersData::FctDecl fctDecl(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.nspc, fc->callee.file, fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
 	  this->get_or_create_declared_function(&fctDecl, fc->callee.file, files);
 
 	  // get a reference to the related defined function
-	  CallersData::FctDecl callee_fct(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.file, fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
+	  CallersData::FctDecl callee_fct(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.nspc, fc->callee.file, fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
 	  callee = declared->find(callee_fct);
 	  // ensure callee has really been found
 	  assert(callee != declared->end());
@@ -1584,7 +1618,8 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
           std::set<CallersData::File>::iterator callee_file = files->create_or_get_file(callee_basename, callee_dirpath);
           //CallersData::File callee_file(callee_basename, callee_dirpath);
           //callee_file.parse_json_file();
-          CallersData::FctDecl callee_decl(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.file, fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
+          CallersData::FctDecl callee_decl(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.nspc,
+                                           fc->callee.file, fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
           callee_file->get_or_create_declared_function(&callee_decl, fc->callee.file, files);
 
 	  // get a reference to the related defined function
@@ -2676,6 +2711,7 @@ CallersData::Thread::Thread(std::string inst_name,
                             std::string routine_sign,
                             std::string routine_mangled,
                             Virtuality routine_virtuality,
+                            std::string routine_nspc,
                             std::string routine_file,
                             int routine_line,
                             // Virtuality routine_def_virtuality,
@@ -2687,6 +2723,7 @@ CallersData::Thread::Thread(std::string inst_name,
                             std::string caller_mangled,
                             std::string caller_sign,
                             Virtuality caller_virtuality,
+                            std::string caller_nspc,
                             std::string caller_filepath,
                             int caller_filepos,
                             std::string caller_decl_file,
@@ -2698,6 +2735,7 @@ CallersData::Thread::Thread(std::string inst_name,
     routine_sign(routine_sign),
     routine_mangled(routine_mangled),
     routine_virtuality(routine_virtuality),
+    routine_nspc(routine_nspc),
     routine_file(routine_file),
     routine_line(routine_line),
     // routine_def_virtuality(routine_def_virtuality),
@@ -2709,6 +2747,7 @@ CallersData::Thread::Thread(std::string inst_name,
     caller_mangled(caller_mangled),
     caller_sign(caller_sign),
     caller_virtuality(caller_virtuality),
+    caller_nspc(caller_nspc),
     caller_file(caller_filepath),
     caller_line(caller_filepos),
     caller_decl_file(caller_decl_file),
@@ -2833,10 +2872,11 @@ bool CallersData::operator< (const CallersData::Thread& thread1, const CallersDa
 
 CallersData::Fct::Fct(std::string sign) : sign(sign) {}
 
-CallersData::Fct::Fct(MangledName mangled, std::string sign, Virtuality is_virtual)
+CallersData::Fct::Fct(MangledName mangled, std::string sign, Virtuality is_virtual, std::string nspc)
   : mangled(mangled),
     sign(sign),
-    virtuality(is_virtual)
+    virtuality(is_virtual),
+    nspc(nspc)
 {}
 
 CallersData::Fct::~Fct() {}
@@ -2847,6 +2887,7 @@ CallersData::Fct::Fct(const CallersData::Fct& copy_from_me)
   mangled = copy_from_me.mangled;
   sign = copy_from_me.sign;
   virtuality = copy_from_me.virtuality;
+  nspc = copy_from_me.nspc;
 }
 
 /***************************************** class FctDecl ****************************************/
@@ -2876,9 +2917,9 @@ CallersData::FctDecl::~FctDecl()
   delete extcallers;
 }
 
-CallersData::FctDecl::FctDecl(MangledName mangled, std::string sign, Virtuality is_virtual,
+CallersData::FctDecl::FctDecl(MangledName mangled, std::string sign, Virtuality is_virtual, std::string nspc,
                               std::string filepath, int line, bool is_builtin)
-  : Fct(mangled, sign, is_virtual),
+  : Fct(mangled, sign, is_virtual, nspc),
     file(filepath),
     line(line),
     is_builtin(is_builtin)
@@ -2900,9 +2941,9 @@ CallersData::FctDecl::FctDecl(MangledName mangled, std::string sign, Virtuality 
   this->print_cout();
 }
 
-CallersData::FctDecl::FctDecl(MangledName mangled, std::string sign, Virtuality is_virtual,
+CallersData::FctDecl::FctDecl(MangledName mangled, std::string sign, Virtuality is_virtual, std::string nspc,
                               std::string filepath, int line, std::string recordName, std::string recordFilePath, bool is_builtin)
-  : Fct(mangled, sign, is_virtual),
+  : Fct(mangled, sign, is_virtual, nspc),
     file(filepath),
     line(line),
     recordName(recordName),
@@ -2949,7 +2990,7 @@ CallersData::FctDecl::FctDecl(std::string sign, std::string filepath)
 }
 
 CallersData::FctDecl::FctDecl(const CallersData::FctDecl& copy_from_me)
-  : Fct(copy_from_me.mangled, copy_from_me.sign, copy_from_me.virtuality)
+  : Fct(copy_from_me.mangled, copy_from_me.sign, copy_from_me.virtuality, copy_from_me.nspc)
 {
   allocate();
   std::cout << "FctDecl copy constructor" << std::endl;
@@ -3445,6 +3486,11 @@ void CallersData::FctDecl::output_json_desc(std::ostream &js) const
 	       : /* virtuality == VVirtualPure */ "pure")))
      << "\", \"mangled\": \"" << mangled << "\"";
 
+  if(nspc != CALLERS_DEFAULT_NO_NAMESPACE_NAME )
+  {
+    js << ", \"nspc\": \"" << nspc << "\"";
+  }
+
   if(recordName != CALLERS_DEFAULT_RECORD_NAME )
   {
     js << ", \"recordName\": \"" << recordName << "\"";
@@ -3502,12 +3548,13 @@ CallersData::FctDef::~FctDef()
 CallersData::FctDef::FctDef(MangledName mangled,
                             std::string sign,
                             Virtuality is_virtual,
+                            std::string nspc,
                             std::string def_filepath,
                             int def_line,
                             std::string decl_file,
                             int decl_line,
                             std::string record)
-  : Fct(mangled, sign, is_virtual),
+  : Fct(mangled, sign, is_virtual, nspc),
     def_file(def_filepath),
     def_line(def_line),
     decl_file(decl_file),
@@ -3537,7 +3584,7 @@ CallersData::FctDef::FctDef(MangledName mangled,
 }
 
 CallersData::FctDef::FctDef(const CallersData::FctDef& copy_from_me)
-  : Fct(copy_from_me.mangled, copy_from_me.sign, copy_from_me.virtuality)
+  : Fct(copy_from_me.mangled, copy_from_me.sign, copy_from_me.virtuality, copy_from_me.nspc)
 {
   allocate();
   std::cout << "FctDef copy constructor" << std::endl;
@@ -3738,6 +3785,11 @@ void CallersData::FctDef::output_json_desc(std::ofstream &js) const
   else
   {
     js << ", \"decl\": \"local:" << decl_pos.str() << "\"";
+  }
+
+  if(nspc != CALLERS_DEFAULT_NO_NAMESPACE_NAME )
+  {
+    js << ", \"nspc\": \"" << nspc << "\"";
   }
 
   if(record != CALLERS_DEFAULT_RECORD_NAME )

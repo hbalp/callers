@@ -6,11 +6,19 @@ function cots_list_functions ()
 {
     cots_name=$1
     cots_dirpath=$2
-
     cots_functions_filename="${cots_name}.functions.gen.all"
     #cots_functions_tmpfilename="${cots_name}.functions.gen.tmp"
+    find ${cots_dirpath} -type f -exec egrep -1 "\"sign\":" {} \; | egrep -v "\"decl\":" | egrep -v "\"def\":" | egrep -v "::operator" | egrep -v "operator new"  | egrep -v "operator delete" | egrep -v "gnu_cxx" | grep -v "boost::algorithm" | sed -e "s#^ *\"#\"#g" | sort -u | egrep "\"" > ${cots_functions_filename}
+}
 
-    find ${cots_dirpath} -type f -exec egrep -1 "\"sign\":" {} \; | egrep -v "\"decl\":" | egrep -v "\"def\":" | sed -e "s#^ *\"#\"#g" | sort -u | egrep "\"" > ${cots_functions_filename}
+function cots_list_functions_debut_fin ()
+{
+    cots_name=$1
+    cots_dirpath=$2
+    cots_functions_filename="${cots_name}.functions.deb.fin.gen.all"
+    #cots_functions_tmpfilename="${cots_name}.functions.gen.tmp"
+    #find ${cots_dirpath} -type f -exec egrep -5 "\"sign\":" {} \; | egrep -v "\"decl\":" | egrep -v "\"def\":" | egrep -v "::operator" | egrep -v "operator new"  | egrep -v "operator delete" | egrep -v "gnu_cxx" | grep -v "boost::algorithm" | sed -e "s#^ *\"#\"#g" | sort -u | egrep "\"" > ${cots_functions_filename}
+    find ${cots_dirpath} -type f -exec egrep -5 "\"sign\":" {} \; | egrep -v "\"decl\":" | egrep -v "\"def\":" | egrep -v "::operator" | egrep -v "operator new"  | egrep -v "operator delete" | egrep -v "gnu_cxx" | grep -v "boost::algorithm" | sed -e "s#^ *\"#\"#g" > ${cots_functions_filename}
 }
 
 function cots_nb_functions ()
@@ -19,6 +27,18 @@ function cots_nb_functions ()
     cots_functions_filename="${cots_name}.functions.gen.all"
     cots_nb_fcts=`wc -l ${cots_functions_filename} | awk '{print $1}'`
     echo "| ${cots_name} | ${cots_nb_fcts} |"
+}
+
+function uc_sso_nb_functions_lines ()
+{
+    cots_dirpath=$1
+    for cots_path in `find ${cots_dirpath} -maxdepth 1 -type d`;
+    do
+        cots_name=`basename ${cots_path}`
+        #echo "${cots_name}: ${cots_path}"
+        cots_list_functions_debut_fin ${cots_name} ${cots_path}
+        #cots_nb_functions ${cots_name}
+    done
 }
 
 function uc_sso_nb_functions ()
@@ -33,5 +53,5 @@ function uc_sso_nb_functions ()
     done
 }
 
-uc_sso_nb_functions /tmp/callers/data/balp/src/stance/uc_sso/sp
-
+#uc_sso_nb_functions /tmp/callers/data/balp/src/stance/uc_sso/sp
+uc_sso_nb_functions /tmp/callers/data/balp/src/stance/uc_sso/sp/curl-7.35.0

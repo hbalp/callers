@@ -141,7 +141,7 @@ namespace CallersData
       // void add_record(Record record) const;
       // void add_record(std::string name, clang::TagTypeKind kind, int loc) const;
       void add_record(std::string name) const;
-      void add_namespace_caller(std::string caller_nspc) const;
+      void add_namespace_calls(std::string caller_nspc) const;
       void add_namespace_called(std::string callee_nspc) const;
       std::string get_name() const;
       void output_json_desc(std::ofstream &js) const;
@@ -153,6 +153,8 @@ namespace CallersData
       std::string name = "unknownNamespaceName"; // CALLERS_DEFAULT_NO_NAMESPACE_NAME
       // std::string qualifiers;
       std::set<std::string> *records;
+      std::set<std::string> *calls;
+      std::set<std::string> *called;
   };
 
   bool operator< (const Namespace& nspc1, const Namespace& nspc2);

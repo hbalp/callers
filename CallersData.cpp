@@ -515,37 +515,37 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                     }
                   }
 
-                  // if(nsp.HasMember("calls"))
-                  // {
-                  //   const rapidjson::Value& calls = nsp["calls"];
-                  //   if(calls.IsArray())
-                  //   {
-                  //     // rapidjson uses SizeType instead of size_t.
-                  //     for (rapidjson::SizeType s = 0; s < calls.Size(); s++)
-                  //       {
-                  //         const rapidjson::Value& def = calls[s];
-                  //         std::string called_nspc = def.GetString();
-                  //         std::cout << "Parsed called namespace: \"" << called_nspc << std::endl;
-                  //         nspc.add_namespace_call(called_nspc);
-                  //       }
-                  //   }
-                  // }
+                  if(nsp.HasMember("calls"))
+                  {
+                    const rapidjson::Value& calls = nsp["calls"];
+                    if(calls.IsArray())
+                    {
+                      // rapidjson uses SizeType instead of size_t.
+                      for (rapidjson::SizeType s = 0; s < calls.Size(); s++)
+                        {
+                          const rapidjson::Value& def = calls[s];
+                          std::string called_nspc = def.GetString();
+                          std::cout << "Parsed called namespace: \"" << called_nspc << std::endl;
+                          nspc->add_namespace_calls(called_nspc);
+                        }
+                    }
+                  }
 
-                  // if(nsp.HasMember("called"))
-                  // {
-                  //   const rapidjson::Value& called = nsp["called"];
-                  //   if(called.IsArray())
-                  //   {
-                  //     // rapidjson uses SizeType instead of size_t.
-                  //     for (rapidjson::SizeType s = 0; s < called.Size(); s++)
-                  //       {
-                  //         const rapidjson::Value& def = called[s];
-                  //         std::string caller_nspc = def.GetString();
-                  //         std::cout << "Parsed caller namespace: \"" << caller_nspc << std::endl;
-                  //         nspc.add_namespace_called(caller_nspc);
-                  //       }
-                  //   }
-                  // }
+                  if(nsp.HasMember("called"))
+                  {
+                    const rapidjson::Value& called = nsp["called"];
+                    if(called.IsArray())
+                    {
+                      // rapidjson uses SizeType instead of size_t.
+                      for (rapidjson::SizeType s = 0; s < called.Size(); s++)
+                        {
+                          const rapidjson::Value& def = called[s];
+                          std::string caller_nspc = def.GetString();
+                          std::cout << "Parsed caller namespace: \"" << caller_nspc << std::endl;
+                          nspc->add_namespace_called(caller_nspc);
+                        }
+                    }
+                  }
 
                   // std::cout << "Parsed namespace r[" << s << "]:\"" << name << "\"" << std::endl;
                 }
@@ -1784,6 +1784,25 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
           callee_record->add_record_called(fc->caller.record);
         }
     }
+
+    // Check whether the caller function is a method of a namespace different from callee method
+    if((fc->caller.nspc != fc->callee.nspc)&&
+       (fc->caller.nspc != CALLERS_DEFAULT_NO_NAMESPACE_NAME))
+    {
+       // get the fct caller's namespace declaration
+      std::set<CallersData::Namespace>::iterator caller_nspc = this->get_or_create_namespace(fc->caller.nspc);
+      assert(caller_nspc != namespaces->end());
+
+      // Add a nspc call to the caller namespace
+      caller_nspc->add_namespace_calls(fc->callee.nspc);
+
+       // get the called function's namespace declaration
+      std::set<CallersData::Namespace>::iterator callee_nspc = this->get_or_create_namespace(fc->callee.nspc);
+      assert(callee_nspc != namespaces->end());
+
+      // Add a namespace called to the callee namespace
+      callee_nspc->add_namespace_called(fc->caller.nspc);
+    }
 }
 
 void CallersData::File::try_to_add_redeclared_and_redeclaration_methods(CallersData::Dir* files) const
@@ -2090,6 +2109,8 @@ bool CallersData::operator< (const CallersData::File& file1, const CallersData::
 void CallersData::Namespace::allocate()
 {
   records = new std::set<std::string>;
+  calls = new std::set<std::string>;
+  called = new std::set<std::string>;
 }
 
 CallersData::Namespace::Namespace(std::string nspc)
@@ -2135,6 +2156,8 @@ CallersData::Namespace::~Namespace()
 {
   // delete namespaces;
   delete records;
+  delete calls;
+  delete called;
 }
 
 std::string
@@ -2169,7 +2192,7 @@ CallersData::Namespace::get_name() const
 // 	    << std::endl;
 // }
 
-void CallersData::Namespace::add_namespace_call(std::string callee_nspc) const
+void CallersData::Namespace::add_namespace_calls(std::string callee_nspc) const
 {
   calls->insert(callee_nspc);
   std::cout << "Add call from namespace " << this->name
@@ -2279,21 +2302,64 @@ void CallersData::Namespace::output_json_desc(std::ofstream &js) const
   //   }
   // js << "]";
 
-  js << ",\"records\":[";
-  std::set<std::string>::const_iterator r, last_rc;
-  last_rc = records->empty() ? records->end() : --records->end();
-  for(r=records->begin(); r!=records->end(); ++r)
-    {
-      if(r != last_rc)
-  	{
-  	  js << "\"" << *r << "\",";
-  	}
-      else
-  	{
-  	  js << "\"" << *r << "\"";
-  	}
-    }
-  js << "]}";
+  if(records->size() > 0)
+  {
+    js << ",\"records\":[";
+    std::set<std::string>::const_iterator r, last_rc;
+    last_rc = records->empty() ? records->end() : --records->end();
+    for(r=records->begin(); r!=records->end(); ++r)
+      {
+        if(r != last_rc)
+          {
+            js << "\"" << *r << "\",";
+          }
+        else
+          {
+            js << "\"" << *r << "\"";
+          }
+      }
+    js << "]";
+  }
+
+  if(calls->size() > 0)
+  {
+    js << ",\"calls\":[";
+    std::set<std::string>::const_iterator r, last_rc;
+    last_rc = calls->empty() ? calls->end() : --calls->end();
+    for(r=calls->begin(); r!=calls->end(); ++r)
+      {
+        if(r != last_rc)
+          {
+            js << "\"" << *r << "\",";
+          }
+        else
+          {
+            js << "\"" << *r << "\"";
+          }
+      }
+    js << "]";
+  }
+
+  if(called->size() > 0)
+  {
+    js << ",\"called\":[";
+    std::set<std::string>::const_iterator r, last_rc;
+    last_rc = called->empty() ? called->end() : --called->end();
+    for(r=called->begin(); r!=called->end(); ++r)
+      {
+        if(r != last_rc)
+          {
+            js << "\"" << *r << "\",";
+          }
+        else
+          {
+            js << "\"" << *r << "\"";
+          }
+      }
+    js << "]";
+  }
+
+  js << "}";
 }
 
 bool CallersData::operator< (const CallersData::Namespace& nspc1, const CallersData::Namespace& nspc2)

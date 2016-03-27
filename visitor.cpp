@@ -2088,6 +2088,7 @@ CallersAction::Visitor::VisitInheritanceList(clang::CXXRecordDecl* cxxDecl,
       //std::string baseName = printQualifiedName(*base);
       std::string baseName = printRecordName(base);
       clang::TagTypeKind baseTagKind = base->getTagKind();
+      std::string baseNspc = printRootNamespace(*base);
       std::string baseFile = printFilePath(base->getSourceRange());
       int baseBegin = getStartLine(base->getLocStart());
       int baseEnd = getStartLine(base->getLocEnd());
@@ -2115,7 +2116,7 @@ CallersAction::Visitor::VisitInheritanceList(clang::CXXRecordDecl* cxxDecl,
 
       osOut << " the base record \"" << baseName << "\" is inherited by child record \"" << record->name << "\"" << std::endl;
       CallersData::Inheritance child(record->name, record->file, record->begin, record->end);
-      CallersData::Record search_parent(baseName, baseTagKind, baseFile, baseBegin, baseEnd);
+      CallersData::Record search_parent(baseName, baseTagKind, baseNspc, baseFile, baseBegin, baseEnd);
       std::set<CallersData::Record>::iterator parent_record = currentJsonFile->get_or_create_record(&search_parent, &otherJsonFiles);
       parent_record->add_child_class(child);
 
@@ -2137,6 +2138,7 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
          bool isAnonymousRecord = false;
          //std::string recordName = printQualifiedName(*Decl, &isAnonymousRecord);
          std::string recordName = printRecordName(RD);
+         std::string recordNspc = printRootNamespace(*RD);
          std::string recordFile = printFilePath(Decl->getSourceRange());
          int recordBegin = getStartLine(Decl->getLocStart());
          int recordEnd = getStartLine(Decl->getLocEnd());
@@ -2147,7 +2149,7 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
             osOut << "visiting record " << recordName
                   << " at " << printLocation(Decl->getSourceRange()) << '\n';
 
-            CallersData::Record search_record(recordName, tagKind, recordFile, recordBegin, recordEnd);
+            CallersData::Record search_record(recordName, tagKind, recordNspc, recordFile, recordBegin, recordEnd);
 
             std::set<CallersData::Record>::iterator record = currentJsonFile->get_or_create_record(&search_record, &otherJsonFiles);
 

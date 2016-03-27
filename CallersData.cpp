@@ -563,18 +563,19 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                   const rapidjson::Value& rc = records[s];
                   const rapidjson::Value& rc_name  = rc["name"];
                   const rapidjson::Value& rc_kind  = rc["kind"];
+                  const rapidjson::Value& rc_nspc  = rc["nspc"];
                   const rapidjson::Value& rc_debut = rc["debut"];
                   const rapidjson::Value& rc_fin   = rc["fin"];
 
                   std::string name = rc_name.GetString();
-
+                  std::string nspc = rc_nspc.GetString();
                   std::string kind = rc_kind.GetString();
                   clang::TagTypeKind cg_kind = (kind == "class") ? clang::TTK_Class : clang::TTK_Struct;
 
                   int debut = rc_debut.GetInt();
                   int fin = rc_fin.GetInt();
 
-                  CallersData::Record record(name, cg_kind, filepath, debut, fin);
+                  CallersData::Record record(name, cg_kind, nspc, filepath, debut, fin);
 
                   if(rc.HasMember("inherits"))
                   {
@@ -1146,10 +1147,14 @@ void CallersData::File::add_record(CallersData::Record *rec) const
 			 : "anonym"));
   int nb_base_classes = rec->inherits->size();
   std::cout << "Register " << kind << " record \"" << rec->name
+            << "\" in nspc \"" << rec->nspc
 	    << "\" with " << nb_base_classes << " base classes, "
 	    << "defined in file \"" << this->get_filepath() << ":"
 	    << rec->begin << ":" << rec->end << "\"" << std::endl;
   records->insert(*rec);
+  // register record's namespace when needed
+  std::set<CallersData::Namespace>::iterator rec_nspc = this->get_or_create_namespace(rec->nspc);
+  rec_nspc->add_record(rec->name);
 }
 
 std::set<CallersData::Record>::iterator
@@ -1177,6 +1182,11 @@ CallersData::File::get_or_create_record(CallersData::Record* record, CallersData
       std::set<CallersData::File>::iterator record_file = files->create_or_get_file(record_basename, record_dirpath);
       search_record = record_file->get_or_create_local_record(record);
     }
+
+  // register record's namespace when needed even if this record is not defined locally
+  std::set<CallersData::Namespace>::iterator rec_nspc = this->get_or_create_namespace(record->nspc);
+  rec_nspc->add_record(record->name);
+
   return search_record;
 }
 
@@ -1204,19 +1214,27 @@ std::set<CallersData::Record>::iterator CallersData::File::get_or_create_local_r
       search_record = get_or_create_local_record(record);
     }
 
+  // register record's namespace when needed
+  std::set<CallersData::Namespace>::iterator rec_nspc = this->get_or_create_namespace(record->nspc);
+  rec_nspc->add_record(record->name);
+
   return search_record;
 }
 
-void CallersData::File::add_record(std::string name, clang::TagTypeKind kind, int begin, int end) const
+void CallersData::File::add_record(std::string rec_name, clang::TagTypeKind kind, std::string nspc, int begin, int end) const
 {
-  //Record *rec = new Record(name, kind, deb, fin); // fuite mémoire sur la pile si pas désalloué !
-  Record rec(name, kind, this->get_filepath(), begin, end);
+  //Record *rec = new Record(rec_name, kind, deb, fin); // fuite mémoire sur la pile si pas désalloué !
+  Record rec(rec_name, kind, nspc, this->get_filepath(), begin, end);
   records->insert(rec);
   int nb_base_classes = rec.inherits->size();
-  std::cout << "Create " << kind << " record \"" << name
+  std::cout << "Create " << kind << " record \"" << rec_name
+	    << "\" in nspc \"" << nspc
 	    << "\" with " << nb_base_classes << " base classes, "
 	    << "located in file \"" << this->get_filepath()
 	    << ":" << begin << ":" << end << "\"" << std::endl;
+  // register record's namespace when needed
+  std::set<CallersData::Namespace>::iterator rec_nspc = this->get_or_create_namespace(nspc);
+  rec_nspc->add_record(rec_name);
 }
 
 /*
@@ -1746,7 +1764,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
        (fc->caller.record != CALLERS_DEFAULT_NO_RECORD_NAME))
     {
        // get the fct caller's record declaration
-      CallersData::Record caller_rc(fc->caller.record, fc->caller.decl_file);
+      CallersData::Record caller_rc(fc->caller.record, fc->caller.nspc, fc->caller.decl_file);
       std::set<CallersData::Record>::iterator caller_record = this->get_or_create_record(&caller_rc, files);
       assert(caller_record != records->end());
 
@@ -1758,7 +1776,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
           caller_record->add_record_call(fc->callee.recordName);
 
            // get the called function's record declaration
-          CallersData::Record callee_rc(fc->callee.recordName, fc->callee.recordFilePath);
+          CallersData::Record callee_rc(fc->callee.recordName, fc->callee.nspc, fc->callee.recordFilePath);
           std::set<CallersData::Record>::iterator callee_record = this->get_or_create_record(&callee_rc, files);
           assert(callee_record != records->end());
 
@@ -1800,7 +1818,7 @@ void CallersData::File::try_to_add_redeclared_and_redeclaration_methods(const Fc
     std::cout << "The fct_decl \"" << fct_decl.sign << "\" belongs to the current file" << std::endl;
 
     // get the fct_decl's record declaration
-    CallersData::Record rc(fct_decl.recordName, fct_decl.recordFilePath);
+    CallersData::Record rc(fct_decl.recordName, fct_decl.nspc, fct_decl.recordFilePath);
     std::set<CallersData::Record>::iterator record = this->get_or_create_record(&rc, files);
     assert(record != records->end());
 
@@ -2077,6 +2095,7 @@ void CallersData::Namespace::allocate()
 CallersData::Namespace::Namespace(std::string nspc)
 //  : qualifiers(nspc)
 {
+  assert(name != "");
   allocate();
   std::cout << "Create namespace: " << std::endl;
   name = nspc;
@@ -2149,6 +2168,24 @@ CallersData::Namespace::get_name() const
 // 	    << ", nb_namespaces=" << namespaces->size()
 // 	    << std::endl;
 // }
+
+void CallersData::Namespace::add_namespace_call(std::string callee_nspc) const
+{
+  calls->insert(callee_nspc);
+  std::cout << "Add call from namespace " << this->name
+            << " to another namespace \"" << callee_nspc
+	    << std::endl;
+  assert(this->name != callee_nspc);
+}
+
+void CallersData::Namespace::add_namespace_called(std::string caller_nspc) const
+{
+  called->insert(caller_nspc);
+  std::cout << "Add call to namespace " << this->name
+            << " from namespace \"" << caller_nspc
+	    << std::endl;
+  assert(this->name != caller_nspc);
+}
 
 void CallersData::Namespace::add_record(std::string record) const
 {
@@ -2249,11 +2286,11 @@ void CallersData::Namespace::output_json_desc(std::ofstream &js) const
     {
       if(r != last_rc)
   	{
-  	  js << *r << ",";
+  	  js << "\"" << *r << "\",";
   	}
       else
   	{
-  	  js << *r;
+  	  js << "\"" << *r << "\"";
   	}
     }
   js << "]}";
@@ -2353,22 +2390,26 @@ CallersData::Record::~Record()
   delete called;
 }
 
-CallersData::Record::Record(std::string name, std::string file)
+CallersData::Record::Record(std::string name, std::string nspc, std::string file)
   : name(name),
+    nspc(nspc),
     file(file)
 {
+  assert(nspc != "");
   allocate();
   std::cout << "Create record: " << std::endl;
   this->print_cout();
 }
 
-CallersData::Record::Record(std::string name, clang::TagTypeKind kind, std::string file, int begin, int end)
+CallersData::Record::Record(std::string name, clang::TagTypeKind kind, std::string nspc, std::string file, int begin, int end)
   : name(name),
     kind(kind),
+    nspc(nspc),
     file(file),
     begin(begin),
     end(end)
 {
+  assert(nspc != "");
   allocate();
   std::cout << "Create record: " << std::endl;
   this->print_cout();
@@ -2380,6 +2421,7 @@ CallersData::Record::Record(const CallersData::Record& copy_from_me)
   std::cout << "Record copy constructor" << std::endl;
   name = copy_from_me.name;
   kind = copy_from_me.kind;
+  nspc = copy_from_me.nspc;
   file = copy_from_me.file;
   begin = copy_from_me.begin;
   end = copy_from_me.end;
@@ -2616,6 +2658,7 @@ void CallersData::Record::print_cout() const
     << "\",\"kind\":\"" << ((kind == clang::TTK_Struct) ? "struct"
 			    : ((kind == clang::TTK_Class) ? "class"
 			       : "anonym"))
+    << "\",\"nspc\":\"" << nspc
     << "\",\"debut\":" << debut.str()
     << ",\"fin\":" << fin.str()
     << ",\"inherits\":[";
@@ -2650,6 +2693,7 @@ void CallersData::Record::output_json_desc(std::ofstream &js) const
       << "\",\"kind\":\"" << ((kind == clang::TTK_Struct) ? "struct"
                              : ((kind == clang::TTK_Class) ? "class"
                              : "anonym"))
+      << "\",\"nspc\":\"" << nspc
       << "\",\"debut\":" << debut.str()
       << ",\"fin\":" << fin.str()
       << ",\"inherits\":[";

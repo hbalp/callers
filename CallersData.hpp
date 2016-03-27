@@ -114,7 +114,7 @@ namespace CallersData
   private:
       void add_declared_function(CallersData::FctDecl* fct, std::string fct_filepath, Dir* files) const;
       void add_record(Record *record) const;
-      void add_record(std::string name, clang::TagTypeKind kind, int begin, int end) const;
+      void add_record(std::string name, clang::TagTypeKind kind, std::string nspc, int begin, int end) const;
       //void add_declared_function(std::string sign, Virtuality virtuality, std::string file, int line) const;
       std::set<FctCall> *calls;
       std::string filename = "unknownFileName";
@@ -141,6 +141,8 @@ namespace CallersData
       // void add_record(Record record) const;
       // void add_record(std::string name, clang::TagTypeKind kind, int loc) const;
       void add_record(std::string name) const;
+      void add_namespace_caller(std::string caller_nspc) const;
+      void add_namespace_called(std::string callee_nspc) const;
       std::string get_name() const;
       void output_json_desc(std::ofstream &js) const;
       void print_cout() const;
@@ -186,8 +188,8 @@ namespace CallersData
 
     public:
       // Record(const char* name, clang::TagTypeKind kind, const std::string file, const int begin, const int end);
-      Record(std::string name, clang::TagTypeKind kind, std::string file, int begin, int end);
-      Record(std::string name, std::string file);
+      Record(std::string name, clang::TagTypeKind kind, std::string nspc, std::string file, int begin, int end);
+      Record(std::string name, std::string nspc, std::string file);
       Record(const Record& copy_from_me);
       ~Record();
       void allocate();
@@ -210,6 +212,7 @@ namespace CallersData
       void print_cout() const;
       std::string name = "unknownRecordName";
       clang::TagTypeKind kind = clang::TTK_Class;
+      std::string nspc;
       std::string file;
       int begin = -1;
       int end = -1;

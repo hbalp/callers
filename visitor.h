@@ -76,12 +76,16 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
                       const clang::FunctionDecl* decl,
                       MangledName* result);
 
+  int getStartLine(const clang::SourceRange& rangeLocation) const;
+  int getEndLine(const clang::SourceRange& rangeLocation) const;
+  int getNbLines(const clang::SourceRange& rangeLocation) const;
+
   // get the basename of a file from its unix-like full path
   std::string getBasename(const clang::StringRef& filename) const;
   // convert function signature to a json compatible identifier
   std::string getJsonIdentifier(const std::string& name) const;
   std::string printLocation(const clang::SourceRange& rangeLocation) const;
-  int printLine(const clang::SourceRange& rangeLocation) const;
+  std::string printNumber(int number) const;
   std::string printFileName(const clang::SourceRange& rangeLocation) const;
   std::string printFilePath(const clang::SourceRange& rangeLocation, std::string defaultFilePath = CALLERS_NO_FILE_PATH) const;
   std::string printCurrentPath(const clang::SourceRange& rangeLocation) const;
@@ -124,12 +128,17 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
 
   std::string printCurrentPath() const;
 
-  int printParentFunctionLine() const
+  inline int getParentFunctionStartLine() const
   {
     if (pfdParent)
-      return printLine(pfdParent->getSourceRange());
+      return getStartLine(pfdParent->getSourceRange());
     else
       return 0;
+  };
+
+  inline std::string printParentFunctionStartLine() const
+  {
+    return printNumber(this->getParentFunctionStartLine());
   };
 
   void VisitInheritanceList(clang::CXXRecordDecl* cxxDecl, std::set<CallersData::Record>::iterator& record);

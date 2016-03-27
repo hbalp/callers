@@ -484,6 +484,74 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
 	  std::cout << "file: " << filename << std::endl;
 	  std::cout << "path: " << dirpath << std::endl;
 
+	  if(file.HasMember("namespaces"))
+          {
+            const rapidjson::Value& namespaces = file["namespaces"];
+            if(namespaces.IsArray())
+            {
+              // rapidjson uses SizeType instead of size_t.
+              for (rapidjson::SizeType s = 0; s < namespaces.Size(); s++)
+                {
+                  const rapidjson::Value& nsp = namespaces[s];
+                  const rapidjson::Value& nsp_name  = nsp["name"];
+
+                  std::string name = nsp_name.GetString();
+
+                  std::set<CallersData::Namespace>::iterator nspc = this->get_or_create_namespace(name);
+
+                  if(nsp.HasMember("records"))
+                  {
+                    const rapidjson::Value& records = nsp["records"];
+                    if(records.IsArray())
+                    {
+                      // rapidjson uses SizeType instead of size_t.
+                      for (rapidjson::SizeType s = 0; s < records.Size(); s++)
+                        {
+                          const rapidjson::Value& rc = records[s];
+                          std::string record = rc.GetString();
+                          // std::cout << "Parsed record name: \"" << record << std::endl;
+                          nspc->add_record(record);
+                        }
+                    }
+                  }
+
+                  // if(nsp.HasMember("calls"))
+                  // {
+                  //   const rapidjson::Value& calls = nsp["calls"];
+                  //   if(calls.IsArray())
+                  //   {
+                  //     // rapidjson uses SizeType instead of size_t.
+                  //     for (rapidjson::SizeType s = 0; s < calls.Size(); s++)
+                  //       {
+                  //         const rapidjson::Value& def = calls[s];
+                  //         std::string called_nspc = def.GetString();
+                  //         std::cout << "Parsed called namespace: \"" << called_nspc << std::endl;
+                  //         nspc.add_namespace_call(called_nspc);
+                  //       }
+                  //   }
+                  // }
+
+                  // if(nsp.HasMember("called"))
+                  // {
+                  //   const rapidjson::Value& called = nsp["called"];
+                  //   if(called.IsArray())
+                  //   {
+                  //     // rapidjson uses SizeType instead of size_t.
+                  //     for (rapidjson::SizeType s = 0; s < called.Size(); s++)
+                  //       {
+                  //         const rapidjson::Value& def = called[s];
+                  //         std::string caller_nspc = def.GetString();
+                  //         std::cout << "Parsed caller namespace: \"" << caller_nspc << std::endl;
+                  //         nspc.add_namespace_called(caller_nspc);
+                  //       }
+                  //   }
+                  // }
+
+                  // std::cout << "Parsed namespace r[" << s << "]:\"" << name << "\"" << std::endl;
+                }
+            }
+          }
+
 	  if(file.HasMember("records"))
           {
             const rapidjson::Value& records = file["records"];
@@ -1019,34 +1087,56 @@ void CallersData::File::assertSameFile(std::string otherFilePath, std::string ot
   assert(this->is_same_file(otherFilePath, otherFileName));
 }
 
-std::set<CallersData::Namespace>::iterator
-CallersData::File::create_or_get_namespace(std::string qualifiers, const clang::NamespaceDecl* nspc)
+void CallersData::File::add_namespace(const CallersData::Namespace& nspc) const
 {
-  // std::cout << "CallersData::DEBUG: Check whether the namespace \"" << qualifiers << "\" is already created or not..." << std::endl;
+  std::cout << "Register namespace \"" << nspc.get_name()
+	    << "\" defined in file \"" << this->get_filepath() << std::endl;
+  namespaces->insert(nspc);
+}
+
+std::set<CallersData::Namespace>::iterator
+CallersData::File::get_or_create_namespace(std::string nspc) const
+{
+  // std::cout << "CallersData::DEBUG: Check whether the namespace \"" << nspc << "\" is already created or not..." << std::endl;
   std::set<CallersData::Namespace>::iterator search_result;
-  CallersData::Namespace searched_nspc(qualifiers);
+  CallersData::Namespace searched_nspc(nspc);
   search_result = namespaces->find(searched_nspc);
   if(search_result != namespaces->end())
     {
-      // std::cout << "The namespace \"" << qualifiers << "\" is already present." << std::endl;
+      // std::cout << "The namespace \"" << nspc << "\" is already present." << std::endl;
     }
   else
     {
-      CallersData::Namespace c_namespace(qualifiers, *nspc);
+      CallersData::Namespace c_namespace(nspc);
       this->add_namespace(c_namespace);
       search_result = namespaces->find(searched_nspc);
       assert(search_result != namespaces->end());
-      //std::cout << "The namespace \"" << qualifiers << "\" is well present now !" << std::endl;
+      //std::cout << "The namespace \"" << nspc << "\" is well present now !" << std::endl;
     }
   return search_result;
 }
 
-void CallersData::File::add_namespace(CallersData::Namespace nspc) const
-{
-  std::cout << "Register namespace \"" << nspc.name
-	    << "\" defined in file \"" << this->get_filepath() << std::endl;
-  namespaces->insert(nspc);
-}
+// std::set<CallersData::Namespace>::iterator
+// CallersData::File::get_or_create_namespace(std::string qualifiers, const clang::NamespaceDecl& nspc) const
+// {
+//   // std::cout << "CallersData::DEBUG: Check whether the namespace \"" << qualifiers << "\" is already created or not..." << std::endl;
+//   std::set<CallersData::Namespace>::iterator search_result;
+//   CallersData::Namespace searched_nspc(qualifiers);
+//   search_result = namespaces->find(searched_nspc);
+//   if(search_result != namespaces->end())
+//     {
+//       // std::cout << "The namespace \"" << qualifiers << "\" is already present." << std::endl;
+//     }
+//   else
+//     {
+//       CallersData::Namespace c_namespace(qualifiers, nspc);
+//       this->add_namespace(c_namespace);
+//       search_result = namespaces->find(searched_nspc);
+//       assert(search_result != namespaces->end());
+//       //std::cout << "The namespace \"" << qualifiers << "\" is well present now !" << std::endl;
+//     }
+//   return search_result;
+// }
 
 void CallersData::File::add_record(CallersData::Record *rec) const
 {
@@ -1871,7 +1961,7 @@ void CallersData::File::output_json_desc() const
 
   if(namespaces->size() > 0)
   {
-	  js.out << "\",\"namespaces\":[";
+	  js.out << ",\"namespaces\":[";
 	  std::set<Namespace>::const_iterator n, last_nspc;
 	  last_nspc = namespaces->empty() ? namespaces->end() : --namespaces->end();
 	  for(n=namespaces->begin(); n!=namespaces->end(); ++n)
@@ -1981,36 +2071,33 @@ bool CallersData::operator< (const CallersData::File& file1, const CallersData::
 
 void CallersData::Namespace::allocate()
 {
-
+  records = new std::set<std::string>;
 }
 
-CallersData::Namespace::Namespace(std::string qualifier)
-  : qualifier(qualifier)
+CallersData::Namespace::Namespace(std::string nspc)
+//  : qualifiers(nspc)
 {
   allocate();
   std::cout << "Create namespace: " << std::endl;
-  std::vector<std::string> namespaces;
-  boost::algorithm::split_regex(namespaces, qualifier, boost::regex("::"));
-  std::vector<std::string>::iterator nspc = namespaces.end();
-  name = *nspc;
-  this->print_cout();
+  name = nspc;
+  //this->print_cout();
 }
 
-CallersData::Namespace::Namespace(std::string qualifier, const clang::NamespaceDecl& nspc)
-  : qualifier(qualifier)
-{
-  allocate();
-  std::cout << "Create namespace: " << std::endl;
-  name = nspc.getNameAsString();
-  this->print_cout();
-}
+// CallersData::Namespace::Namespace(std::string qualifiers, const clang::NamespaceDecl& nspc)
+//   : qualifiers(qualifiers)
+// {
+//   allocate();
+//   std::cout << "Create namespace: " << std::endl;
+//   name = nspc.getNameAsString();
+//   this->print_cout();
+// }
 
 CallersData::Namespace::Namespace(const CallersData::Namespace& copy_from_me)
 {
   allocate();
   std::cout << "Namespace copy constructor" << std::endl;
   name = copy_from_me.name;
-  qualifier = copy_from_me.qualifier;
+  // qualifiers = copy_from_me.qualifiers;
 
   // std::set<Namespace>::const_iterator n;
   // for(n=copy_from_me.namespaces->begin(); n!=copy_from_me.namespaces->end(); ++n)
@@ -2028,14 +2115,20 @@ CallersData::Namespace::Namespace(const CallersData::Namespace& copy_from_me)
 CallersData::Namespace::~Namespace()
 {
   // delete namespaces;
-  // delete records;
+  delete records;
 }
 
 std::string
-CallersData::Namespace::get_qualifier() const
+CallersData::Namespace::get_name() const
 {
-  return qualifier;
+  return name;
 }
+
+// std::string
+// CallersData::Namespace::get_qualifiers() const
+// {
+//   return qualifiers;
+// }
 
 // void CallersData::Namespace::add_namespace(CallersData::Namespace nspc) const
 // {
@@ -2046,16 +2139,25 @@ CallersData::Namespace::get_qualifier() const
 // 	    << std::endl;
 // }
 
-// void CallersData::Namespace::add_namespace(std::string qualifier, const clang::NamespaceDecl& namespc) const
+// void CallersData::Namespace::add_namespace(std::string qualifiers, const clang::NamespaceDecl& namespc) const
 // {
 //   //Namespace *namespace = new Namespace(name, kind, deb, fin); // fuite mémoire sur la pile si pas désalloué !
-//   Namespace nspc(qualifier, namespc);
+//   Namespace nspc(qualifiers, namespc);
 //   namespaces->insert(nspc);
 //   std::cout << "Create nested namespace \"" << namespc.getNameAsString()
 // 	    << " in namespace " << this->name
 // 	    << ", nb_namespaces=" << namespaces->size()
 // 	    << std::endl;
 // }
+
+void CallersData::Namespace::add_record(std::string record) const
+{
+  records->insert(record);
+  std::cout << "Register record \"" << record
+	    << " in namespace " << this->name
+	    << ", nb_records=" << this->records->size()
+	    << std::endl;
+}
 
 // void CallersData::Namespace::add_record(CallersData::Record record) const
 // {
@@ -2079,8 +2181,8 @@ CallersData::Namespace::get_qualifier() const
 
 void CallersData::Namespace::print_cout() const
 {
-  std::cout << "{\"name\": \"" << name
-	    << "\",\"qualifier\": \"" << qualifier << "\"";
+  std::cout << "{\"name\": \"" << name << "\"";
+//	    << "\",\"qualifiers\": \"" << qualifiers << "\"";
 
   // std::cout << ",\"namespaces\":[";
   // std::set<Namespace>::const_iterator n, last_nspc;
@@ -2120,8 +2222,8 @@ void CallersData::Namespace::print_cout() const
 
 void CallersData::Namespace::output_json_desc(std::ofstream &js) const
 {
-  js << "{\"name\":\"" << name
-     << "\",\"qualifier\":\"" << qualifier << "\"}";
+  js << "{\"name\":\"" << name << "\"";
+//     << "\",\"qualifiers\":\"" << qualifiers << "\"";
 
   // js << "\"namespaces\":[";
   // std::set<Namespace>::const_iterator n, last_nspc;
@@ -2140,27 +2242,27 @@ void CallersData::Namespace::output_json_desc(std::ofstream &js) const
   //   }
   // js << "]";
 
-  // js << ",\"records\":[";
-  // std::set<Record>::const_iterator b, last_bc;
-  // last_bc = records->empty() ? records->end() : --records->end();
-  // for(b=records->begin(); b!=records->end(); ++b)
-  //   {
-  //     if(b != last_bc)
-  // 	{
-  // 	  b->output_json_desc(js);
-  // 	  js << ",";
-  // 	}
-  //     else
-  // 	{
-  // 	  b->output_json_desc(js);
-  // 	}
-  //   }
-  // js << "]}";
+  js << ",\"records\":[";
+  std::set<std::string>::const_iterator r, last_rc;
+  last_rc = records->empty() ? records->end() : --records->end();
+  for(r=records->begin(); r!=records->end(); ++r)
+    {
+      if(r != last_rc)
+  	{
+  	  js << *r << ",";
+  	}
+      else
+  	{
+  	  js << *r;
+  	}
+    }
+  js << "]}";
 }
 
 bool CallersData::operator< (const CallersData::Namespace& nspc1, const CallersData::Namespace& nspc2)
 {
-  return nspc1.qualifier < nspc2.qualifier;
+  return nspc1.name < nspc2.name;
+//  return nspc1.qualifiers < nspc2.qualifiers;
 }
 
 /***************************************** class Inheritance ****************************************/

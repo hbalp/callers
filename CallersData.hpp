@@ -83,7 +83,10 @@ namespace CallersData
       bool is_same_file(std::string otherFilePath, std::string otherFileName = CALLERS_NO_FILE_NAME) const;
       void assertSameFile(std::string otherFilePath, std::string otherFileName = CALLERS_NO_FILE_NAME) const;
       void parse_json_file(Dir *files) const;
-      std::set<CallersData::Namespace>::iterator create_or_get_namespace(std::string qualifiers, const clang::NamespaceDecl* nspc);
+      void add_namespace(const CallersData::Namespace& nspc) const;
+      // void check_or_create_namespace(std::string nspc) const;
+      std::set<CallersData::Namespace>::iterator get_or_create_namespace(std::string nspc) const;
+      // std::set<CallersData::Namespace>::iterator get_or_create_namespace(std::string qualifiers, const clang::NamespaceDecl& nspc) const;
       std::set<CallersData::FctDecl>::const_iterator get_or_create_declared_function(FctDecl* fct, std::string filepath, Dir *context) const;
       std::set<CallersData::FctDecl>::const_iterator get_or_create_local_declared_function(FctDecl* fct, std::string filepath, Dir *context) const;
       std::set<CallersData::FctDecl>::const_iterator get_declared_function(std::string decl_sign, std::string decl_filepath) const;
@@ -92,7 +95,6 @@ namespace CallersData
       void add_defined_function(MangledName mangled, std::string sign, Virtuality virtuality, std::string nspc, std::string file,
                                 int line, std::string filepath, std::string decl_file, int decl_line, std::string record, Dir *context) const;
       void add_defined_function(FctDef* fct, std::string filepath, Dir *otherFiles) const;
-      void add_namespace(Namespace nspc) const;
       std::set<CallersData::Record>::iterator get_or_create_record(CallersData::Record *record, Dir* allJsonFiles) const;
       std::set<CallersData::Record>::iterator get_or_create_local_record(CallersData::Record *record) const;
       // std::set<CallersData::Record>::iterator get_record(std::string recordName, std::string recordFilePath, Dir* allJsonFiles) const;
@@ -130,23 +132,25 @@ namespace CallersData
     friend bool operator< (const CallersData::Namespace& nspc1, const CallersData::Namespace& nspc2);
 
     public:
-      Namespace(std::string qualifier);
-      Namespace(std::string qualifier, const clang::NamespaceDecl& nspc);
+      Namespace(std::string name);
+      // Namespace(std::string qualifiers, const clang::NamespaceDecl& nspc);
       Namespace(const Namespace& copy_from_me);
       ~Namespace();
       void allocate();
-      void add_namespace(Namespace nspc) const;
-      //void add_namespace(std::string qualifier, const clang::NamespaceDecl& namespc) const;
-      void add_record(Record record) const;
-      //void add_record(std::string name, clang::TagTypeKind kind, int loc) const;
+      // void add_namespace(Namespace nspc) const;
+      // void add_record(Record record) const;
+      // void add_record(std::string name, clang::TagTypeKind kind, int loc) const;
+      void add_record(std::string name) const;
+      std::string get_name() const;
       void output_json_desc(std::ofstream &js) const;
       void print_cout() const;
-      std::string get_qualifier() const;
-      std::string name = "unknownNamespaceName";
+      // std::string get_qualifiers() const;
       // std::set<Namespace> *namespaces;
       // std::set<Record> *records;
-      std::string qualifier;
     private:
+      std::string name = "unknownNamespaceName"; // CALLERS_DEFAULT_NO_NAMESPACE_NAME
+      // std::string qualifiers;
+      std::set<std::string> *records;
   };
 
   bool operator< (const Namespace& nspc1, const Namespace& nspc2);

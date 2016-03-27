@@ -4,6 +4,8 @@
 #include "D.hpp"
 #include "test.hpp"
 
+#include <boost/algorithm/string/predicate.hpp>
+
 bool coucou = true;
 
 int main()
@@ -36,7 +38,19 @@ namespace tintin {
 
   int coucou1()
   {
-    printf("coucou1()\n");
+    std::string prefix = "hello";
+    std::string who = "world";
+    std::pair<std::string, std::string> info = std::make_pair(prefix, who);
+    std::string msg = info.first + " " + info.second + " !";
+    bool has_prefix = boost::algorithm::contains(msg, prefix);
+    if (has_prefix)
+    {
+      std::cout << "coucou1 say hello: " << msg << std::endl;
+    }
+    else
+    {
+      std::cout << "coucou1 doesn't say hello..." << std::endl;
+    }
     return 0;
   }
 }

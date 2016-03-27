@@ -98,6 +98,8 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   std::string printResultSignature(const clang::FunctionDecl& function) const;
   std::string printQualification(const clang::DeclContext* context) const;
   std::string printNamespaces(const clang::NamedDecl& context) const;
+  std::string printRootQualification(const clang::DeclContext* context) const;
+  std::string printRootNamespace(const clang::NamedDecl& context) const;
   // void parseNamespaces(const clang::DeclContext* context, std::set<CallersData::File>::iterator *file) const;
   std::string parseQualification(const clang::DeclContext* context, std::set<CallersData::File>::iterator *file);
   std::string parseQualifiedName(const clang::NamedDecl& namedDecl, bool* isEmpty=nullptr);
@@ -172,6 +174,7 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   virtual bool TraverseCXXDestructorDecl(clang::CXXDestructorDecl* Decl);
   virtual bool VisitFunctionDecl(clang::FunctionDecl* Decl);
   virtual bool VisitFunctionDeclaration(clang::FunctionDecl* Decl);
+  virtual bool isDeclarationOfInterest(const clang::FunctionDecl& Decl);
   virtual bool VisitFunctionDefinition(clang::FunctionDecl* Decl);
   virtual bool VisitFunctionParameters(const clang::FunctionDecl& function, const CallersData::FctDecl& fct_decl);
   virtual bool VisitMethodDeclaration(clang::CXXMethodDecl* Decl);

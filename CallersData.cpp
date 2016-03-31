@@ -575,7 +575,8 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                   int debut = rc_debut.GetInt();
                   int fin = rc_fin.GetInt();
 
-                  CallersData::Record record(name, cg_kind, nspc, filepath, debut, fin);
+                  CallersData::Record parsed_record(name, cg_kind, nspc, filepath, debut, fin);
+                  std::set<CallersData::Record>::iterator record = this->get_or_create_local_record(&parsed_record);
 
                   if(rc.HasMember("inherits"))
                   {
@@ -598,7 +599,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
 
                           // std::cout << "Parsed parent record: \"" << parent << std::endl;
                           CallersData::Inheritance base(parent, file, debut, fin);
-                          record.add_base_class(base);
+                          record->add_base_class(base);
                         }
                     }
                   }
@@ -624,7 +625,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
 
                           // std::cout << "Parsed child record: \"" << child << std::endl;
                           CallersData::Inheritance fils(child, file, debut, fin);
-                          record.add_child_class(fils);
+                          record->add_child_class(fils);
                         }
                     }
                   }
@@ -640,7 +641,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                           const rapidjson::Value& def = methods[s];
                           std::string meth_sign = def.GetString();
                           // std::cout << "Parsed method: \"" << meth_sign << std::endl;
-                          record.add_method(meth_sign);
+                          record->add_method(meth_sign);
                         }
                     }
                   }
@@ -660,7 +661,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                           std::string member = mb_member.GetString();
                           std::string kind = mb_kind.GetString();
                           // std::cout << "Parsed member: \"" << member << ", kind: " << kind << std::endl;
-                          record.add_member(member, kind);
+                          record->add_member(member, kind);
                         }
                     }
                   }
@@ -676,7 +677,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                           const rapidjson::Value& def = calls[s];
                           std::string called_record = def.GetString();
                           std::cout << "Parsed called record: \"" << called_record << std::endl;
-                          record.add_record_call(called_record);
+                          record->add_record_call(called_record);
                         }
                     }
                   }
@@ -692,12 +693,11 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                           const rapidjson::Value& def = called[s];
                           std::string caller_record = def.GetString();
                           std::cout << "Parsed caller record: \"" << caller_record << std::endl;
-                          record.add_record_called(caller_record);
+                          record->add_record_called(caller_record);
                         }
                     }
                   }
 
-                  this->get_or_create_record(&record, files);
                   // std::cout << "Parsed record r[" << s << "]:\"" << name << "\"" << std::endl;
                 }
             }
@@ -754,7 +754,9 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                     }
 
                   int pos = line.GetInt();
-                  CallersData::FctDecl fctDecl(mangled, symbol, virtuality, nspc, this->filename, pos, recordName, recordFilePath);
+                  CallersData::FctDecl parsed_fctDecl(mangled, symbol, virtuality, nspc, this->filename, pos, recordName, recordFilePath);
+                  std::set<CallersData::FctDecl>::const_iterator
+                  fctDecl = this->get_or_create_local_declared_function(&parsed_fctDecl, this->filepath, files);
 
                   if(symb.HasMember("params"))
                   {
@@ -773,7 +775,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
 
                           // std::cout << "Parsed function parameter: param=\"" << param_name << "\", type=" << param_type << "\"" << std::endl;
                           CallersData::Parameter parameter(param_name, param_type);
-                          fctDecl.add_parameter(parameter);
+                          fctDecl->add_parameter(parameter);
                         }
                     }
                   }
@@ -795,7 +797,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                             fct_def_pos = dirpath + filename + fct_def_pos;
                           }
                           // std::cout << "Completed function def pos: \"" << fct_def_pos << std::endl; */
-                          fctDecl.add_definition(symbol, /*fct_*/def_pos);
+                          fctDecl->add_definition(symbol, /*fct_*/def_pos);
                         }
                     }
                   }
@@ -819,7 +821,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
 
                           // std::cout << "Parsed redeclared method: sign=\"" << sign << "\", def=" << extfct_decl_loc << "\"" << std::endl;
                           CallersData::ExtFctDecl redeclared_method(mangled, sign, extfct_decl_loc);
-                          fctDecl.add_redeclared_method(redeclared_method);
+                          fctDecl->add_redeclared_method(redeclared_method);
                         }
                     }
                   }
@@ -843,7 +845,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
 
                           // std::cout << "Parsed function redeclaration: sign=\"" << sign << "\", def=" << extfct_decl_loc << "\"" << std::endl;
                           CallersData::ExtFctDecl redeclaration(mangled, sign, extfct_decl_loc);
-                          fctDecl.add_redeclaration(redeclaration);
+                          fctDecl->add_redeclaration(redeclaration);
                         }
                     }
                   }
@@ -859,7 +861,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                           const rapidjson::Value& def = locallers[s];
                           std::string localler = def.GetString();
                           // std::cout << "Parsed function localler: \"" << localler << std::endl;
-                          fctDecl.add_local_caller(localler);
+                          fctDecl->add_local_caller(localler);
                         }
                     }
                   }
@@ -882,12 +884,11 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                           std::string extfct_def_loc = def.GetString();
 
                           // std::cout << "Parsed function extcaller: sign=\"" << sign << "\", def=" << extfct_def_loc << "\"" << std::endl;
-                          fctDecl.add_external_caller(mangled, sign, extfct_def_loc);
+                          fctDecl->add_external_caller(mangled, sign, extfct_def_loc);
                         }
                     }
                   }
 
-                  this->get_or_create_declared_function(&fctDecl, filepath, files);
                   // std::cout << "Parsed declared function s[" << s << "]:\"" << symbol << "\" in file " << this->filepath << std::endl;
                 }
             }
@@ -950,11 +951,10 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                     }
 
                   int def_pos = def_line.GetInt();
-                  // std::ostringstream sdef_pos;
-                  // sdef_pos << def_pos;
-                  // std::string def_location(filepath + ":" + sdef_pos.str());
-                  // symbol_location.insert(SymbLoc::value_type(symbol, def_location));
-                  CallersData::FctDef fctDef(mangled, symbol, virtuality, nspc, this->filename, def_pos, decl_file, decl_line,  record);
+
+                  CallersData::FctDef parsed_fctDef(mangled, symbol, virtuality, nspc, this->filename, def_pos, decl_file, decl_line,  record);
+                  std::set<CallersData::FctDef>::const_iterator
+                  fctDef = this->get_or_create_local_defined_function(&parsed_fctDef, this->filepath, files);
 
                   if(symb.HasMember("locallees"))
                   {
@@ -967,7 +967,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                           const rapidjson::Value& def = locallees[s];
                           std::string locallee = def.GetString();
                           // std::cout << "Parsed function locallee: \"" << locallee << std::endl;
-                          fctDef.add_local_callee(locallee);
+                          fctDef->add_local_callee(locallee);
                         }
                     }
                   }
@@ -990,12 +990,12 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                           std::string extfct_decl_loc = def.GetString();
 
                           // std::cout << "Parsed function extcallee: sign=\"" << sign << "\", def=" << extfct_decl_loc << "\"" << std::endl;
-                          fctDef.add_external_callee(mangled, sign, extfct_decl_loc);
+                          fctDef->add_external_callee(mangled, sign, extfct_decl_loc);
                         }
                     }
                   }
 
-                  this->add_defined_function(&fctDef, filepath, files);
+                  // this->add_defined_function(&fctDef, filepath, files);
                   // this->add_defined_function(mangled, symbol, virtuality, this->file, def_pos, filepath, decl_file, decl_line, record, files);
                   // std::cout << "Parsed symbol s[" << s << "]:\"" << symbol << "\"" << std::endl;
                 }
@@ -1467,25 +1467,7 @@ void CallersData::File::add_defined_function(CallersData::FctDef* fct_def, std::
             << "\" defined in file \"" << fct_def->def_file << ":"
             << fct_def->def_line << "\"" << std::endl;
 
-  // Check whether the defined function has well to be added to the current file.
-  if(!this->is_same_file(fct_def_filepath, fct_def->def_file))
-  {
-    // the defined function does not belong to the current file
-
-    std::cout << "CallersData::File::add_defined_function:WARNING: The defined function \"" << fct_def->sign << "\" doesn't belong to the current file: "
-              << this->get_filepath() << ", so we try to open the right file..." << std::endl;
-
-    // check whether a json file is already present for the visited defined function
-    // if true, parse it and add the defined function only when necessary
-    // if false, create this json file and add the defined function
-    {
-      boost::filesystem::path p(fct_def_filepath);
-      std::string basename = p.filename().string();
-      std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-      std::set<CallersData::File>::iterator file = otherJsonFiles->create_or_get_file(basename, dirpath);
-      file->add_defined_function(fct_def, fct_def_filepath, otherJsonFiles);
-    }
-  }
+  assertSameFile(fct_def_filepath);
 
   // the defined function should here belong to the current file
   {
@@ -1509,46 +1491,113 @@ void CallersData::File::add_defined_function(CallersData::FctDef* fct_def, std::
   }
 }
 
-void CallersData::File::add_defined_function(MangledName fct_mangled, std::string fct_sign, Virtuality fct_virtuality, std::string fct_nspc,
-					     std::string fct_def_file, int fct_def_line, std::string fct_def_filepath,
-                                             std::string fct_decl_file, int fct_decl_line, std::string record, CallersData::Dir *otherJsonFiles) const
+std::set<CallersData::FctDef>::const_iterator
+CallersData::File::get_or_create_local_defined_function(CallersData::FctDef *fct_def, std::string def_filepath, CallersData::Dir* files) const
 {
-  FctDef fct_def(fct_mangled, fct_sign, fct_virtuality, fct_nspc, fct_def_file, fct_def_line, fct_decl_file, fct_decl_line, record);
-
-  // Check whether the defined function has well to be added to the current file.
-  if(!this->is_same_file(fct_def_filepath, fct_def_file))
-  {
-    // the defined function does not belong to the current file
-
-    std::cout << "CallersData::File::add_defined_function:WARNING: The defined function \"" << fct_sign << "\" doesn't belong to the current file: "
-              << this->get_filepath() << ", so we try to open the right file..." << std::endl;
-
-    // check whether a json file is already present for the visited defined function
-    // if true, parse it and add the defined function only when necessary
-    // if false, create this json file and add the defined function
+  std::cout << "Tries to get function \"" << fct_def->sign
+	    << "\" defined in file \"" << def_filepath << "\"" << std::endl;
+  assertSameFile(def_filepath, fct_def->def_file);
+  std::set<CallersData::FctDef>::iterator search_result;
+  CallersData::FctDef searched_def(fct_def->sign, def_filepath);
+  search_result = this->defined->find(searched_def);
+  if(search_result != this->defined->end())
     {
-      boost::filesystem::path p(fct_def_file);
-      std::string basename = p.filename().string();
-      std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
-      std::set<CallersData::File>::iterator file = otherJsonFiles->create_or_get_file(basename, dirpath);
-      file->add_defined_function(&fct_def, fct_def_file, otherJsonFiles);
+      std::cout << "CallersData::File::get_or_create_local_defined_function:FOUND: The function \"" << fct_def->sign
+                << "\" is already defined in file " << def_filepath << std::endl;
     }
-  }
-
-  // the defined function should here belong to the current file
-  {
-    if(record == CALLERS_DEFAULT_RECORD_NAME)
+  else
     {
-      std::cout << "CallersData::File::add_defined_function: Create function definition \"" << fct_sign
-                << "\" located in file \"" << fct_def_file << ":" << fct_def_line << "\"" << std::endl;
+      std::cout << "CallersData::File::get_or_create_local_defined_function:NOT_FOUND: The function \"" << fct_def->sign
+                << "\" is not yet defined in file " << def_filepath << ", so we create it now !" << std::endl;
+      this->add_defined_function(fct_def, def_filepath, files);
+      search_result = get_or_create_local_defined_function(fct_def, def_filepath, files);
+      // at this point we should have found or created the local defined function,
+      // so a valid fct_def should have been succesfully retrieved
+      assert(search_result != this->defined->end());
     }
-    else {
-      std::cout << "CallersData::File::add_defined_function: Create " << record << " method definition \"" << fct_sign
-                << "\" located in file \"" << fct_def_file << ":" << fct_def_line << "\"" << std::endl;
-    }
-    this->add_defined_function(&fct_def, fct_def_filepath, otherJsonFiles);
-  }
+
+  return search_result;
 }
+
+std::set<CallersData::FctDef>::const_iterator
+CallersData::File::get_or_create_defined_function(CallersData::FctDef* fct, std::string filepath, CallersData::Dir *files) const
+{
+  std::cout << "Register function \"" << fct->sign
+	    << "\" defined in file \"" << fct->def_file << ":"
+	    << fct->def_line << "\"" << std::endl;
+
+  std::set<CallersData::FctDef>::const_iterator fct_def;
+
+  // Check whether the defined function belongs to the current file.
+  if(this->is_same_file(filepath))
+    // the defined source function belongs to the current file
+    {
+      std::cout << "The defined function belongs to the current file, so we look for it locally\n" << std::endl;
+      fct_def = this->get_or_create_local_defined_function(fct, filepath, files);
+    }
+  else if((kind == "inc") && (fct->decl_file == this->filename))
+    // the defined function belongs to the current header file
+    {
+      std::cout << "The defined function belongs to the current header file, so we look for it locally\n" << std::endl;
+      fct_def = this->get_or_create_local_defined_function(fct, filepath, files);
+    }
+  else
+    // the defined function doesn't belong to the current file
+    {
+      std::cout << "The defined function doesn't belong to the current file" << std::endl;
+      // check first whether a json file is already present for the defined function
+      // if true, parse it and add the defined function only when necessary
+      // if false, create the json file and add the defined function
+      boost::filesystem::path p(fct->def_file);
+      std::string fct_def_basename = p.filename().string();
+      std::string fct_def_dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+      assert(files != NULL);
+      std::set<CallersData::File>::iterator fct_def_file = files->create_or_get_file(fct_def_basename, fct_def_dirpath);
+      fct_def = fct_def_file->get_or_create_local_defined_function(fct, filepath, files);
+    }
+  return fct_def;
+}
+
+// void CallersData::File::add_defined_function(MangledName fct_mangled, std::string fct_sign, Virtuality fct_virtuality, std::string fct_nspc,
+// 					     std::string fct_def_file, int fct_def_line, std::string fct_def_filepath,
+//                                              std::string fct_decl_file, int fct_decl_line, std::string record, CallersData::Dir *otherJsonFiles) const
+// {
+//   FctDef fct_def(fct_mangled, fct_sign, fct_virtuality, fct_nspc, fct_def_file, fct_def_line, fct_decl_file, fct_decl_line, record);
+
+//   // Check whether the defined function has well to be added to the current file.
+//   if(!this->is_same_file(fct_def_filepath, fct_def_file))
+//   {
+//     // the defined function does not belong to the current file
+
+//     std::cout << "CallersData::File::add_defined_function:WARNING: The defined function \"" << fct_sign << "\" doesn't belong to the current file: "
+//               << this->get_filepath() << ", so we try to open the right file..." << std::endl;
+
+//     // check whether a json file is already present for the visited defined function
+//     // if true, parse it and add the defined function only when necessary
+//     // if false, create this json file and add the defined function
+//     {
+//       boost::filesystem::path p(fct_def_file);
+//       std::string basename = p.filename().string();
+//       std::string dirpath = ::getCanonicalAbsolutePath(p.parent_path().string());
+//       std::set<CallersData::File>::iterator file = otherJsonFiles->create_or_get_file(basename, dirpath);
+//       file->add_defined_function(&fct_def, fct_def_file, otherJsonFiles);
+//     }
+//   }
+
+//   // the defined function should here belong to the current file
+//   {
+//     if(record == CALLERS_DEFAULT_RECORD_NAME)
+//     {
+//       std::cout << "CallersData::File::add_defined_function: Create function definition \"" << fct_sign
+//                 << "\" located in file \"" << fct_def_file << ":" << fct_def_line << "\"" << std::endl;
+//     }
+//     else {
+//       std::cout << "CallersData::File::add_defined_function: Create " << record << " method definition \"" << fct_sign
+//                 << "\" located in file \"" << fct_def_file << ":" << fct_def_line << "\"" << std::endl;
+//     }
+//     this->add_defined_function(&fct_def, fct_def_filepath, otherJsonFiles);
+//   }
+// }
 
 void
 CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir *files) const
@@ -1592,11 +1641,10 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
     {
       std::cout << "The caller function belongs to the current file" << std::endl;
 
-      // adds the caller function to the defined functions of the current file
-      add_defined_function(fc->caller.mangled, fc->caller.sign, fc->caller.virtuality, fc->caller.nspc, fc->caller.def_file, fc->caller.def_line, fc->caller.def_file, fc->caller.decl_file, fc->caller.decl_line, fc->caller.record, files);
-      // get a reference to the related defined function
+      // get or adds the caller function to the defined functions of the current file
       CallersData::FctDef caller_fct(fc->caller.mangled, fc->caller.sign, fc->caller.virtuality, fc->caller.nspc, fc->caller.def_file, fc->caller.def_line, fc->caller.decl_file, fc->caller.decl_line, fc->caller.record);
-      caller = defined->find(caller_fct);
+      caller = this->get_or_create_defined_function(&caller_fct, fc->caller.def_file, files);
+      // caller = defined->find(caller_fct);
       // ensure caller has really been found
       assert(caller != defined->end());
 
@@ -1610,12 +1658,13 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 	  // adds the callee function to the declared functions of the current file
           CallersData::FctDecl fctDecl(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.nspc, fc->callee.file,
                                        fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
-          this->get_or_create_declared_function(&fctDecl, fc->callee.file, files);
+          callee = this->get_or_create_declared_function(&fctDecl, fc->callee.file, files);
 
-	  // get a reference to the related declared function
-	  CallersData::FctDecl callee_fct(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.nspc, fc->callee.file,
-                                          fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
-	  callee = declared->find(callee_fct);
+	  // // get a reference to the related declared function
+	  // CallersData::FctDecl callee_fct(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.nspc, fc->callee.file,
+          //                                 fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
+	  // callee = declared->find(callee_fct);
+
 	  // ensure callee has really been found
 	  assert(callee != declared->end());
 
@@ -3793,6 +3842,14 @@ CallersData::FctDef::FctDef(MangledName mangled,
     std::cout << "Create " << record << "'s method definition: " << std::endl;
   }
   this->print_cout(sign, is_virtual, def_file, def_line, record);
+}
+
+CallersData::FctDef::FctDef(std::string sign, std::string filepath)
+  : Fct(sign),
+    def_file(filepath)
+{
+  allocate();
+  std::cout << "Partial function's definition used just to find the complete one: " << std::endl;
 }
 
 CallersData::FctDef::FctDef(const CallersData::FctDef& copy_from_me)

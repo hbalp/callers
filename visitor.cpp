@@ -888,7 +888,7 @@ CallersAction::Visitor::printRootNamespace(const clang::NamedDecl& namedDecl) co
     }
   }
   assert(nspc != "");
-  currentJsonFile->get_or_create_namespace(nspc);
+  // currentJsonFile->get_or_create_namespace(nspc);
   return nspc;
 }
 
@@ -1817,8 +1817,10 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
         int fctDecl_line = getStartLine(functionDecl->getSourceRange());
         // std::string fctDecl_pos = printLocation(functionDecl->getSourceRange());
 
-        CallersData::FctDef fctDef(fctDef_mangledName, fctDef_sign, virtualityDef, fctDef_nspc,
+        CallersData::FctDef v_fctDef(fctDef_mangledName, fctDef_sign, virtualityDef, fctDef_nspc,
                                    fctDef_filepath, fctDef_line, fctDecl_file, fctDecl_line, fctDef_recordName/*, fctDef_recordFilePath1*/);
+        std::set<CallersData::FctDef>::iterator
+        fctDef = currentJsonFile->get_or_create_defined_function(&v_fctDef, fctDef_filepath, &otherJsonFiles);
 
         auto methodDecl = llvm::dyn_cast<clang::CXXMethodDecl>(functionDecl);
         auto virtualityDecl = (methodDecl && methodDecl->isVirtual()) ?
@@ -1841,23 +1843,22 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
               << " defined at file " << fctDef_filepath << ':' << fctDef_line
               << " and declared at file " << fctDecl_file << ':' << fctDecl_line << std::endl;
 
-        currentJsonFile->add_defined_function(&fctDef, fctDef_filepath, &otherJsonFiles);
-
         std::string fctDecl_nspc = printRootNamespace(*functionDecl);
 
         // Complete the function definition with a new "declaration" entry
-        CallersData::FctDecl fctDecl(fctDef_mangledName, fctDef_sign, virtualityDecl, fctDecl_nspc,
+        CallersData::FctDecl v_fctDecl(fctDef_mangledName, fctDef_sign, virtualityDecl, fctDecl_nspc,
                                      fctDecl_file, fctDecl_line, fctDecl_recordName, fctDecl_recordFilePath);
-        VisitFunctionParameters(*functionDecl, fctDecl);
+
+        std::set<CallersData::FctDecl>::iterator fctDecl = currentJsonFile->get_or_create_declared_function(&v_fctDecl, fctDecl_file, &otherJsonFiles);
+
+        VisitFunctionParameters(*functionDecl, *fctDecl);
         if(fctDef_filepath == fctDecl_file)
         {
           std::ostringstream sline;
           sline << fctDef_line;
           fctDef_pos = std::string(CALLERS_LOCAL_FCT_DECL) + ":" + sline.str();
         }
-        fctDecl.add_definition(fctDef_sign, fctDef_pos);
-
-        currentJsonFile->get_or_create_declared_function(&fctDecl, fctDecl_file, &otherJsonFiles);
+        fctDecl->add_definition(fctDef_sign, fctDef_pos);
 
    return true;
 }
@@ -1968,12 +1969,10 @@ CallersAction::Visitor::VisitMethodDeclaration(clang::CXXMethodDecl* methodDecl)
 }
 
 bool
-CallersAction::Visitor::isDeclarationOfInterest(const clang::FunctionDecl& Decl) {
+CallersAction::Visitor::isDeclarationOfInterest(const clang::NamedDecl& namedDecl) {
 
   bool ofInterest = false;
-  std::string fct_name = writeFunction(Decl);
-  const auto namedDecl = llvm::dyn_cast<clang::NamedDecl>(&Decl);
-  std::string fct_nspc = printRootNamespace(*namedDecl);
+  std::string fct_nspc = printRootNamespace(namedDecl);
   static const std::string filtered_nspc = "std:boost:__gnu_cxx:mpl_:builtin:__cxxabiv1:";
   ofInterest = ! boost::algorithm::contains(filtered_nspc, fct_nspc);
   return ofInterest;
@@ -2133,46 +2132,49 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
 
    clang::CXXRecordDecl *RD = llvm::dyn_cast<clang::CXXRecordDecl>(Decl);
    if (Decl->isThisDeclarationADefinition() && RD && RD->isCompleteDefinition()) {
-     clang::TagTypeKind tagKind = Decl->getTagKind();
-      if (tagKind == clang::TTK_Struct || tagKind == clang::TTK_Class) { // avoid unions
-         bool isAnonymousRecord = false;
-         //std::string recordName = printQualifiedName(*Decl, &isAnonymousRecord);
-         std::string recordName = printRecordName(RD);
-         std::string recordNspc = printRootNamespace(*RD);
-         std::string recordFile = printFilePath(Decl->getSourceRange());
-         int recordBegin = getStartLine(Decl->getLocStart());
-         int recordEnd = getStartLine(Decl->getLocEnd());
 
-         recordName += printTemplateKind(*Decl);
-         if (!isAnonymousRecord) {
+     if(this->isDeclarationOfInterest(*Decl)) {
 
-            osOut << "visiting record " << recordName
-                  << " at " << printLocation(Decl->getSourceRange()) << '\n';
+       clang::TagTypeKind tagKind = Decl->getTagKind();
+        if (tagKind == clang::TTK_Struct || tagKind == clang::TTK_Class) { // avoid unions
+           bool isAnonymousRecord = false;
+           //std::string recordName = printQualifiedName(*Decl, &isAnonymousRecord);
+           std::string recordName = printRecordName(RD);
+           std::string recordNspc = printRootNamespace(*RD);
+           std::string recordFile = printFilePath(Decl->getSourceRange());
+           int recordBegin = getStartLine(Decl->getLocStart());
+           int recordEnd = getStartLine(Decl->getLocEnd());
 
-            CallersData::Record search_record(recordName, tagKind, recordNspc, recordFile, recordBegin, recordEnd);
+           recordName += printTemplateKind(*Decl);
+           if (!isAnonymousRecord) {
 
-            std::set<CallersData::Record>::iterator record = currentJsonFile->get_or_create_record(&search_record, &otherJsonFiles);
+              osOut << "visiting record " << recordName
+                    << " at " << printLocation(Decl->getSourceRange()) << '\n';
 
-            osOut << " the record \"" << recordName << "\" inherits from ";
-            VisitInheritanceList(RD, record);
-            osOut << std::endl;
+              CallersData::Record search_record(recordName, tagKind, recordNspc, recordFile, recordBegin, recordEnd);
 
-            osOut << " the record \"" << recordName << "\" declares the following methods:" << std::endl;
+              std::set<CallersData::Record>::iterator record = currentJsonFile->get_or_create_record(&search_record, &otherJsonFiles);
 
-            for(clang::CXXRecordDecl::method_iterator m = RD->method_begin();
-                m != RD->method_end();
-                m++)
-            {
-              clang::FunctionDecl* f = (clang::FunctionDecl*)(*m);
-              std::string method_sign = writeFunction(*f);
-              osOut << " - " << method_sign << std::endl;
-              record->add_method(method_sign);
-            }
+              osOut << " the record \"" << recordName << "\" inherits from ";
+              VisitInheritanceList(RD, record);
+              osOut << std::endl;
 
-            osOut << '\n';
-         };
-      }
-   };
+              osOut << " the record \"" << recordName << "\" declares the following methods:" << std::endl;
 
+              for(clang::CXXRecordDecl::method_iterator m = RD->method_begin();
+                  m != RD->method_end();
+                  m++)
+              {
+                clang::FunctionDecl* f = (clang::FunctionDecl*)(*m);
+                std::string method_sign = writeFunction(*f);
+                osOut << " - " << method_sign << std::endl;
+                record->add_method(method_sign);
+              }
+
+              osOut << '\n';
+           }
+        }
+     }
+   }
    return true;
 }

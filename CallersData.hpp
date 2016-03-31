@@ -90,11 +90,10 @@ namespace CallersData
       std::set<CallersData::FctDecl>::const_iterator get_or_create_declared_function(FctDecl* fct, std::string filepath, Dir *context) const;
       std::set<CallersData::FctDecl>::const_iterator get_or_create_local_declared_function(FctDecl* fct, std::string filepath, Dir *context) const;
       std::set<CallersData::FctDecl>::const_iterator get_declared_function(std::string decl_sign, std::string decl_filepath) const;
+      std::set<CallersData::FctDef>::const_iterator get_or_create_defined_function(FctDef* fct, std::string filepath, Dir *context) const;
+      std::set<CallersData::FctDef>::const_iterator get_or_create_local_defined_function(FctDef* fct, std::string filepath, Dir *context) const;
       bool add_definition_to_declaration(std::string def_pos, std::string decl_sign, std::string decl_filepath) const;
       bool add_definition_to_declaration(std::string def_pos, std::string decl_sign, std::string decl_filepath, Dir* otherFiles) const;
-      void add_defined_function(MangledName mangled, std::string sign, Virtuality virtuality, std::string nspc, std::string file,
-                                int line, std::string filepath, std::string decl_file, int decl_line, std::string record, Dir *context) const;
-      void add_defined_function(FctDef* fct, std::string filepath, Dir *otherFiles) const;
       std::set<CallersData::Record>::iterator get_or_create_record(CallersData::Record *record, Dir* allJsonFiles) const;
       std::set<CallersData::Record>::iterator get_or_create_local_record(CallersData::Record *record) const;
       // std::set<CallersData::Record>::iterator get_record(std::string recordName, std::string recordFilePath, Dir* allJsonFiles) const;
@@ -113,9 +112,12 @@ namespace CallersData
       std::set<FctDef>  *defined;
   private:
       void add_declared_function(CallersData::FctDecl* fct, std::string fct_filepath, Dir* files) const;
+      //void add_declared_function(std::string sign, Virtuality virtuality, std::string file, int line) const;
+      void add_defined_function(FctDef* fct, std::string filepath, Dir *otherFiles) const;
+      // void add_defined_function(MangledName mangled, std::string sign, Virtuality virtuality, std::string nspc, std::string file,
+      //                           int line, std::string filepath, std::string decl_file, int decl_line, std::string record, Dir *context) const;
       void add_record(Record *record) const;
       void add_record(std::string name, clang::TagTypeKind kind, std::string nspc, int begin, int end) const;
-      //void add_declared_function(std::string sign, Virtuality virtuality, std::string file, int line) const;
       std::set<FctCall> *calls;
       std::string filename = "unknownFileName";
       std::string kind = "unknownFileKind";
@@ -418,6 +420,7 @@ namespace CallersData
       FctDef(MangledName mangled, std::string sign, Virtuality is_virtual, std::string nspc,
              std::string def_filepath, int def_line,
              std::string decl_file, int decl_line, std::string record = CALLERS_DEFAULT_NO_RECORD_NAME);
+      FctDef(std::string sign, std::string filepath);
       FctDef(const FctDef& copy_from_me);
       ~FctDef();
 

@@ -183,7 +183,7 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   virtual bool TraverseCXXDestructorDecl(clang::CXXDestructorDecl* Decl);
   virtual bool VisitFunctionDecl(clang::FunctionDecl* Decl);
   virtual bool VisitFunctionDeclaration(clang::FunctionDecl* Decl);
-  virtual bool isDeclarationOfInterest(const clang::FunctionDecl& Decl);
+  virtual bool isDeclarationOfInterest(const clang::NamedDecl& Decl);
   virtual bool VisitFunctionDefinition(clang::FunctionDecl* Decl);
   virtual bool VisitFunctionParameters(const clang::FunctionDecl& function, const CallersData::FctDecl& fct_decl);
   virtual bool VisitMethodDeclaration(clang::CXXMethodDecl* Decl);

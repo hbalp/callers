@@ -34,8 +34,9 @@ int main()
   return 0;
 }
 
-namespace tintin {
+namespace example {
 
+  //int helloWorld()
   int coucou1()
   {
     std::string prefix = "hello";
@@ -45,11 +46,11 @@ namespace tintin {
     bool has_prefix = boost::algorithm::contains(msg, prefix);
     if (has_prefix)
     {
-      std::cout << "coucou1 say hello: " << msg << std::endl;
+      std::cout << "say hello: " << msg << std::endl;
     }
     else
     {
-      std::cout << "coucou1 doesn't say hello..." << std::endl;
+      std::cout << "doesn't say hello..." << std::endl;
     }
     return 0;
   }

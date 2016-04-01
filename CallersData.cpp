@@ -2215,6 +2215,79 @@ CallersData::Namespace::get_name() const
   return name;
 }
 
+// check consistency between current namespace name and record's namespace
+bool CallersData::Namespace::isSameNamespace(std::string identifier) const
+{
+  std::string root_namespace, namespaces;
+  /* bool has_namespace = */ this->get_namespaces(identifier, root_namespace, namespaces);
+  // if(has_namespace && (root_namespace == this->name))
+  if(root_namespace == this->name)
+  {
+    return true;
+  }
+  return false;
+}
+
+bool CallersData::Namespace::get_namespaces(std::string identifier, std::string& root_namespace, std::string &namespaces) const
+{
+  // Splits the identifier into parts separated by sep
+  std::vector<std::string> lparts;
+  boost::algorithm::split_regex(lparts, identifier, boost::regex("::"));
+
+  // only one part, so we have no namespace at all
+  if(lparts.size() == 1)
+  {
+    root_namespace = namespaces = DEFAULT_ROOT_NAMESPACE;
+    return false;
+  }
+
+  namespaces = "";
+  std::vector<std::string>::iterator lpart = lparts.begin();
+
+  // the first part is well a namespace
+  if(lpart->length() > 0)
+  {
+    root_namespace = *lpart;
+
+    std::vector<std::string>::iterator p;
+    for( p = lparts.begin(); p + 1 < lparts.end(); p++ )
+    {
+      namespaces += "::" + *p;
+    }
+
+    return true;
+  }
+
+  // the first part is not a namespace
+  ++lpart;
+
+  // so as the second part
+  if(lpart->length() == 0)
+  {
+    root_namespace = namespaces = DEFAULT_ROOT_NAMESPACE;
+    return false;
+  }
+  root_namespace = *lpart;
+
+  std::vector<std::string>::iterator p;
+  for( p = lpart; p + 1 < lparts.end(); p++ )
+  {
+    namespaces += "::" + *p;
+  }
+
+  ++lpart;
+
+  // the second part is not a namespace
+  if(lpart == lparts.end())
+  {
+    root_namespace = namespaces = DEFAULT_ROOT_NAMESPACE;
+    return false;
+  }
+
+  // the second part is a namespace
+  return true;
+}
+
 // std::string
 // CallersData::Namespace::get_qualifiers() const
 // {
@@ -2261,6 +2334,8 @@ void CallersData::Namespace::add_namespace_called(std::string caller_nspc) const
 
 void CallersData::Namespace::add_record(std::string record) const
 {
+  // check consistency between current namespace name and record's namespace
+  assert(this->isSameNamespace(record));
   records->insert(record);
   std::cout << "Register record \"" << record
 	    << " in namespace " << this->name

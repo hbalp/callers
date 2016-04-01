@@ -944,13 +944,13 @@ CallersAction::Visitor::printQualifiedName(const clang::NamedDecl& namedDecl, bo
 
   const clang::DeclContext *context = namedDecl.getDeclContext();
   std::string result = printQualification(context);
-   if (result.length() > 0)
-      result += "::";
-   std::string pureName = namedDecl.getNameAsString();
-   if (isEmpty)
-      *isEmpty = pureName.length() == 0;
-   result += pureName;
-   return result;
+  std::string pureName = namedDecl.getNameAsString();
+  if((result.length() > 0) && (pureName.length() > 0))
+     result += "::";
+  if (isEmpty)
+     *isEmpty = pureName.length() == 0;
+  result += pureName;
+  return result;
 }
 
 std::string
@@ -1049,7 +1049,7 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
      auto parentMethod = llvm::dyn_cast<clang::CXXMethodDecl>(pfdParent);
 
      std::string caller_def_sign = printParentFunction();
-     std::string caller_def_nspc = printRootNamespace(*constr);
+     std::string caller_def_nspc = printRootNamespace(*pfdParent);
      std::string caller_def_file = printParentFunctionFilePath();
 
      int caller_def_line = getStartLine(constr->getSourceRange());

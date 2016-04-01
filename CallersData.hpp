@@ -21,6 +21,8 @@
 #include <rapidjson/writer.h>
 #include <rapidjson/stringbuffer.h>
 
+#define DEFAULT_ROOT_NAMESPACE "::"
+
 typedef std::string MangledName;
 
 namespace CallersData
@@ -146,6 +148,8 @@ namespace CallersData
       void add_namespace_calls(std::string caller_nspc) const;
       void add_namespace_called(std::string callee_nspc) const;
       std::string get_name() const;
+      bool isSameNamespace(std::string identifier) const;
+      bool get_namespaces(std::string identifier, std::string& root_namespace, std::string &namespaces) const;
       void output_json_desc(std::ofstream &js) const;
       void print_cout() const;
       // std::string get_qualifiers() const;

@@ -346,13 +346,18 @@ namespace CallersData
   {
     public:
       Fct(std::string sign);
-      Fct(MangledName mangled, std::string sign, Virtuality is_virtual, std::string nspc);
+      // Fct(MangledName mangled, std::string sign, Virtuality is_virtual, std::string nspc, bool is_builtin);
+      Fct(MangledName mangled, std::string sign, Virtuality is_virtual, std::string nspc, std::string recordName, std::string recordFilePath, bool is_builtin);
       Fct(const Fct& copy_from_me);
       ~Fct();
       MangledName mangled = "unknownFctMangledName";
       std::string sign = "unknownFctSign";
       Virtuality virtuality = VNoVirtual;
       std::string nspc = CALLERS_DEFAULT_NO_NAMESPACE_NAME;
+    protected:
+      std::string recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
+      std::string recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
+      bool is_builtin = false;
   };
 
   class Parameter;
@@ -362,8 +367,7 @@ namespace CallersData
     friend class Visitor;
     friend class File;
     public:
-      // FctDecl(const char* mangled, const char* sign, Virtuality is_virtual, const char* filepath, const int line, const char* record);
-      FctDecl(std::string mangled, std::string sign, Virtuality is_virtual, std::string nspc, std::string filepath, int line, bool is_builtin = false);
+      // FctDecl(std::string mangled, std::string sign, Virtuality is_virtual, std::string nspc, std::string filepath, int line, bool is_builtin = false);
       FctDecl(std::string mangled, std::string sign, Virtuality is_virtual, std::string nspc, std::string filepath, int line, std::string recordName, std::string recordFilePath, bool is_builtin = false);
       FctDecl(std::string sign, std::string filepath);
       FctDecl(const FctDecl& copy_from_me);
@@ -402,12 +406,9 @@ namespace CallersData
       std::set<ExtFctDef> *redefinitions;
       std::set<std::string> *locallers;
       std::set<ExtFctDef> *extcallers;
-    protected:
-      std::string recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
-      std::string recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
-      bool is_builtin = false;
     private:
-      inline void print_cout() const;
+      void print_cout() const;
+      void debug_notify_creation() const;
       //inline void print_cout(std::string sign, Virtuality is_virtual, std::string file, int line, std::string record);
       void allocate();
   };
@@ -418,12 +419,8 @@ namespace CallersData
   {
     friend class File;
     public:
-      // FctDef(const char* mangled, const char* sign, Virtuality is_virtual,
-      //        const char* def_filepath, const int def_line,
-      //        const char* decl_filepath, const int decl_line, const char* record = CALLERS_DEFAULT_NO_RECORD_NAME);
-      FctDef(MangledName mangled, std::string sign, Virtuality is_virtual, std::string nspc,
-             std::string def_filepath, int def_line,
-             std::string decl_file, int decl_line, std::string record = CALLERS_DEFAULT_NO_RECORD_NAME);
+      FctDef(MangledName mangled, std::string sign, Virtuality is_virtual, std::string nspc, std::string def_filepath, int def_line,
+             std::string decl_file, int decl_line, std::string recordName, std::string recordFilePath, bool is_builtin = false);
       FctDef(std::string sign, std::string filepath);
       FctDef(const FctDef& copy_from_me);
       ~FctDef();
@@ -448,8 +445,6 @@ namespace CallersData
       std::set<std::string> *threads;
       std::set<std::string> *locallees;
       std::set<ExtFctDecl>  *extcallees;
-    protected:
-      std::string record = CALLERS_DEFAULT_NO_RECORD_NAME;
     private:
       inline void print_cout(std::string sign, Virtuality is_virtual, std::string file, int line, std::string record);
       void allocate();

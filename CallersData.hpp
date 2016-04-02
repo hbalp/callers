@@ -47,11 +47,13 @@ namespace CallersData
       ~Dir();
       std::string get_dirpath ();
       void add_children(std::string dir);
-      void add_file(std::string file);
+      // void add_file(std::string file);
       void add_file(File file);
+      void update_metrics(struct DirMetrics& metrics);
       std::set<File>::iterator create_or_get_file(std::string filename, std::string dirpath);
       void output_json_files();
-      void output_json_dir();
+      void output_json_dir(const struct DirMetrics& metrics);
+      void output_metrics(const struct DirMetrics& metrics, std::ostream& os);
     private:
       std::string dir = "unknownDirName";
       std::string path = "unknownDirPath";
@@ -73,18 +75,55 @@ namespace CallersData
   enum FctKind { E_FctDecl, E_FctDef };
   enum FileKind { E_HeaderFile, E_SourceFile, E_UnknownFileKind };
 
+  struct Metrics
+  {
+    unsigned int nb_lines = 0;
+  };
+
+  struct RecordMetrics : public Metrics
+  {
+    unsigned int nb_methods = 0;
+    unsigned int nb_members = 0;
+    unsigned int nb_base_classes = 0;
+    unsigned int nb_child_classes = 0;
+  };
+
+  struct FileMetrics : public Metrics
+  {
+    unsigned int nb_namespaces = 0;
+    unsigned int nb_records = 0;
+    // unsigned int nb_structs = 0;
+    // unsigned int nb_classes = 0;
+    // unsigned int nb_unions = 0;
+    unsigned int nb_threads = 0;
+    unsigned int nb_decls = 0;
+    unsigned int nb_defs = 0;
+  };
+
+  struct DirMetrics : public FileMetrics
+  {
+    unsigned int nb_files = 0;
+    unsigned int nb_header_files = 0;
+    unsigned int nb_source_files = 0;
+  };
+
   class File
   {
+    friend Dir;
     friend bool operator< (const CallersData::File& file1, const CallersData::File& file2);
     public:
       File(std::string file, std::string filepath);
       File(const CallersData::File& copy_from_me);
       ~File();
+      inline void allocate();
       static FileKind getKind(std::string filename);
       std::string get_filepath () const;
+      inline bool is_header_file() const;
+      inline bool is_source_file() const;
       bool is_same_file(std::string otherFilePath, std::string otherFileName = CALLERS_NO_FILE_NAME) const;
       void assertSameFile(std::string otherFilePath, std::string otherFileName = CALLERS_NO_FILE_NAME) const;
       void parse_json_file(Dir *files) const;
+      void complete_metrics(struct DirMetrics& metrics) const;
       void add_namespace(const CallersData::Namespace& nspc) const;
       // void check_or_create_namespace(std::string nspc) const;
       std::set<CallersData::Namespace>::iterator get_or_create_namespace(std::string nspc) const;
@@ -127,6 +166,8 @@ namespace CallersData
       std::string filepath = CALLERS_NO_FILE_PATH;
       std::string jsonLogicalFilePath = "unknownJsonLogicalFilePath";
       std::string jsonPhysicalFilePath = "unknownJsonPhysicalFilePath";
+    protected:
+      struct FileMetrics *metrics;
   };
 
   /* Namespace class */
@@ -237,6 +278,7 @@ namespace CallersData
       // std::set<std::string> *public_methods;
       // std::set<std::string> *private_methods;
       // std::set<std::string> *friend_methods;
+      struct RecordMetrics *metrics;
   };
 
   bool operator< (const Record& record1, const Record& record2);

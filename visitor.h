@@ -163,7 +163,10 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
 
   ~Visitor()
     {
+      CallersData::DirMetrics metrics;
+      otherJsonFiles.update_metrics(metrics);
       otherJsonFiles.output_json_files();
+      otherJsonFiles.output_metrics(metrics, osOut);
     }
 
   virtual bool VisitCXXConstructExpr(const clang::CXXConstructExpr* constructor);

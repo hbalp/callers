@@ -27,6 +27,9 @@
 #define CALLERS_DIR_JSON_EXT  ".dir.callers.gen.json"
 #define CALLERS_FILE_JSON_EXT ".file.callers.gen.json"
 
+#define CALLERS_HEADER_FILE_TYPE "inc"
+#define CALLERS_SOURCE_FILE_TYPE "src"
+
 #define CALLERS_DEFAULT_RECORD_NAME    "noRecordName"
 #define CALLERS_DEFAULT_RECORD_PATH    "noRecordPath"
 #define CALLERS_DEFAULT_NO_RECORD_NAME "C_code"

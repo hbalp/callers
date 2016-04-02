@@ -236,9 +236,7 @@ CallersData::Dir::Dir(std::string dir, std::string path)
 }
 
 CallersData::Dir::~Dir()
-{
-
-}
+{}
 
 std::string CallersData::Dir::get_dirpath()
 {
@@ -246,10 +244,21 @@ std::string CallersData::Dir::get_dirpath()
   return fullpath;
 }
 
-void CallersData::Dir::add_file(std::string file)
+// void CallersData::Dir::add_file(std::string file)
+// {
+//   std::cout << "Register file name \"" << file << "\" in directory \"" << this->get_dirpath() << "\"" << std::endl;
+//   filenames.push_back(file);
+// }
+
+void CallersData::Dir::update_metrics(struct DirMetrics& metrics)
 {
-  std::cout << "Register file name \"" << file << "\" in directory \"" << this->get_dirpath() << "\"" << std::endl;
-  filenames.push_back(file);
+  std::set<CallersData::File>::iterator file;
+  for(file = files.begin(); file != files.end(); file++)
+  {
+    std::cout << "Adds metrics of file \"" << file->filepath
+            << "\" to directory \"" << this->dir <<  "\"" << std::endl;
+    file->complete_metrics(metrics);
+  }
 }
 
 void CallersData::Dir::add_file(File file)
@@ -305,12 +314,59 @@ void CallersData::Dir::output_json_files()
     }
 }
 
-void CallersData::Dir::output_json_dir()
+void CallersData::Dir::output_metrics(const struct DirMetrics& metrics, std::ostream& os)
+{
+  std::ostringstream nb_files;
+  nb_files << metrics.nb_files;
+  std::ostringstream nb_header_files;
+  nb_header_files << metrics.nb_header_files;
+  std::ostringstream nb_source_files;
+  nb_source_files << metrics.nb_source_files;
+  std::ostringstream nb_lines;
+  nb_lines << metrics.nb_lines;
+  std::ostringstream nb_namespaces;
+  nb_namespaces << metrics.nb_namespaces;
+  std::ostringstream nb_records;
+  nb_records << metrics.nb_records;
+  std::ostringstream nb_threads;
+  nb_threads << metrics.nb_threads;
+  std::ostringstream nb_decls;
+  nb_decls << metrics.nb_decls;
+  std::ostringstream nb_defs;
+  nb_defs << metrics.nb_defs;
+
+  os << "metrics:" << std::endl
+     << " dir:" << dir << std::endl
+     << " path:" << path << std::endl
+     << " nb_files:" << nb_files.str() << std::endl
+     << " nb_header_files:" << nb_header_files.str() << std::endl
+     << " nb_source_files:" << nb_source_files.str() << std::endl
+     << " nb_lines:" << nb_lines.str() << std::endl
+     << " nb_namespaces:" << nb_namespaces.str() << std::endl
+     << " nb_records:" << nb_records.str() << std::endl
+     // << " nb_structs:" << nb_structs.str() << std::endl
+     // << " nb_classes:" << nb_classes.str() << std::endl
+     // << " nb_unions:" << nb_unions.str() << std::endl
+     << " nb_threads:" << nb_threads.str() << std::endl
+     << " nb_decls:" << nb_decls.str() << std::endl
+     << " nb_defs:" << nb_defs.str() << std::endl;
+}
+
+void CallersData::Dir::output_json_dir(const DirMetrics& metrics)
 {
   CallersData::JsonFileWriter js(this->jsonfilepath, this->jsonfilepath);
   js.out << "{\"dir\":\"" << dir
          << "\",\"path\":\"" << path
-         << "\",\"files\":[";
+         << "\",\"nb_lines\":" << metrics.nb_lines
+         << ",\"nb_namespaces\":" << metrics.nb_namespaces
+         << ",\"nb_records\":" << metrics.nb_records
+         // << ",\"nb_structs\":" << metrics.nb_structs
+         // << ",\"nb_classes\":" << metrics.nb_classes
+         // << ",\"nb_unions\":" << metrics.nb_unions
+         << ",\"nb_threads\":" << metrics.nb_threads
+         << ",\"nb_decls\":" << metrics.nb_decls
+         << ",\"nb_defs\":" << metrics.nb_defs
+         << ",\"files\":[";
 
   std::list<std::string>::const_iterator i, last;
   last = filenames.empty() ? filenames.end() : --filenames.end();
@@ -337,19 +393,14 @@ CallersData::File::File(std::string filename, std::string dirpath)
     filepath(dirpath + "/" + filename),
     jsonLogicalFilePath(CALLERS_ROOTDIR_PREFIX + dirpath + "/" + filename + CALLERS_FILE_JSON_EXT)
 {
-  namespaces = new std::set<CallersData::Namespace>;
-  declared = new std::set<CallersData::FctDecl>;
-  defined = new std::set<CallersData::FctDef>;
-  records = new std::set<CallersData::Record>;
-  threads = new std::set<CallersData::Thread>;
-  calls = new std::set<CallersData::FctCall>;
+  allocate();
 
   CallersData::FileKind fileType = CallersData::File::getKind(filename);
   switch (fileType)
   {
     case E_SourceFile:
     {
-      kind = "src";
+      kind = CALLERS_SOURCE_FILE_TYPE;
       jsonPhysicalFilePath = jsonLogicalFilePath;
       break;
     }
@@ -357,7 +408,7 @@ CallersData::File::File(std::string filename, std::string dirpath)
     case E_HeaderFile:
     case E_UnknownFileKind:
     {
-      kind = "inc";
+      kind = CALLERS_HEADER_FILE_TYPE;
       jsonPhysicalFilePath = std::string(CALLERS_INCLUDES_FULL_DIR) + "/" + filename + CALLERS_FILE_JSON_EXT;
       break;
     }
@@ -381,6 +432,18 @@ CallersData::File::~File()
   delete records;
   delete threads;
   delete calls;
+  delete metrics;
+}
+
+void CallersData::File::allocate()
+{
+  namespaces = new std::set<CallersData::Namespace>;
+  declared = new std::set<CallersData::FctDecl>;
+  defined = new std::set<CallersData::FctDef>;
+  records = new std::set<CallersData::Record>;
+  threads = new std::set<CallersData::Thread>;
+  calls = new std::set<CallersData::FctCall>;
+  metrics = new struct FileMetrics;
 }
 
 CallersData::File::File(const CallersData::File& copy_from_me)
@@ -392,12 +455,7 @@ CallersData::File::File(const CallersData::File& copy_from_me)
   jsonLogicalFilePath = copy_from_me.jsonLogicalFilePath;
   jsonPhysicalFilePath = copy_from_me.jsonPhysicalFilePath;
 
-  namespaces = new std::set<CallersData::Namespace>;
-  declared = new std::set<CallersData::FctDecl>;
-  defined = new std::set<CallersData::FctDef>;
-  records = new std::set<CallersData::Record>;
-  threads = new std::set<CallersData::Thread>;
-  calls = new std::set<CallersData::FctCall>;
+  allocate();
 
   // std::cout << "File Copy Constructor of file \"" << filename
   //           << "\" defining " << copy_from_me.records->size()
@@ -446,6 +504,49 @@ CallersData::File::File(const CallersData::File& copy_from_me)
     {
       threads->insert(*thr);
     }
+
+  // copy metrics
+  metrics->nb_lines = copy_from_me.metrics->nb_lines;
+  metrics->nb_namespaces = copy_from_me.metrics->nb_namespaces;
+  metrics->nb_records = copy_from_me.metrics->nb_records;
+  // metrics->nb_structs = copy_from_me.metrics->nb_structs
+  // metrics->nb_unions = copy_from_me.metrics->nb_unions;
+  // metrics->nb_classes = copy_from_me.metrics->nb_classes;
+  metrics->nb_threads = copy_from_me.metrics->nb_threads;
+  metrics->nb_decls = copy_from_me.metrics->nb_decls;
+  metrics->nb_defs = copy_from_me.metrics->nb_defs;
+}
+
+bool CallersData::File::is_header_file() const
+{
+  return (kind == CALLERS_HEADER_FILE_TYPE) ? true : false;
+}
+
+bool CallersData::File::is_source_file() const
+{
+  return (kind == CALLERS_SOURCE_FILE_TYPE) ? true : false;
+}
+
+
+void CallersData::File::complete_metrics(struct DirMetrics& metrics) const
+{
+  metrics.nb_files += 1;
+  if(this->is_header_file()) {
+    metrics.nb_header_files += 1;
+  } else {
+    metrics.nb_source_files += 1;
+    assert(this->is_source_file());
+  }
+
+  metrics.nb_lines += this->metrics->nb_lines;
+  metrics.nb_namespaces += this->metrics->nb_namespaces;
+  metrics.nb_records += this->metrics->nb_records;
+  // metrics.nb_structs += this->metrics->nb_structs;
+  // metrics.nb_classes += this->metrics->nb_classes;
+  // metrics.nb_unions += this->metrics->nb_unions;
+  metrics.nb_threads += this->metrics->nb_threads;
+  metrics.nb_decls += this->metrics->nb_decls;
+  metrics.nb_defs += this->metrics->nb_defs;
 }
 
 void CallersData::File::parse_json_file(CallersData::Dir *files) const
@@ -1078,7 +1179,7 @@ bool CallersData::File::is_same_file(std::string otherFilePath, std::string othe
   }
   else
   {
-    if(this->kind == "inc")
+    if(this->kind == CALLERS_HEADER_FILE_TYPE)
     {
       std::string otherfilename = CALLERS_NO_FILE_NAME;
 
@@ -1109,7 +1210,10 @@ void CallersData::File::add_namespace(const CallersData::Namespace& nspc) const
 {
   std::cout << "Register namespace \"" << nspc.get_name()
 	    << "\" defined in file \"" << this->get_filepath() << std::endl;
+  unsigned int nb_nspc=namespaces->size();
+  assert(this->metrics->nb_namespaces == nb_nspc);
   namespaces->insert(nspc);
+  if(nb_nspc + 1 == namespaces->size()) { this->metrics->nb_namespaces += 1; }
 }
 
 std::set<CallersData::Namespace>::iterator
@@ -1168,7 +1272,15 @@ void CallersData::File::add_record(CallersData::Record *rec) const
 	    << "\" with " << nb_base_classes << " base classes, "
 	    << "defined in file \"" << this->get_filepath() << ":"
 	    << rec->begin << ":" << rec->end << "\"" << std::endl;
+
+  unsigned int nb_records=records->size();
+  assert(this->metrics->nb_records == nb_records);
   records->insert(*rec);
+  if(nb_records + 1 == records->size()) {
+    this->metrics->nb_records += 1;
+    this->metrics->nb_lines += rec->metrics->nb_lines;
+  }
+
   // register record's namespace when needed
   std::set<CallersData::Namespace>::iterator rec_nspc = this->get_or_create_namespace(rec->nspc);
   rec_nspc->add_record(rec->name);
@@ -1312,7 +1424,10 @@ void CallersData::File::add_thread(CallersData::Thread *thr, CallersData::Dir *f
   std::cout << "Register thread instance \"" << thr->inst_name
 	    << "\" executing the routine \"" << thr->routine_sign
              << "\"" << std::endl;
+  unsigned int nb_threads=threads->size();
+  assert(this->metrics->nb_threads == nb_threads);
   threads->insert(*thr);
+  if(nb_threads + 1 == threads->size()) { this->metrics->nb_threads += 1; }
 
   //std::set<CallersData::FctDef>::const_iterator caller_def;
   std::set<CallersData::FctDecl>::const_iterator routine_decl;
@@ -1354,8 +1469,13 @@ void CallersData::File::add_declared_function(CallersData::FctDecl* fct, std::st
 	    << "\" declared in file \"" << fct->file << ":"
 	    << fct->begin << "\"" << std::endl;
   assertSameFile(fct_filepath);
-
+  unsigned int nb_decl=declared->size();
+  assert(this->metrics->nb_decls == nb_decl);
   declared->insert(*fct);
+  if(nb_decl + 1 == declared->size()) {
+   this->metrics->nb_decls += 1;
+   this->metrics->nb_lines += fct->nb_lines;
+  }
 }
 
 std::set<CallersData::FctDecl>::const_iterator
@@ -1410,7 +1530,7 @@ CallersData::File::get_or_create_declared_function(CallersData::FctDecl* fct, st
       std::cout << "The declared function belongs to the current file, so we look for it locally\n" << std::endl;
       fct_decl = this->get_or_create_local_declared_function(fct, filepath, files);
     }
-  else if((kind == "inc") && (fct->file == this->filename))
+  else if((kind == CALLERS_HEADER_FILE_TYPE) && (fct->file == this->filename))
     // the declared function belongs to the current header file
     {
       std::cout << "The declared function belongs to the current header file, so we look for it locally\n" << std::endl;
@@ -1496,7 +1616,13 @@ void CallersData::File::add_defined_function(CallersData::FctDef* fct_def, std::
   // the defined function should here belong to the current file
   {
     std::cout << "The defined function belongs to the current file, so we add it directly\n" << std::endl;
+    unsigned int nb_defs = defined->size();
+    assert(this->metrics->nb_defs == nb_defs);
     defined->insert(*fct_def);
+    if(nb_defs + 1 == defined->size()) {
+      this->metrics->nb_defs += 1;
+      this->metrics->nb_lines += fct_def->nb_lines;
+    }
     if(fct_def->decl_file != CALLERS_NO_FCT_DECL_FILE)
     {
       std::ostringstream sdef_pos;
@@ -1563,7 +1689,7 @@ CallersData::File::get_or_create_defined_function(CallersData::FctDef* fct, std:
       std::cout << "The defined function belongs to the current file, so we look for it locally\n" << std::endl;
       fct_def = this->get_or_create_local_defined_function(fct, filepath, files);
     }
-  else if((kind == "inc") && (fct->decl_file == this->filename))
+  else if((kind == CALLERS_HEADER_FILE_TYPE) && (fct->decl_file == this->filename))
     // the defined function belongs to the current header file
     {
       std::cout << "The defined function belongs to the current header file, so we look for it locally\n" << std::endl;
@@ -2074,7 +2200,18 @@ void CallersData::File::output_json_desc() const
     //<< "{\"eClass\":\"" << CALLERS_TYPE_FILE << "\",\"file\":\"" << file
     << "{\"file\":\"" << filename
     << "\",\"kind\":\"" << kind
-    << "\",\"path\":\"" << dirpath
+
+    << "\",\"nb_lines\":" << metrics->nb_lines
+    << ",\"nb_namespaces\":" << metrics->nb_namespaces
+    << ",\"nb_records\":" << metrics->nb_records
+    // << ",\"nb_structs\":" << metrics->nb_structs
+    // << ",\"nb_classes\":" << metrics->nb_classes
+    // << ",\"nb_unions\":" << metrics->nb_unions
+    << ",\"nb_threads\":" << metrics->nb_threads
+    << ",\"nb_decls\":" << metrics->nb_decls
+    << ",\"nb_defs\":" << metrics->nb_defs
+
+    << ",\"path\":\"" << dirpath
     << "\"";
 
   if(namespaces->size() > 0)
@@ -2604,6 +2741,7 @@ void CallersData::Record::allocate()
   redeclarations = new std::set<std::pair<std::string, CallersData::ExtFctDecl>>;
   calls = new std::set<std::string>;
   called = new std::set<std::string>;
+  metrics = new struct RecordMetrics;
 }
 
 CallersData::Record::~Record()
@@ -2616,6 +2754,7 @@ CallersData::Record::~Record()
   delete redeclarations;
   delete calls;
   delete called;
+  delete metrics;
 }
 
 CallersData::Record::Record(std::string name, std::string nspc, std::string file)
@@ -2639,6 +2778,7 @@ CallersData::Record::Record(std::string name, clang::TagTypeKind kind, std::stri
 {
   assert(nspc != "");
   allocate();
+  this->metrics->nb_lines = end + 1 - begin;
   std::cout << "Create record: " << std::endl;
   this->print_cout();
 }
@@ -2703,6 +2843,8 @@ CallersData::Record::Record(const CallersData::Record& copy_from_me)
 void CallersData::Record::add_method(std::string method) const
 {
   methods->insert(method);
+  this->metrics->nb_methods = methods->size();
+
   std::cout << "Add method \"" << method
 	    << " to class " << this->name
 	    << std::endl;
@@ -2711,6 +2853,7 @@ void CallersData::Record::add_method(std::string method) const
 void CallersData::Record::add_member(std::string member, std::string type) const
 {
   members->insert(std::make_pair(member, type));
+  this->metrics->nb_members = members->size();
   std::cout << "Add member \"" << member << " with type " << type
 	    << " to class " << this->name
 	    << std::endl;
@@ -2858,6 +3001,7 @@ void CallersData::Record::add_friend_method(std::string method) const
 void CallersData::Record::add_base_class(CallersData::Inheritance bclass) const
 {
   inherits->insert(bclass);
+  this->metrics->nb_base_classes = inherits->size();
   std::cout << "CallersData::Record::add_base_class: Register base record \"" << bclass.name
 	    << "\" defined in file \"" << bclass.file << "\""
 	    << " in record " << name
@@ -2868,6 +3012,7 @@ void CallersData::Record::add_base_class(CallersData::Inheritance bclass) const
 void CallersData::Record::add_child_class(CallersData::Inheritance bclass) const
 {
   inherited->insert(bclass);
+  this->metrics->nb_child_classes = inherited->size();
   std::cout << "CallersData::Record::add_child_class: Register child record \"" << bclass.name
 	    << "\" defined in file \"" << bclass.file << "\""
 	    << " in record " << name
@@ -2911,6 +3056,8 @@ void CallersData::Record::print_cout() const
 
 void CallersData::Record::output_json_desc(std::ofstream &js) const
 {
+  std::ostringstream nb_lines;
+  nb_lines << metrics->nb_lines;
   std::ostringstream debut;
   debut << begin;
   std::ostringstream fin;
@@ -2922,7 +3069,8 @@ void CallersData::Record::output_json_desc(std::ofstream &js) const
                              : ((kind == clang::TTK_Class) ? "class"
                              : "anonym"))
       << "\",\"nspc\":\"" << nspc
-      << "\",\"debut\":" << debut.str()
+      << "\",\"nb_lines\":" << nb_lines
+      << ",\"debut\":" << debut.str()
       << ",\"fin\":" << fin.str()
       << ",\"inherits\":[";
 
@@ -3937,7 +4085,7 @@ CallersData::FctDef::FctDef(MangledName mangled,
 
   assert(is_builtin == false);
 
-  assert(def_begin < def_end); // a valid definition contains at least one loc
+  assert(def_begin <= def_end); // a valid definition contains at least one loc
 
   allocate();
 

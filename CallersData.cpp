@@ -14,6 +14,7 @@
 //#include <fstream>
 #include <iostream>
 #include <sstream>
+#include <limits.h>
 #include <unistd.h>
 #include <stdlib.h>
 #ifndef NOT_USE_BOOST_FILESYSTEM
@@ -714,7 +715,8 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                   const rapidjson::Value& symb = declared[s];
                   const rapidjson::Value& sign = symb["sign"];
                   const rapidjson::Value& builtin = symb["builtin"];
-                  const rapidjson::Value& line = symb["line"];
+                  const rapidjson::Value& begin_pos = symb["deb"];
+                  const rapidjson::Value& end_pos = symb["fin"];
                   const rapidjson::Value& mangledName = symb["mangled"];
 
                   MangledName mangled = mangledName.GetString();
@@ -755,8 +757,9 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                       nspc = nspc_value.GetString();
                     }
 
-                  int pos = line.GetInt();
-                  CallersData::FctDecl parsed_fctDecl(mangled, symbol, virtuality, nspc, this->filename, pos, recordName, recordFilePath, is_builtin);
+                  int begin = begin_pos.GetInt();
+                  int end = end_pos.GetInt();
+                  CallersData::FctDecl parsed_fctDecl(mangled, symbol, virtuality, nspc, this->filename, begin, end, recordName, recordFilePath, is_builtin);
                   std::set<CallersData::FctDecl>::const_iterator
                   fctDecl = this->get_or_create_local_declared_function(&parsed_fctDecl, this->filepath, files);
 
@@ -908,7 +911,8 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                   const rapidjson::Value& symb = defined[s];
                   const rapidjson::Value& sign = symb["sign"];
                   // const rapidjson::Value& builtin = symb["builtin"];
-                  const rapidjson::Value& def_line = symb["line"];
+                  const rapidjson::Value& begin_pos = symb["deb"];
+                  const rapidjson::Value& end_pos = symb["fin"];
                   const rapidjson::Value& mangledName = symb["mangled"];
 
                   std::string symbol = sign.GetString();
@@ -918,7 +922,7 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
 
                   std::string decl_pos = CALLERS_NO_FCT_DECL_FILE;
                   std::string decl_file = CALLERS_NO_FCT_DECL_FILE;
-                  int decl_line = -1;
+                  int decl_line = CALLERS_NO_NB_LINES;
                   if(symb.HasMember("decl"))
                   {
                     const rapidjson::Value& dc = symb["decl"];
@@ -961,9 +965,11 @@ void CallersData::File::parse_json_file(CallersData::Dir *files) const
                       nspc = nspc_value.GetString();
                     }
 
-                  int def_pos = def_line.GetInt();
+                  int def_begin = begin_pos.GetInt();
+                  int def_end = end_pos.GetInt();
 
-                  CallersData::FctDef parsed_fctDef(mangled, symbol, virtuality, nspc, this->filename, def_pos, decl_file, decl_line, recordName, recordFilePath, is_builtin);
+                  CallersData::FctDef parsed_fctDef(mangled, symbol, virtuality, nspc, this->filename, def_begin, def_end,
+                                                    decl_file, recordName, recordFilePath, is_builtin);
                   std::set<CallersData::FctDef>::const_iterator
                   fctDef = this->get_or_create_local_defined_function(&parsed_fctDef, this->filepath, files);
 
@@ -1315,7 +1321,7 @@ void CallersData::File::add_thread(CallersData::Thread *thr, CallersData::Dir *f
   assert(thr->caller_file == this->filepath);
   // get a reference to the thread caller definition (if well present as expected)
   CallersData::FctDef thr_caller_def(thr->caller_mangled, thr->caller_sign, thr->caller_virtuality, thr->caller_nspc,
-                                     thr->caller_file, thr->caller_line, thr->caller_decl_file, thr->caller_decl_line,
+                                     thr->caller_file, thr->caller_begin, thr->caller_end, thr->caller_decl_file,
                                      thr->caller_recordName, thr->caller_recordFilePath);
   auto caller_def = defined->find(thr_caller_def);
   // ensure caller def has really been found
@@ -1326,7 +1332,7 @@ void CallersData::File::add_thread(CallersData::Thread *thr, CallersData::Dir *f
   assert(thr->routine_file == this->filepath);
   // get a reference to the thread routine declaration (if well present as expected)
   CallersData::FctDecl thr_routine_decl(thr->routine_mangled, thr->routine_sign, thr->routine_virtuality, thr->routine_nspc,
-                                        thr->routine_file, thr->routine_line, thr->routine_recordName, thr->routine_recordFilePath);
+                                        thr->routine_file, thr->routine_begin, thr->routine_end, thr->routine_recordName, thr->routine_recordFilePath);
   routine_decl = declared->find(thr_routine_decl);
   // ensure routine decl has really been found
   assert(routine_decl != declared->end());
@@ -1335,7 +1341,7 @@ void CallersData::File::add_thread(CallersData::Thread *thr, CallersData::Dir *f
   // // add the thread to the routine definition
   // // get a reference to the thread routine definition (if well present as expected)
   // CallersData::FctDef thr_routine_def(thr->routine_mangled, thr->routine_sign, thr->routine_def_virtuality,
-  //                                      thr->routine_def_file, thr->routine_def_line, thr->routine_decl_pos, thr->routine_recordName, thr->routine_recordFilePath);
+  //                                      thr->routine_def_file, thr->routine_def_begin, thr->routine_decl_pos, thr->routine_recordName, thr->routine_recordFilePath);
   // routine_def = defined->find(thr_routine_def);
   // // ensure routine decl has really been found
   // assert(routine_def != defined->end());
@@ -1346,7 +1352,7 @@ void CallersData::File::add_declared_function(CallersData::FctDecl* fct, std::st
 {
   std::cout << "Tries to add function \"" << fct->sign
 	    << "\" declared in file \"" << fct->file << ":"
-	    << fct->line << "\"" << std::endl;
+	    << fct->begin << "\"" << std::endl;
   assertSameFile(fct_filepath);
 
   declared->insert(*fct);
@@ -1393,7 +1399,7 @@ CallersData::File::get_or_create_declared_function(CallersData::FctDecl* fct, st
 {
   std::cout << "Register function \"" << fct->sign
 	    << "\" declared in file \"" << fct->file << ":"
-	    << fct->line << "\"" << std::endl;
+	    << fct->begin << "\"" << std::endl;
 
   std::set<CallersData::FctDecl>::const_iterator fct_decl;
 
@@ -1481,7 +1487,9 @@ void CallersData::File::add_defined_function(CallersData::FctDef* fct_def, std::
 {
   std::cout << "Register function \"" << fct_def->sign
             << "\" defined in file \"" << fct_def->def_file << ":"
-            << fct_def->def_line << "\"" << std::endl;
+            << fct_def->begin << "\"" << std::endl;
+
+  // assert(fct_def->begin < 20000); // tmp for debug only
 
   assertSameFile(fct_def_filepath);
 
@@ -1492,7 +1500,7 @@ void CallersData::File::add_defined_function(CallersData::FctDef* fct_def, std::
     if(fct_def->decl_file != CALLERS_NO_FCT_DECL_FILE)
     {
       std::ostringstream sdef_pos;
-      sdef_pos << fct_def->def_line;
+      sdef_pos << fct_def->begin;
       if(fct_def->decl_file == CALLERS_LOCAL_FCT_DECL)
       {
         std::string def_pos = std::string(CALLERS_LOCAL_FCT_DECL) + ":" + sdef_pos.str();
@@ -1544,7 +1552,7 @@ CallersData::File::get_or_create_defined_function(CallersData::FctDef* fct, std:
 {
   std::cout << "Register function \"" << fct->sign
 	    << "\" defined in file \"" << fct->def_file << ":"
-	    << fct->def_line << "\"" << std::endl;
+	    << fct->begin << "\"" << std::endl;
 
   std::set<CallersData::FctDef>::const_iterator fct_def;
 
@@ -1579,10 +1587,10 @@ CallersData::File::get_or_create_defined_function(CallersData::FctDef* fct, std:
 }
 
 // void CallersData::File::add_defined_function(MangledName fct_mangled, std::string fct_sign, Virtuality fct_virtuality, std::string fct_nspc,
-// 					     std::string fct_def_file, int fct_def_line, std::string fct_def_filepath,
+// 					     std::string fct_def_file, int fct_def_begin, std::string fct_def_filepath,
 //                                              std::string fct_decl_file, int fct_decl_line, std::string record, CallersData::Dir *otherJsonFiles) const
 // {
-//   FctDef fct_def(fct_mangled, fct_sign, fct_virtuality, fct_nspc, fct_def_file, fct_def_line, fct_decl_file, fct_decl_line, record);
+//   FctDef fct_def(fct_mangled, fct_sign, fct_virtuality, fct_nspc, fct_def_file, fct_def_begin, fct_decl_file, fct_decl_line, record);
 
 //   // Check whether the defined function has well to be added to the current file.
 //   if(!this->is_same_file(fct_def_filepath, fct_def_file))
@@ -1609,11 +1617,11 @@ CallersData::File::get_or_create_defined_function(CallersData::FctDef* fct, std:
 //     if(record == CALLERS_DEFAULT_RECORD_NAME)
 //     {
 //       std::cout << "CallersData::File::add_defined_function: Create function definition \"" << fct_sign
-//                 << "\" located in file \"" << fct_def_file << ":" << fct_def_line << "\"" << std::endl;
+//                 << "\" located in file \"" << fct_def_file << ":" << fct_def_begin << "\"" << std::endl;
 //     }
 //     else {
 //       std::cout << "CallersData::File::add_defined_function: Create " << record << " method definition \"" << fct_sign
-//                 << "\" located in file \"" << fct_def_file << ":" << fct_def_line << "\"" << std::endl;
+//                 << "\" located in file \"" << fct_def_file << ":" << fct_def_begin << "\"" << std::endl;
 //     }
 //     this->add_defined_function(&fct_def, fct_def_filepath, otherJsonFiles);
 //   }
@@ -1640,8 +1648,8 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 		: "pure")))
             << std::endl;
   std::cout << "current file: " << this->get_filepath() << std::endl;
-  std::cout << "caller def pos: " << fc->caller.def_file << ":" << fc->caller.def_line << std::endl;
-  std::cout << "callee decl pos: " << fc->callee.file << ":" << fc->callee.line << std::endl;
+  std::cout << "caller def pos: " << fc->caller.def_file << ":" << fc->caller.begin << std::endl;
+  std::cout << "callee decl pos: " << fc->callee.file << ":" << fc->callee.begin << std::endl;
 
   calls->insert(*fc);
 
@@ -1662,7 +1670,8 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
       std::cout << "The caller function belongs to the current file" << std::endl;
 
       // get or adds the caller function to the defined functions of the current file
-      CallersData::FctDef caller_fct(fc->caller.mangled, fc->caller.sign, fc->caller.virtuality, fc->caller.nspc, fc->caller.def_file, fc->caller.def_line, fc->caller.decl_file, fc->caller.decl_line, fc->caller.recordName, fc->caller.recordFilePath);
+      CallersData::FctDef caller_fct(fc->caller.mangled, fc->caller.sign, fc->caller.virtuality, fc->caller.nspc, fc->caller.def_file,
+                                     fc->caller.begin, fc->caller.end, fc->caller.decl_file, fc->caller.recordName, fc->caller.recordFilePath);
       caller = this->get_or_create_defined_function(&caller_fct, fc->caller.def_file, files);
       // caller = defined->find(caller_fct);
       // ensure caller has really been found
@@ -1677,12 +1686,12 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 
 	  // adds the callee function to the declared functions of the current file
           CallersData::FctDecl fctDecl(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.nspc, fc->callee.file,
-                                       fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
+                                       fc->callee.begin, fc->callee.end, fc->callee.recordName, fc->callee.recordFilePath);
           callee = this->get_or_create_declared_function(&fctDecl, fc->callee.file, files);
 
 	  // // get a reference to the related declared function
 	  // CallersData::FctDecl callee_fct(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.nspc, fc->callee.file,
-          //                                 fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
+          //                                 fc->callee.begin, fc->callee.recordName, fc->callee.recordFilePath);
 	  // callee = declared->find(callee_fct);
 
 	  // ensure callee has really been found
@@ -1709,7 +1718,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 	  //CallersData::File callee_file(callee_basename, callee_dirpath);
 	  //callee_file.parse_json_file();
 	  CallersData::FctDecl callee_decl(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.nspc, fc->callee.file,
-                                           fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath, fc->callee.is_builtin);
+                                           fc->callee.begin, fc->callee.end, fc->callee.recordName, fc->callee.recordFilePath, fc->callee.is_builtin);
 	  callee_file->get_or_create_declared_function(&callee_decl, fc->callee.file, files);
 
 	  // get a reference to the related defined function
@@ -1720,18 +1729,18 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 	  if(fc->callee.is_builtin == true)
 	    {
               // add the builtin callee to the local caller
-	      caller->add_builtin_callee(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.file, fc->callee.line);
+	      caller->add_builtin_callee(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.file, fc->callee.begin);
 
 	      // add the local caller to the builtin callee
-	      callee->add_external_caller(fc->caller.mangled, fc->caller.sign, fc->caller.def_file, fc->caller.def_line);
+	      callee->add_external_caller(fc->caller.mangled, fc->caller.sign, fc->caller.def_file, fc->caller.begin);
 	    }
 	  else
             {
               // add the external callee to the local caller
-              caller->add_external_callee(fc->callee.mangled, fc->callee.sign, fc->callee.file, fc->callee.line);
+              caller->add_external_callee(fc->callee.mangled, fc->callee.sign, fc->callee.file, fc->callee.begin);
 
 	      // add the local caller to the external callee
-	      callee->add_external_caller(fc->caller.mangled, fc->caller.sign, fc->caller.def_file, fc->caller.def_line);
+	      callee->add_external_caller(fc->caller.mangled, fc->caller.sign, fc->caller.def_file, fc->caller.begin);
             }
 	}
     }
@@ -1751,7 +1760,8 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
       // CallersData::File caller_file(caller_basename, caller_dirpath);
       // caller_file.parse_json_file();
       CallersData::FctDef caller_def(fc->caller.mangled, fc->caller.sign, fc->caller.virtuality, fc->caller.nspc,
-                                     fc->caller.def_file, fc->caller.def_line, fc->caller.decl_file, fc->caller.decl_line, fc->caller.recordName, fc->caller.recordFilePath);
+                                     fc->caller.def_file, fc->caller.begin, fc->caller.end,
+                                     fc->caller.decl_file, fc->caller.recordName, fc->caller.recordFilePath);
       caller_file->add_defined_function(&caller_def, fc->caller.def_file, files);
       // get a reference to the related defined function
       caller = caller_file->defined->find(caller_def);
@@ -1766,20 +1776,22 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 	  std::cout << "The callee function belongs to the current file" << std::endl;
 
 	  // adds the callee function to the declared functions of the current file
-          CallersData::FctDecl fctDecl(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.nspc, fc->callee.file, fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
+          CallersData::FctDecl fctDecl(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.nspc,
+                                       fc->callee.file, fc->callee.begin, fc->callee.end, fc->callee.recordName, fc->callee.recordFilePath);
 	  this->get_or_create_declared_function(&fctDecl, fc->callee.file, files);
 
 	  // get a reference to the related defined function
-	  CallersData::FctDecl callee_fct(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.nspc, fc->callee.file, fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
+	  CallersData::FctDecl callee_fct(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.nspc,
+                                          fc->callee.file, fc->callee.begin, fc->callee.end, fc->callee.recordName, fc->callee.recordFilePath);
 	  callee = declared->find(callee_fct);
 	  // ensure callee has really been found
 	  assert(callee != declared->end());
 
 	  // add the external caller to the local callee
-	  callee->add_external_caller(fc->caller.mangled, fc->caller.sign, fc->caller.def_file, fc->caller.def_line);
+	  callee->add_external_caller(fc->caller.mangled, fc->caller.sign, fc->caller.def_file, fc->caller.begin);
 
 	  // add the local callee to the external caller
-	  caller->add_external_callee(fc->caller.mangled, fc->callee.sign, fc->callee.file, fc->callee.line);
+	  caller->add_external_callee(fc->caller.mangled, fc->callee.sign, fc->callee.file, fc->callee.begin);
 	}
       else
 	// the callee function is defined externally as the caller !!!
@@ -1796,7 +1808,7 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
           //CallersData::File callee_file(callee_basename, callee_dirpath);
           //callee_file.parse_json_file();
           CallersData::FctDecl callee_decl(fc->callee.mangled, fc->callee.sign, fc->callee.virtuality, fc->callee.nspc,
-                                           fc->callee.file, fc->callee.line, fc->callee.recordName, fc->callee.recordFilePath);
+                                           fc->callee.file, fc->callee.begin, fc->callee.end, fc->callee.recordName, fc->callee.recordFilePath);
           callee_file->get_or_create_declared_function(&callee_decl, fc->callee.file, files);
 
 	  // get a reference to the related defined function
@@ -1820,10 +1832,10 @@ CallersData::File::add_function_call(CallersData::FctCall* fc, CallersData::Dir 
 	      std::cout << "The caller and callee functions are located in different files" << std::endl;
 
 	      // add the external caller to the external callee
-	      callee->add_external_caller(fc->caller.mangled, fc->caller.sign, fc->caller.def_file, fc->caller.def_line);
+	      callee->add_external_caller(fc->caller.mangled, fc->caller.sign, fc->caller.def_file, fc->caller.begin);
 
 	      // add the external callee to the external caller
-	      caller->add_external_callee(fc->callee.mangled, fc->callee.sign, fc->callee.file, fc->callee.line);
+	      caller->add_external_callee(fc->callee.mangled, fc->callee.sign, fc->callee.file, fc->callee.begin);
 	    }
 	}
     }
@@ -1916,7 +1928,7 @@ void CallersData::File::try_to_add_redeclared_and_redeclaration_methods(const Fc
     {
       std::string redecl_method_pos = CALLERS_NO_FCT_DECL_FILE;
       std::string redecl_method_file = CALLERS_NO_FCT_DECL_FILE;
-      int redecl_method_line = -1;
+      int redecl_method_line = CALLERS_NO_NB_LINES;
       decode_function_location(redecl_method->second.fctLoc, redecl_method_file, redecl_method_line);
 
       // get a reference to the base virtual method
@@ -1935,7 +1947,7 @@ void CallersData::File::try_to_add_redeclared_and_redeclaration_methods(const Fc
       // add a redeclaration to the base virtual method
       {
         std::ostringstream pos;
-        pos << fct_decl.line;
+        pos << fct_decl.begin;
         std::string fct_decl_pos = fct_decl.file + ":" + pos.str();
         CallersData::ExtFctDecl child_redeclared_method(fct_decl.mangled, fct_decl.sign, fct_decl_pos);
         base_virt_method->add_redeclaration(child_redeclared_method);
@@ -3075,10 +3087,8 @@ CallersData::Thread::Thread(std::string inst_name,
                             Virtuality routine_virtuality,
                             std::string routine_nspc,
                             std::string routine_file,
-                            int routine_line,
-                            // Virtuality routine_def_virtuality,
-                            // std::string routine_def_file,
-                            // int routine_def_line,
+                            int routine_begin,
+                            int routine_end,
                             std::string routine_recordName,
                             std::string routine_recordFilePath,
                             std::string create_location,
@@ -3087,9 +3097,9 @@ CallersData::Thread::Thread(std::string inst_name,
                             Virtuality caller_virtuality,
                             std::string caller_nspc,
                             std::string caller_filepath,
-                            int caller_filepos,
+                            int caller_begin,
+                            int caller_end,
                             std::string caller_decl_file,
-                            int caller_decl_line,
                             std::string caller_recordName,
                             std::string caller_recordFilePath)
   : inst_name(inst_name),
@@ -3099,10 +3109,8 @@ CallersData::Thread::Thread(std::string inst_name,
     routine_virtuality(routine_virtuality),
     routine_nspc(routine_nspc),
     routine_file(routine_file),
-    routine_line(routine_line),
-    // routine_def_virtuality(routine_def_virtuality),
-    // routine_def_file(routine_def_file),
-    // routine_def_line(routine_def_line),
+    routine_begin(routine_begin),
+    routine_end(routine_end),
     routine_recordName(routine_recordName),
     routine_recordFilePath(routine_recordFilePath),
     create_location(create_location),
@@ -3111,9 +3119,9 @@ CallersData::Thread::Thread(std::string inst_name,
     caller_virtuality(caller_virtuality),
     caller_nspc(caller_nspc),
     caller_file(caller_filepath),
-    caller_line(caller_filepos),
+    caller_begin(caller_begin),
+    caller_end(caller_end),
     caller_decl_file(caller_decl_file),
-    caller_decl_line(caller_decl_line),
     caller_recordName(caller_recordName),
     caller_recordFilePath(caller_recordFilePath)
 {
@@ -3121,18 +3129,14 @@ CallersData::Thread::Thread(std::string inst_name,
   assert(this->routine_name != "unknownThreadRoutineName");
   assert(this->routine_sign != "unknownThreadRoutineSign");
   assert(this->routine_mangled != "unknownThreadRoutineMangled");
-  // assert(this->routine_virtuality != CallersData::VNoVirtual);
   assert(this->routine_file != "unknownThreadRoutineDeclFile");
-  assert(this->routine_line != -1);
-  // // assert(this->routine_def_virtuality != CallersData::VNoVirtual);
-  // assert(this->routine_def_file != "unknownThreadRoutineDefFile");
-  // assert(this->routine_def_line != -1);
+  assert(this->routine_begin != CALLERS_NO_NB_LINES);
+  assert(this->routine_end != CALLERS_NO_NB_LINES);
   assert(this->routine_recordName != CALLERS_DEFAULT_RECORD_NAME);
   assert(this->routine_recordFilePath != CALLERS_DEFAULT_RECORD_PATH);
   assert(this->create_location != "unknownThreadCreateLocation");
   assert(this->caller_sign != "unknownThreadCallerSign");
   assert(this->caller_mangled != "unknownThreadCallerMangled");
-  // assert(this->caller_decl_file != CALLERS_NO_FCT_DECL_FILE);
   assert(this->caller_recordName != CALLERS_DEFAULT_RECORD_NAME);
   assert(this->caller_recordFilePath != CALLERS_DEFAULT_RECORD_PATH);
 
@@ -3153,16 +3157,15 @@ CallersData::Thread::Thread(const CallersData::Thread& copy_from_me)
   routine_mangled = copy_from_me.routine_mangled;
   routine_virtuality = copy_from_me.routine_virtuality;
   routine_file = copy_from_me.routine_file;
-  routine_line = copy_from_me.routine_line;
-  // routine_def_virtuality = copy_from_me.routine_def_virtuality;
-  // routine_def_file = copy_from_me.routine_def_file;
-  // routine_def_line = copy_from_me.routine_def_line;
+  routine_begin = copy_from_me.routine_begin;
+  routine_end = copy_from_me.routine_end;
   routine_recordName = copy_from_me.routine_recordName;
   routine_recordFilePath = copy_from_me.routine_recordFilePath;
   create_location = copy_from_me.create_location;
   caller_sign = copy_from_me.caller_sign;
+  caller_begin = copy_from_me.caller_begin;
+  caller_end = copy_from_me.caller_end;
   caller_decl_file = copy_from_me.caller_decl_file;
-  caller_decl_line = copy_from_me.caller_decl_line;
   caller_mangled = copy_from_me.caller_mangled;
   caller_recordName = copy_from_me.caller_recordName;
   caller_recordFilePath = copy_from_me.caller_recordFilePath;
@@ -3182,14 +3185,14 @@ void CallersData::Thread::print_cout() const
     << "\",\"routine_mangled\":\"" << routine_mangled
     << "\",\"routine_virtuality\":\"" << decl_virtuality
     << "\",\"routine_file\":\"" << routine_file
-    << "\",\"routine_line\":" << routine_line
-    // << ",\"routine_def_virtuality\":\"" << routine_def_virtuality
-    // << "\",\"routine_def_file\":\"" << routine_def_file
-    // << "\",\"routine_def_line\":" << routine_def_line
+    << "\",\"routine_begin\":" << routine_begin
+    << "\",\"routine_end\":" << routine_end
     << ",\"routine_recordName\":\"" << routine_recordName
     << "\",\"routine_recordPath\":\"" << routine_recordFilePath
     << "\",\"caller_sign\":\"" << caller_sign
     << "\",\"caller_mangled\":\"" << caller_mangled
+    << "\",\"caller_begin\":\"" << caller_begin
+    << "\",\"caller_end\":\"" << caller_end
     << "\",\"caller_decl_file\":\"" << caller_decl_file
     << "\",\"caller_recordName\":\"" << caller_recordName
     << "\",\"caller_recordFilePath\":\"" << caller_recordFilePath
@@ -3210,14 +3213,14 @@ void CallersData::Thread::output_json_desc(std::ofstream &js) const
       << "\",\"routine_mangled\":\"" << routine_mangled
       << "\",\"routine_virtuality\":\"" << decl_virtuality
       << "\",\"routine_file\":\"" << routine_file
-      << "\",\"routine_line\":" << routine_line
-      // << ",\"routine_def_virtuality\":\"" << routine_def_virtuality
-      // << "\",\"routine_def_file\":\"" << routine_def_file
-      // << "\",\"routine_def_line\":" << routine_def_line
+      << "\",\"routine_begin\":" << routine_begin
+      << "\",\"routine_end\":" << routine_end
       << ",\"routine_recordName\":\"" << routine_recordName
       << "\",\"routine_recordPath\":\"" << routine_recordFilePath
       << "\",\"caller_sign\":\"" << caller_sign
       << "\",\"caller_mangled\":\"" << caller_mangled
+      << "\",\"caller_begin\":\"" << caller_begin
+      << "\",\"caller_end\":\"" << caller_end
       << "\",\"caller_decl_file\":\"" << caller_decl_file
       << "\",\"caller_recordName\":\"" << caller_recordName
       << "\",\"caller_recordFilePath\":\"" << caller_recordFilePath
@@ -3234,19 +3237,30 @@ bool CallersData::operator< (const CallersData::Thread& thread1, const CallersDa
 
 CallersData::Fct::Fct(std::string sign) : sign(sign) {}
 
-CallersData::Fct::Fct(MangledName mangled, std::string sign, Virtuality is_virtual, std::string nspc, std::string recordName, std::string recordFilePath, bool is_builtin)
+CallersData::Fct::Fct(MangledName mangled, std::string sign, Virtuality is_virtual, std::string nspc,
+                      std::string recordName, std::string recordFilePath,
+                      bool is_builtin, int begin, int end)
   : mangled(mangled),
     sign(sign),
     virtuality(is_virtual),
     nspc(nspc),
     recordName(recordName),
     recordFilePath(recordFilePath),
-    is_builtin(is_builtin)
+    is_builtin(is_builtin),
+    begin(begin),
+    end(end)
 {
   assert(recordName != CALLERS_DEFAULT_RECORD_NAME);
   assert(recordFilePath != CALLERS_DEFAULT_RECORD_PATH);
   assert(recordFilePath != CALLERS_DEFAULT_NO_RECORD_PATH);
   assert(recordFilePath != CALLERS_NO_FILE_PATH);
+  assert(begin != CALLERS_NO_NB_LINES);
+  assert(end != CALLERS_NO_NB_LINES);
+  assert(0 < begin);
+  assert(end < INT_MAX);
+  assert(begin <= end);
+
+  this->nb_lines = end + 1 - begin;
 
   if(is_builtin == true)
   {
@@ -3268,6 +3282,9 @@ CallersData::Fct::Fct(const CallersData::Fct& copy_from_me)
   recordName = copy_from_me.recordName;
   recordFilePath = copy_from_me.recordFilePath;
   is_builtin = copy_from_me.is_builtin;
+  nb_lines = copy_from_me.nb_lines;
+  begin = copy_from_me.begin;
+  end = copy_from_me.end;
 }
 
 /***************************************** class FctDecl ****************************************/
@@ -3318,10 +3335,10 @@ CallersData::FctDecl::~FctDecl()
 }
 
 CallersData::FctDecl::FctDecl(MangledName mangled, std::string sign, Virtuality is_virtual, std::string nspc,
-                              std::string filepath, int line, std::string recordName, std::string recordFilePath, bool is_builtin)
-  : Fct(mangled, sign, is_virtual, nspc, recordName, recordFilePath, is_builtin),
-    file(filepath),
-    line(line)
+                              std::string filepath, int begin, int end, std::string recordName, std::string recordFilePath,
+                              bool is_builtin)
+  : Fct(mangled, sign, is_virtual, nspc, recordName, recordFilePath, is_builtin, begin, end),
+    file(filepath)
 {
   allocate();
   debug_notify_creation();
@@ -3334,17 +3351,16 @@ CallersData::FctDecl::FctDecl(std::string sign, std::string filepath)
 {
   allocate();
   std::cout << "Partial function's declaration used just to find the complete one: " << std::endl;
-  std::cerr << "CallersData::FctDecl::FctDecl:HBDBG: recordFilePath: " << recordFilePath << std::endl;
 }
 
 CallersData::FctDecl::FctDecl(const CallersData::FctDecl& copy_from_me)
   : Fct(copy_from_me.mangled, copy_from_me.sign, copy_from_me.virtuality, copy_from_me.nspc,
-        copy_from_me.recordName, copy_from_me.recordFilePath, copy_from_me.is_builtin)
+        copy_from_me.recordName, copy_from_me.recordFilePath,
+        copy_from_me.is_builtin, copy_from_me.begin, copy_from_me.end)
 {
   allocate();
   std::cout << "FctDecl copy constructor" << std::endl;
   file = copy_from_me.file;
-  line = copy_from_me.line;
 
   // copy parameters
   std::set<Parameter>::const_iterator p;
@@ -3820,12 +3836,18 @@ void CallersData::FctDecl::output_redefinitions(std::ostream &js) const
 
 void CallersData::FctDecl::output_json_desc(std::ostream &js) const
 {
-  std::ostringstream out;
-  out << line;
+  std::ostringstream nb_lines_out;
+  nb_lines_out << nb_lines;
+  std::ostringstream begin_out;
+  begin_out << begin;
+  std::ostringstream end_out;
+  end_out << end;
   js //<< "{\"eClass\":\"" << CALLERS_TYPE_FCT_DECL << "\", \"sign\": \"" << sign
      << "{\"sign\": \"" << sign
      << "\", \"builtin\": " << ((is_builtin == true) ? "true" : "false")
-     << ", \"line\": " << out.str()
+     << ", \"nb_lines\": " << nb_lines_out.str()
+     << ", \"deb\": " << begin_out.str()
+     << ", \"fin\": " << end_out.str()
      << ", \"virtuality\": \""
      << ((virtuality == VNoVirtual) ? "no"
 	 : ((virtuality == VVirtualDeclared) ? "declared"
@@ -3897,17 +3919,15 @@ CallersData::FctDef::FctDef(MangledName mangled,
                             Virtuality is_virtual,
                             std::string nspc,
                             std::string def_filepath,
-                            int def_line,
+                            int def_begin,
+                            int def_end,
                             std::string decl_file,
-                            int decl_line,
                             std::string recordName,
                             std::string recordFilePath,
                             bool is_builtin)
-  : Fct(mangled, sign, is_virtual, nspc, recordName, recordFilePath, is_builtin),
+  : Fct(mangled, sign, is_virtual, nspc, recordName, recordFilePath, is_builtin, def_begin, def_end),
     def_file(def_filepath),
-    def_line(def_line),
-    decl_file(decl_file),
-    decl_line(decl_line)
+    decl_file(decl_file)
 {
   assert(def_filepath != CALLERS_NO_FILE_PATH);
   assert(def_filepath != CALLERS_NO_FCT_DEF_FILE);
@@ -3916,6 +3936,8 @@ CallersData::FctDef::FctDef(MangledName mangled,
   assert(decl_file != CALLERS_NO_FCT_DECL_FILE);
 
   assert(is_builtin == false);
+
+  assert(def_begin < def_end); // a valid definition contains at least one loc
 
   allocate();
 
@@ -3930,7 +3952,7 @@ CallersData::FctDef::FctDef(MangledName mangled,
   {
     std::cout << "Create " << recordName << "'s method definition: " << std::endl;
   }
-  this->print_cout(sign, is_virtual, def_file, def_line, recordName);
+  this->print_cout(sign, is_virtual, def_file, def_begin, recordName);
 }
 
 CallersData::FctDef::FctDef(std::string sign, std::string filepath)
@@ -3943,14 +3965,13 @@ CallersData::FctDef::FctDef(std::string sign, std::string filepath)
 
 CallersData::FctDef::FctDef(const CallersData::FctDef& copy_from_me)
   : Fct(copy_from_me.mangled, copy_from_me.sign, copy_from_me.virtuality,
-        copy_from_me.nspc, copy_from_me.recordName, copy_from_me.recordFilePath, copy_from_me.is_builtin)
+        copy_from_me.nspc, copy_from_me.recordName, copy_from_me.recordFilePath,
+        copy_from_me.is_builtin, copy_from_me.begin, copy_from_me.end)
 {
   allocate();
   std::cout << "FctDef copy constructor: " <<copy_from_me.sign << std::endl;
   def_file = copy_from_me.def_file;
-  def_line = copy_from_me.def_line;
   decl_file = copy_from_me.decl_file;
-  decl_line = copy_from_me.decl_line;
 
   // copy threads
   std::set<std::string>::const_iterator i;
@@ -4122,14 +4143,18 @@ void CallersData::FctDef::output_external_callees(std::ofstream &js) const
 
 void CallersData::FctDef::output_json_desc(std::ofstream &js) const
 {
-  std::ostringstream out;
-  out << def_line;
-  std::ostringstream decl_pos;
-  decl_pos << decl_line;
+  std::ostringstream nb_lines_out;
+  nb_lines_out << nb_lines;
+  std::ostringstream begin_out;
+  begin_out << begin;
+  std::ostringstream end_out;
+  end_out << end;
   js // << "{\"eClass\":\"" << CALLERS_TYPE_FCT_DEF << "\", \"sign\": \"" << sign
      << "{\"sign\": \"" << sign << "\""
      // << ", \"builtin\": "
-     << ", \"line\": " << out.str()
+     << ", \"nb_lines\": " << nb_lines_out.str()
+     << ", \"deb\": " << begin_out.str()
+     << ", \"fin\": " << end_out.str()
      << ", \"virtuality\": \""
      << ((virtuality == VNoVirtual) ? "no"
 	 : ((virtuality == VVirtualDeclared) ? "declared"
@@ -4139,11 +4164,11 @@ void CallersData::FctDef::output_json_desc(std::ofstream &js) const
 
   if(decl_file != def_file)
   {
-    js << ", \"decl\": \"" << decl_file << ":" << decl_pos.str() << "\"";
+    js << ", \"decl\": \"" << decl_file << "\"";
   }
   else
   {
-    js << ", \"decl\": \"local:" << decl_pos.str() << "\"";
+    js << ", \"decl\": \"local\"";
   }
 
   if(nspc != CALLERS_DEFAULT_NO_NAMESPACE_NAME )
@@ -4177,8 +4202,6 @@ void CallersData::FctDef::print_cout(std::string sign, Virtuality virtuality, st
 {
   std::ostringstream loc;
   loc << line;
-  std::ostringstream decl_pos;
-  decl_pos << decl_line;
 
   std::cout << "{\"sign\":\"" << sign
 	    << "\",\"line\":" << loc.str()
@@ -4191,11 +4214,11 @@ void CallersData::FctDef::print_cout(std::string sign, Virtuality virtuality, st
 
   if(decl_file != def_file)
   {
-    std::cout << ", \"decl\": \"" << decl_file << ":" << decl_pos.str() << "\"";
+    std::cout << ", \"decl\": \"" << decl_file << "\"";
   }
   else
   {
-    std::cout << ", \"decl\": \"local:" << decl_pos.str() << "\"";
+    std::cout << ", \"decl\": \"local\"";
   }
 
   if(record != CALLERS_DEFAULT_RECORD_NAME )
@@ -4222,12 +4245,12 @@ CallersData::FctCall::FctCall(FctDef caller, FctDecl callee)
   id = caller.sign + " -> " + callee.sign;
   {
     // for debug only
-    // std::ostringstream def_line, decl_line;
-    // def_line << caller_line;
+    // std::ostringstream def_begin, decl_line;
+    // def_begin << caller_line;
     // decl_line << callee_decl_line;
     std::cout << "CallersData::FctCall::FctCall::DEBUG_2: create function call: " << caller.sign << " -> " << callee.sign << std::endl
-              << " from caller def file: " << caller.def_file << ":" << caller.def_line << std::endl
-              << " to callee decl file: " << callee.file << ":" << callee.line << std::endl;
+              << " from caller def file: " << caller.def_file << ":" << caller.begin << std::endl
+              << " to callee decl file: " << callee.file << ":" << callee.begin << std::endl;
   }
 }
 

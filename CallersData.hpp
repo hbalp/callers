@@ -180,8 +180,8 @@ namespace CallersData
     inline void print_cout() const;
     std::string name = "unknownClassName";
     std::string file = "unknownClassFile";
-    int begin = -1;
-    int end = -1;
+    int begin = CALLERS_NO_NB_LINES;
+    int end = CALLERS_NO_NB_LINES;
   private:
   };
 
@@ -222,8 +222,8 @@ namespace CallersData
       clang::TagTypeKind kind = clang::TTK_Class;
       std::string nspc;
       std::string file;
-      int begin = -1;
-      int end = -1;
+      int begin = CALLERS_NO_NB_LINES;
+      int end = CALLERS_NO_NB_LINES;
       std::set<Inheritance> *inherited;
     protected:
       std::set<std::pair<std::string, ExtFctDecl>> *redeclared_methods;
@@ -254,7 +254,8 @@ namespace CallersData
            Virtuality  routine_virtuality,
            std::string routine_nspc,
            std::string routine_file,
-           int routine_line,
+           int routine_begin,
+           int routine_end,
            std::string routine_recordName,
            std::string routine_recordFilePath,
            std::string create_location,
@@ -263,9 +264,9 @@ namespace CallersData
            Virtuality  caller_virtuality,
            std::string caller_nspc,
            std::string caller_file,
-           int caller_line,
+           int caller_begin,
+           int caller_end,
            std::string caller_decl_file,
-           int caller_decl_line,
            std::string caller_recordName,
            std::string caller_recordFilePath
       );
@@ -282,10 +283,8 @@ namespace CallersData
       Virtuality routine_virtuality = CallersData::VNoVirtual;
       std::string routine_nspc = CALLERS_DEFAULT_NO_NAMESPACE_NAME;
       std::string routine_file = "unknownThreadRoutineDeclFile";
-      int routine_line = -1;
-      // Virtuality routine_def_virtuality = CallersData::VNoVirtual;
-      // std::string routine_def_file = "unknownThreadRoutineDefFile";
-      // int routine_def_line = -1;
+      int routine_begin = CALLERS_NO_NB_LINES;
+      int routine_end = CALLERS_NO_NB_LINES;
       std::string routine_recordName = "unknownThreadRoutineRecordName";
       std::string routine_recordFilePath = "unknownThreadRoutineRecordFilePath";
       std::string create_location = "unknownThreadCreateLocation";
@@ -294,9 +293,10 @@ namespace CallersData
       Virtuality caller_virtuality = CallersData::VNoVirtual;
       std::string caller_nspc = CALLERS_DEFAULT_NO_NAMESPACE_NAME;
       std::string caller_file = "unknownThreadCallerFile";
-      int caller_line = -1;
+      int caller_nb_lines = 0;
+      int caller_begin = CALLERS_NO_NB_LINES;
+      int caller_end = CALLERS_NO_NB_LINES;
       std::string caller_decl_file = CALLERS_NO_FCT_DECL_FILE;
-      int caller_decl_line = -1;
       std::string caller_recordName = "unknownThreadCallerRecordName";
       std::string caller_recordFilePath = "unknownThreadCallerRecordFilePath";
     private:
@@ -344,10 +344,11 @@ namespace CallersData
 
   class Fct
   {
+    friend class FctCall;
     public:
       Fct(std::string sign);
-      // Fct(MangledName mangled, std::string sign, Virtuality is_virtual, std::string nspc, bool is_builtin);
-      Fct(MangledName mangled, std::string sign, Virtuality is_virtual, std::string nspc, std::string recordName, std::string recordFilePath, bool is_builtin);
+      Fct(MangledName mangled, std::string sign, Virtuality is_virtual, std::string nspc,
+          std::string recordName, std::string recordFilePath, bool is_builtin, int begin, int end);
       Fct(const Fct& copy_from_me);
       ~Fct();
       MangledName mangled = "unknownFctMangledName";
@@ -358,6 +359,9 @@ namespace CallersData
       std::string recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
       std::string recordFilePath = CALLERS_DEFAULT_NO_RECORD_PATH;
       bool is_builtin = false;
+      int nb_lines = 0;
+      int begin = CALLERS_NO_NB_LINES;
+      int end = CALLERS_NO_NB_LINES;
   };
 
   class Parameter;
@@ -367,8 +371,8 @@ namespace CallersData
     friend class Visitor;
     friend class File;
     public:
-      // FctDecl(std::string mangled, std::string sign, Virtuality is_virtual, std::string nspc, std::string filepath, int line, bool is_builtin = false);
-      FctDecl(std::string mangled, std::string sign, Virtuality is_virtual, std::string nspc, std::string filepath, int line, std::string recordName, std::string recordFilePath, bool is_builtin = false);
+      FctDecl(std::string mangled, std::string sign, Virtuality is_virtual, std::string nspc, std::string filepath,
+              int begin, int end, std::string recordName, std::string recordFilePath, bool is_builtin = false);
       FctDecl(std::string sign, std::string filepath);
       FctDecl(const FctDecl& copy_from_me);
       ~FctDecl();
@@ -396,7 +400,6 @@ namespace CallersData
       void output_json_desc(std::ostream &js) const;
 
       std::string file = CALLERS_NO_FCT_DECL_FILE;
-      int line = -1;
       std::set<Parameter> *parameters;
       std::set<std::string> *threads;
       std::set<ExtFctDecl> *redeclared;
@@ -419,8 +422,8 @@ namespace CallersData
   {
     friend class File;
     public:
-      FctDef(MangledName mangled, std::string sign, Virtuality is_virtual, std::string nspc, std::string def_filepath, int def_line,
-             std::string decl_file, int decl_line, std::string recordName, std::string recordFilePath, bool is_builtin = false);
+      FctDef(MangledName mangled, std::string sign, Virtuality is_virtual, std::string nspc, std::string def_filepath,
+             int begin, int end, std::string decl_file, std::string recordName, std::string recordFilePath, bool is_builtin = false);
       FctDef(std::string sign, std::string filepath);
       FctDef(const FctDef& copy_from_me);
       ~FctDef();
@@ -439,9 +442,7 @@ namespace CallersData
       void output_json_desc(std::ofstream &js) const;
 
       std::string def_file = CALLERS_NO_FCT_DEF_FILE;
-      int def_line = -1;
       std::string decl_file = CALLERS_NO_FCT_DECL_FILE;
-      int decl_line = -1;
       std::set<std::string> *threads;
       std::set<std::string> *locallees;
       std::set<ExtFctDecl>  *extcallees;

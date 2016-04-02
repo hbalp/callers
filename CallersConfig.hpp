@@ -46,3 +46,5 @@
 #define CALLERS_NO_FCT_DEF_FILE  "unknownFctDefFile"
 #define CALLERS_NO_FCT_DECL_FILE "unknownFctDeclFile"
 #define CALLERS_LOCAL_FCT_DECL   "local"
+
+#define CALLERS_NO_NB_LINES -1

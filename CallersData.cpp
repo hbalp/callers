@@ -3069,7 +3069,7 @@ void CallersData::Record::output_json_desc(std::ofstream &js) const
                              : ((kind == clang::TTK_Class) ? "class"
                              : "anonym"))
       << "\",\"nspc\":\"" << nspc
-      << "\",\"nb_lines\":" << nb_lines
+      << "\",\"nb_lines\":" << nb_lines.str()
       << ",\"debut\":" << debut.str()
       << ",\"fin\":" << fin.str()
       << ",\"inherits\":[";

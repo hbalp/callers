@@ -36,31 +36,17 @@ then
 if [ $analysis_type == "callers" ] || [ $analysis_type == "all" ];
 then
 
-    # list the symbols referenced by the program and defined in the standard C++ library
-
-    #includes_directories="/usr/include/c++/4.7"
-    #includes_directories="/usr/include/c++/4.8"
-    # includes_directories="/usr/include"
-
-    # for inc_dir in $includes_directories
-    # do
-    #     cd $inc_dir
-    #     list_files_in_dirs `pwd` .file.callers.gen.json dir.callers.gen.json analysis
-
-    #     # List all defined symbols in file defined_symbols.json
-    #     list_defined_symbols defined_symbols.json `pwd` dir.callers.gen.json
-
-    #     source indent_jsonfiles.sh .
-    # done
-
     cd $test_dir
 
-    # List generated json files
-    find $callers_json_rootdir -type f -name "*.gen.json.gz" -exec gunzip {} \;
-    list_files_in_dirs $callers_json_rootdir .file.callers.gen.json dir.callers.gen.json "analysis"
+    # # List generated json files
+    # find $callers_json_rootdir -type f -name "*.gen.json.gz" -exec gunzip {} \;
 
-    # List all defined symbols in file defined_symbols.all.gen.json
-    list_defined_symbols defined_symbols.all.gen.json
+    # Extract metrics
+    list_files_in_dirs $callers_json_rootdir .file.callers.gen.json dir.callers.gen.json "analysis"
+    extract_metrics metrics.callers.gen.json
+
+    # # List all defined symbols in file defined_symbols.all.gen.json
+    # list_defined_symbols defined_symbols.all.gen.json
 
     # # add declarations to json files
     # source add_declarations.sh $callers_json_rootdir
@@ -102,7 +88,7 @@ then
 
     source process_dot_files.sh . analysis/${analysis_type}
 
-    #source indent_jsonfiles.sh .
+    source indent_jsonfiles.sh .
     source indent_jsonfiles.sh $callers_json_rootdir
 
     inkscape analysis/${analysis_type}/svg/main.fcg.callees.gen.dot.svg

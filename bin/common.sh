@@ -12,7 +12,7 @@ export callers_json_rootdir=/tmp/callers
 # WARNING: this function HAS TO BE EDITED MANUALLY
 # to update the symlink according to the user system configuration
 ################################################################################
-function init_callers_json_rootdir ()
+function init_callers_json_rootdir_with_symlink ()
 {
     callers_json_rootdir=$1
     echo "Init callers_json_rootdir: $callers_json_rootdir"
@@ -24,6 +24,14 @@ function init_callers_json_rootdir ()
     mkdir -p ${callers_json_rootdir}/${user_data_path}
     ln -sf ${callers_json_rootdir}/net/alpha.sc2.theresis.org/${user_home_path}/$user ${callers_json_rootdir}/${user_data_path}/$user
 }
+
+function init_callers_json_rootdir ()
+{
+    callers_json_rootdir=$1
+    echo "Init callers_json_rootdir: $callers_json_rootdir"
+    mkdir -p ${callers_json_rootdir}
+}
+
 ################################################################################
 
 # check whether the argument is present in input arguments of the script
@@ -152,6 +160,25 @@ function list_defined_symbols()
     if [ $? -ne 0 ]; then
 	echo "################################################################################"
 	echo "# ERROR in list_defined_symbols.native $@. Stop here !"
+	echo "################################################################################"
+	exit -1
+    fi
+    echo "################################################################################"
+}
+
+function extract_metrics()
+{
+    metrics_jsonfilename=$1
+    jsondir_fileext="dir.callers.gen.json"
+
+    echo "################################################################################"
+    echo "# List in file \"${metrics_jsonfilename}\" all symbols defined in directory \"${callers_json_rootdir}\"..."
+    # echo "# DEBUG: jsondir_fileext=\"${jsondir_fileext}\""
+    echo "################################################################################"
+    extract_metrics.native ${metrics_jsonfilename} ${jsondir_fileext}
+    if [ $? -ne 0 ]; then
+	echo "################################################################################"
+	echo "# ERROR in extract_metrics.native $@. Stop here !"
 	echo "################################################################################"
 	exit -1
     fi

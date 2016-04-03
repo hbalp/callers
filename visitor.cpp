@@ -874,20 +874,24 @@ CallersAction::Visitor::printRootNamespace(const clang::NamedDecl& namedDecl) co
   std::string nspc = CALLERS_DEFAULT_NO_NAMESPACE_NAME;
   const clang::DeclContext *context = namedDecl.getDeclContext();
   if (context) {
-    nspc = printRootQualification(context->getParent());
-    if (nspc == CALLERS_DEFAULT_NO_QUALIFICATION_NAME) {
+    std::string nsp = printRootQualification(context->getParent());
+    if (nsp == CALLERS_DEFAULT_NO_QUALIFICATION_NAME) {
       const clang::Decl::Kind kind = context->getDeclKind();
       if (kind == clang::Decl::Namespace)
         {
-          nspc = static_cast<const clang::NamespaceDecl*>(context)->getName().str();
+          nsp = static_cast<const clang::NamespaceDecl*>(context)->getName().str();
         }
-      else
-      {
-        nspc = CALLERS_DEFAULT_NO_NAMESPACE_NAME;
-      }
+    }
+    if(nsp == CALLERS_UNSUPPORTED_EMPTY_NAMESPACE)
+    {
+      nspc = CALLERS_DEFAULT_NO_NAMESPACE_NAME;
+    }
+    else
+    {
+      nspc = nsp;
     }
   }
-  assert(nspc != "");
+  assert(nspc != CALLERS_UNSUPPORTED_EMPTY_NAMESPACE);
   // currentJsonFile->get_or_create_namespace(nspc);
   return nspc;
 }

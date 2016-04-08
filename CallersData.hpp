@@ -170,6 +170,8 @@ namespace CallersData
       struct FileMetrics *metrics;
   };
 
+  bool get_namespaces(std::string identifier, std::string& root_namespace, std::string &namespaces, std::string recordName);
+
   /* Namespace class */
   class Namespace
   {
@@ -189,8 +191,7 @@ namespace CallersData
       void add_namespace_calls(std::string caller_nspc) const;
       void add_namespace_called(std::string callee_nspc) const;
       std::string get_name() const;
-      bool isSameNamespace(std::string identifier) const;
-      bool get_namespaces(std::string identifier, std::string& root_namespace, std::string &namespaces) const;
+    bool isSameNamespace(std::string identifier, std::string recordName) const;
       void output_json_desc(std::ofstream &js) const;
       void print_cout() const;
       // std::string get_qualifiers() const;
@@ -242,6 +243,7 @@ namespace CallersData
       Record(const Record& copy_from_me);
       ~Record();
       void allocate();
+      bool isValidNamespace() const;
       // The three methods below are currently useless because I didn't yet found how to check whether a CXXMethodDecl is declared public, private or friend
       // void add_public_method(std::string name) const;
       // void add_private_method(std::string name) const;

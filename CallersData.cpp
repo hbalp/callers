@@ -112,9 +112,19 @@ std::string id_filter_prefix(std::string prefix, std::string identifier)
     }
 }
 
+// extract base name
+std::string extract_record_basename(std::string sep, std::string recordFullname)
+{
+  std::vector<std::string> parts;
+  boost::algorithm::split_regex(parts, recordFullname, boost::regex(sep));
+  std::vector<std::string>::iterator part = parts.end();
+  std::string basename = *(--part);
+  return basename;
+}
+
 std::string id_filter_suffix(std::string suffix, std::string identifier)
 {
-  // Check whether the string does well begins with the suffix
+  // Check whether the string does well ends with the suffix
   bool has_suffix = id_contains(suffix, identifier);
   if( has_suffix )
     // remove the suffix from the input identifier
@@ -2385,10 +2395,10 @@ CallersData::Namespace::get_name() const
 }
 
 // check consistency between current namespace name and record's namespace
-bool CallersData::Namespace::isSameNamespace(std::string identifier) const
+bool CallersData::Namespace::isSameNamespace(std::string identifier, std::string recordName) const
 {
   std::string root_namespace, namespaces;
-  /* bool has_namespace = */ this->get_namespaces(identifier, root_namespace, namespaces);
+  /* bool has_namespace = */ CallersData::get_namespaces(identifier, root_namespace, namespaces, recordName);
   // if(has_namespace && (root_namespace == this->name))
   if(root_namespace == this->name)
   {
@@ -2397,7 +2407,20 @@ bool CallersData::Namespace::isSameNamespace(std::string identifier) const
   return false;
 }
 
-bool CallersData::Namespace::get_namespaces(std::string identifier, std::string& root_namespace, std::string &namespaces) const
+bool regexp_match_string(std::string input, std::string regex_search_pattern, std::string& match)
+{
+  boost::regex pattern(regex_search_pattern);
+  boost::smatch result;
+  if (boost::regex_search(input, result, pattern)) {
+    std::string submatch(result[0].first, result[0].second);
+    match = submatch;
+    return true;
+   }
+  match = input;
+  return false;
+}
+
+bool CallersData::get_namespaces(std::string identifier, std::string& root_namespace, std::string &namespaces, std::string recordName)
 {
   if(identifier == CALLERS_DEFAULT_BUILTIN_RECORD_NAME)
   {
@@ -2405,15 +2428,43 @@ bool CallersData::Namespace::get_namespaces(std::string identifier, std::string&
     return false;
   }
 
+  // get the qualifiers from a potential function signature
+  std::string search_qualifiers = "([^ ]*)(\\()";
+  std::string matched_qualifiers = "none";
+  /*bool match_qualifiers = */ regexp_match_string(identifier, search_qualifiers, matched_qualifiers);
+
   // Splits the identifier into parts separated by sep
   std::vector<std::string> lparts;
-  boost::algorithm::split_regex(lparts, identifier, boost::regex("::"));
+  boost::algorithm::split_regex(lparts, matched_qualifiers, boost::regex("::"));
 
   // only one part, so we have no namespace at all
+  // "rec|b"
   if(lparts.size() == 1)
   {
     root_namespace = namespaces = DEFAULT_ROOT_NAMESPACE;
     return false;
+  }
+
+  int ign = 1;
+  if(recordName != CALLERS_DEFAULT_NO_RECORD_NAME)
+  {
+    ign += 1;
+
+    // record with 2 parts, so we have no namespace at all
+    // "rec::b"
+    if(lparts.size() == 2)
+    {
+      root_namespace = namespaces = DEFAULT_ROOT_NAMESPACE;
+      return false;
+    }
+
+    // "::rec::b"
+    std::vector<std::string>::iterator lpart = lparts.begin();
+    if((lpart->length()==0)&&(lparts.size() == 3))
+    {
+      root_namespace = namespaces = DEFAULT_ROOT_NAMESPACE;
+      return false;
+    }
   }
 
   namespaces = "";
@@ -2425,9 +2476,14 @@ bool CallersData::Namespace::get_namespaces(std::string identifier, std::string&
     root_namespace = *lpart;
 
     std::vector<std::string>::iterator p;
-    for( p = lparts.begin(); p + 1 < lparts.end(); p++ )
+    for( p = lparts.begin(); p + ign < lparts.end(); p++ )
     {
       namespaces += "::" + *p;
+    }
+
+    if(recordName != CALLERS_DEFAULT_NO_RECORD_NAME)
+    {
+      assert(*p == recordName);
     }
 
     return true;
@@ -2445,7 +2501,7 @@ bool CallersData::Namespace::get_namespaces(std::string identifier, std::string&
   root_namespace = *lpart;
 
   std::vector<std::string>::iterator p;
-  for( p = lpart; p + 1 < lparts.end(); p++ )
+  for( p = lpart; p + ign < lparts.end(); p++ )
   {
     namespaces += "::" + *p;
   }
@@ -2457,6 +2513,11 @@ bool CallersData::Namespace::get_namespaces(std::string identifier, std::string&
   {
     root_namespace = namespaces = DEFAULT_ROOT_NAMESPACE;
     return false;
+  }
+
+  if(recordName != CALLERS_DEFAULT_NO_RECORD_NAME)
+  {
+    assert(*p == recordName);
   }
 
   // the second part is a namespace
@@ -2507,15 +2568,17 @@ void CallersData::Namespace::add_namespace_called(std::string caller_nspc) const
   assert(this->name != caller_nspc);
 }
 
-void CallersData::Namespace::add_record(std::string record) const
+void CallersData::Namespace::add_record(std::string recordFullPath) const
 {
   // check consistency between current namespace name and record's namespace
-  std::cout << "Register record \"" << record
+  std::cout << "Register record \"" << recordFullPath
 	    << "\" in namespace " << this->name
 	    << ", nb_records=" << this->records->size()
 	    << std::endl;
-  assert(this->isSameNamespace(record));
-  records->insert(record);
+  // std::string recordBaseName = extract_record_basename("::", recordFullPath);
+  // assert(this->isSameNamespace(recordFullPath, recordBaseName));
+  assert(this->isSameNamespace(recordFullPath, CALLERS_DEFAULT_NO_RECORD_NAME));
+  records->insert(recordFullPath);
 }
 
 // void CallersData::Namespace::add_record(CallersData::Record record) const
@@ -2757,12 +2820,25 @@ CallersData::Record::~Record()
   delete metrics;
 }
 
+// check consistency between record's namespace and record's fullname
+bool CallersData::Record::isValidNamespace() const
+{
+  std::string root_namespace, namespaces;
+  /* bool has_namespace = */ CallersData::get_namespaces(this->name, root_namespace, namespaces, CALLERS_DEFAULT_NO_RECORD_NAME);
+  // if(has_namespace && (root_namespace == this->name))
+  if(root_namespace == this->nspc)
+  {
+    return true;
+  }
+  return false;
+}
+
 CallersData::Record::Record(std::string name, std::string nspc, std::string file)
   : name(name),
     nspc(nspc),
     file(file)
 {
-  assert(nspc != "");
+  assert(isValidNamespace());
   allocate();
   std::cout << "Create record: " << std::endl;
   this->print_cout();
@@ -2776,7 +2852,7 @@ CallersData::Record::Record(std::string name, clang::TagTypeKind kind, std::stri
     begin(begin),
     end(end)
 {
-  assert(nspc != "");
+  assert(isValidNamespace());
   allocate();
   this->metrics->nb_lines = end + 1 - begin;
   std::cout << "Create record: " << std::endl;

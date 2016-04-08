@@ -103,7 +103,7 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   std::string printQualification(const clang::DeclContext* context) const;
   std::string printNamespaces(const clang::NamedDecl& context) const;
   std::string printRootQualification(const clang::DeclContext* context) const;
-  std::string printRootNamespace(const clang::NamedDecl& context) const;
+  std::string printRootNamespace(const clang::NamedDecl& context, std::string defaultRootNamespace, std::string recordName) const;
   // void parseNamespaces(const clang::DeclContext* context, std::set<CallersData::File>::iterator *file) const;
   std::string parseQualification(const clang::DeclContext* context, std::set<CallersData::File>::iterator *file);
   std::string parseQualifiedName(const clang::NamedDecl& namedDecl, bool* isEmpty=nullptr);

@@ -20,6 +20,7 @@
 #include <rapidjson/filereadstream.h>
 #include <rapidjson/writer.h>
 #include <rapidjson/stringbuffer.h>
+#include "gdb_debug.h"
 
 #define DEFAULT_ROOT_NAMESPACE "::"
 
@@ -153,7 +154,7 @@ namespace CallersData
       std::set<FctDef>  *defined;
   private:
       void add_declared_function(CallersData::FctDecl* fct, std::string fct_filepath, Dir* files) const;
-      //void add_declared_function(std::string sign, Virtuality virtuality, std::string file, int line) const;
+      //void add_declared_function(std::string sign, Virtuality virtuality, std::string file, int begin, int end) const;
       void add_defined_function(FctDef* fct, std::string filepath, Dir *otherFiles) const;
       // void add_defined_function(MangledName mangled, std::string sign, Virtuality virtuality, std::string nspc, std::string file,
       //                           int line, std::string filepath, std::string decl_file, int decl_line, std::string record, Dir *context) const;
@@ -365,9 +366,9 @@ namespace CallersData
   {
     friend std::ostream &operator<<(std::ostream &output, const ExtFctDecl &fct);
     public:
-      ExtFctDecl(MangledName mangled, std::string sign, std::string fct_loc) : ExtFct(mangled, sign, fct_loc) { print_cout(mangled, sign, fctLoc); };
-      ExtFctDecl(const ExtFct& copy_from_me) : ExtFct(copy_from_me) { print_cout(mangled, sign, fctLoc); };
-      ~ExtFctDecl() {}
+      ExtFctDecl(MangledName mangled, std::string sign, std::string fct_loc);
+      ExtFctDecl(const ExtFct& copy_from_me);
+      ~ExtFctDecl();
       void output_json_desc(std::ostream &js) const;
     private:
       void print_cout(MangledName mangled, std::string sign, std::string fct);
@@ -391,9 +392,11 @@ namespace CallersData
     friend class FctCall;
     public:
       Fct(std::string sign);
+      Fct(std::string sign, int begin, int end);
       Fct(MangledName mangled, std::string sign, Virtuality is_virtual, std::string nspc,
           std::string recordName, std::string recordFilePath, bool is_builtin, int begin, int end);
       Fct(const Fct& copy_from_me);
+      void isWellFormed();
       ~Fct();
       MangledName mangled = "unknownFctMangledName";
       std::string sign = "unknownFctSign";
@@ -418,13 +421,14 @@ namespace CallersData
       FctDecl(std::string mangled, std::string sign, Virtuality is_virtual, std::string nspc, std::string filepath,
               int begin, int end, std::string recordName, std::string recordFilePath, bool is_builtin = false);
       FctDecl(std::string sign, std::string filepath);
+      FctDecl(std::string sign, std::string filepath, int begin, int end);
       FctDecl(const FctDecl& copy_from_me);
       ~FctDecl();
 
       void add_parameter(const CallersData::Parameter& parameter) const;
       void add_local_caller(std::string caller_sign) const;
       void add_external_caller(MangledName mangled, std::string sign, std::string file_pos) const;
-      void add_external_caller(MangledName mangled, std::string sign, std::string file, int line) const;
+      void add_external_caller(MangledName mangled, std::string sign, std::string file, int begin, int end) const;
       void add_redeclared_method(const ExtFctDecl& redeclared_method) const;
       void add_redeclaration(const ExtFctDecl& redeclaration) const;
       // void add_redeclaration(MangledName fct_mangled, std::string fct_sign, Virtuality redecl_virtuality, std::string redecl_file, int redecl_line, std::string redecl_record) const;
@@ -456,7 +460,7 @@ namespace CallersData
     private:
       void print_cout() const;
       void debug_notify_creation() const;
-      //inline void print_cout(std::string sign, Virtuality is_virtual, std::string file, int line, std::string record);
+      //inline void print_cout(std::string sign, Virtuality is_virtual, std::string file, int begin, std::string record);
       void allocate();
   };
 
@@ -474,8 +478,9 @@ namespace CallersData
 
       void add_local_callee(std::string callee_sign) const;
       void add_external_callee(MangledName mangled, std::string sign, std::string file_pos) const;
-      void add_external_callee(MangledName mangled, std::string sign, std::string file, int line) const;
-      void add_builtin_callee(MangledName mangled, std::string sign, Virtuality builtin_virtuality, std::string builtin_decl_file, int builtin_decl_line) const;
+      void add_external_callee(MangledName mangled, std::string sign, std::string file, int begin, int end) const;
+      void add_builtin_callee(MangledName mangled, std::string sign, Virtuality builtin_virtuality,
+                              std::string builtin_decl_file, int builtin_decl_begin, int builtin_decl_end) const;
       void add_thread(std::string thread) const;
 
       void output_local_callers(std::ofstream &js) const;
@@ -491,7 +496,7 @@ namespace CallersData
       std::set<std::string> *locallees;
       std::set<ExtFctDecl>  *extcallees;
     private:
-      inline void print_cout(std::string sign, Virtuality is_virtual, std::string file, int line, std::string record);
+      inline void print_cout(std::string sign, Virtuality is_virtual, std::string file, int begin, std::string record);
       void allocate();
   };
 
@@ -503,9 +508,9 @@ namespace CallersData
     friend void File::add_function_call(FctCall* fc, Dir* context) const;
     public:
       FctCall(MangledName caller_mangled, std::string caller_sign, Virtuality caller_virtuality, std::string caller_nspc,
-              std::string caller_file, int caller_line, std::string caller_decl_file, int caller_decl_line,
+              std::string caller_file, int caller_begin, int caller_end, std::string caller_decl_file, int caller_decl_line,
               MangledName callee_mangled, std::string callee_sign, Virtuality callee_virtuality, std::string callee_nspc,
-              std::string callee_decl_file, int callee_decl_line,
+              std::string callee_decl_file, int callee_decl_begin, int callee_decl_end,
               std::string caller_record, std::string callee_record);
       FctCall(FctDef caller_fct, FctDecl callee_fct);
       //FctCall(const FctCall& copy_from_me);

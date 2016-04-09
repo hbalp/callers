@@ -84,7 +84,7 @@ class CallersAction::Visitor : public clang::ASTConsumer, public clang::Recursiv
   std::string getBasename(const clang::StringRef& filename) const;
   // convert function signature to a json compatible identifier
   std::string getJsonIdentifier(const std::string& name) const;
-  std::string printLocation(const clang::SourceRange& rangeLocation) const;
+  std::string printLocation(const clang::SourceRange& rangeLocation, std::string defaultFilePath = CALLERS_NO_FILE_PATH) const;
   std::string printNumber(int number) const;
   std::string printFileName(const clang::SourceRange& rangeLocation) const;
   std::string printFilePath(const clang::SourceRange& rangeLocation, std::string defaultFilePath = CALLERS_NO_FILE_PATH) const;

@@ -157,25 +157,36 @@ CallersAction::Visitor::HandleTranslationUnit(clang::ASTContext &context) {
 }
 
 std::string
-CallersAction::Visitor::printLocation(const clang::SourceRange& rangeLocation) const {
-   assert(psSources);
+CallersAction::Visitor::printLocation(const clang::SourceRange& rangeLocation, std::string defaultFilePath) const {
+   ASSERT(psSources);
    auto start = psSources->getPresumedLoc(rangeLocation.getBegin());
+   auto end = psSources->getPresumedLoc(rangeLocation.getEnd());
    int startLine = 0;
-   std::string startFile = this->printFilePath(rangeLocation);
-   if (startFile != "<unknown>")
+   int endLine = 0;
+   std::string loc = this->printFilePath(rangeLocation, defaultFilePath);
+   if (loc != "<unknown>")
      {
-      startLine = start.getLine();
-      startFile += ':';
-      std::ostringstream out;
-      out << startLine;
-      startFile += out.str();
+       startLine = start.getLine();
+       loc += ':';
+       std::ostringstream start_pos;
+       start_pos << startLine;
+       loc += start_pos.str();
+       endLine = end.getLine();
+       loc += ':';
+       std::ostringstream end_pos;
+       end_pos << endLine;
+       loc += end_pos.str();
      }
-   return startFile;
+   else
+     {
+       loc += ":-2:-2";
+     }
+   return loc;
 }
 
 std::string
 CallersAction::Visitor::printFileName(const clang::SourceRange& rangeLocation) const {
-   assert(psSources);
+   ASSERT(psSources);
    auto start = psSources->getPresumedLoc(rangeLocation.getBegin());
    const char* startFile = start.getFilename();
    if (!startFile)
@@ -186,7 +197,7 @@ CallersAction::Visitor::printFileName(const clang::SourceRange& rangeLocation) c
 
 std::string
 CallersAction::Visitor::printFilePath(const clang::SourceRange& rangeLocation, std::string defaultFilePath) const {
-   assert(psSources);
+   ASSERT(psSources);
    //bool isValid = rangeLocation.isValid();
    auto start = psSources->getPresumedLoc(rangeLocation.getBegin());
    const char* startFile = start.getFilename();
@@ -205,14 +216,14 @@ std::string CallersAction::Visitor::printCurrentPath() const
 
 int
 CallersAction::Visitor::getStartLine(const clang::SourceRange& rangeLocation) const {
-   assert(psSources);
+   ASSERT(psSources);
    auto start = psSources->getPresumedLoc(rangeLocation.getBegin());
    return start.getLine();
 }
 
 int
 CallersAction::Visitor::getEndLine(const clang::SourceRange& rangeLocation) const {
-   assert(psSources);
+   ASSERT(psSources);
    auto end = psSources->getPresumedLoc(rangeLocation.getEnd());
    return end.getLine();
 }
@@ -296,13 +307,13 @@ CallersAction::Visitor::printTemplateKind(const clang::FunctionDecl& function) c
 
 std::string
 CallersAction::Visitor::printTemplateKind(const clang::RecordDecl& decl) const {
-   assert(llvm::dyn_cast<clang::CXXRecordDecl>(&decl));
+   ASSERT(llvm::dyn_cast<clang::CXXRecordDecl>(&decl));
    const clang::CXXRecordDecl *RD = llvm::dyn_cast<clang::CXXRecordDecl>(&decl);
    const clang::ClassTemplateSpecializationDecl* TSD = NULL;
    if (decl.getKind() == clang::Decl::ClassTemplateSpecialization) // do not handle partial specialization !
       TSD = llvm::dyn_cast<clang::ClassTemplateSpecializationDecl>(&decl);
    if (RD && TSD /* RD->getTemplateSpecializationKind() >= clang::TSK_ImplicitInstantiation */) {
-      assert(llvm::dyn_cast<clang::ClassTemplateSpecializationDecl>(RD));
+      ASSERT(llvm::dyn_cast<clang::ClassTemplateSpecializationDecl>(RD));
       return printTemplateExtension(static_cast<const clang
                   ::ClassTemplateSpecializationDecl*>(RD)->getTemplateArgs());
    }
@@ -346,39 +357,39 @@ std::string
 CallersAction::Visitor::printArithmeticType(const clang::Type* type) const {
    switch(type->getTypeClass()) {
       case clang::Type::Builtin:
-         assert(llvm::dyn_cast<const clang::BuiltinType>(type));
+         ASSERT(llvm::dyn_cast<const clang::BuiltinType>(type));
          return printBuiltinType(static_cast<clang::BuiltinType const*>(type));
       case clang::Type::Enum:
-         assert(llvm::dyn_cast<const clang::EnumType>(type));
+         ASSERT(llvm::dyn_cast<const clang::EnumType>(type));
          return std::string("enum ") + static_cast<clang::EnumType const*>
             (type)->getDecl()->getName().str();
       case clang::Type::Auto:
-         {  assert(llvm::dyn_cast<const clang::AutoType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::AutoType>(type));
             const auto* autotype = static_cast<clang::AutoType const*>(type);
             return autotype->isDeduced() ? printArithmeticType(
                   autotype->getDeducedType().getTypePtr()) : std::string("");
          }
       case clang::Type::SubstTemplateTypeParm:
-         {  assert(llvm::dyn_cast<const clang::SubstTemplateTypeParmType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::SubstTemplateTypeParmType>(type));
             const auto* replacementType = static_cast<clang::SubstTemplateTypeParmType const*>(type);
             return printArithmeticType(replacementType->getReplacementType().getTypePtr());
          };
       case clang::Type::TemplateSpecialization:
-         {  assert(llvm::dyn_cast<const clang::TemplateSpecializationType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::TemplateSpecializationType>(type));
             const auto* specializationType = static_cast<clang::TemplateSpecializationType const*>(type);
             return specializationType->isSugared()
                ? printArithmeticType(specializationType->desugar().getTypePtr())
                : std::string("");
          }
       case clang::Type::Typedef:
-         {  assert(llvm::dyn_cast<const clang::TypedefType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::TypedefType>(type));
             const auto* replacementType = static_cast<clang::TypedefType const*>(type);
             return replacementType->isSugared()
                ? printArithmeticType(replacementType->desugar().getTypePtr())
                : std::string("");
          };
       case clang::Type::Elaborated:
-         {  assert(llvm::dyn_cast<const clang::ElaboratedType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::ElaboratedType>(type));
             const auto* elaborated = static_cast<clang::ElaboratedType const*>(type);
             return elaborated->isSugared()
                ? printArithmeticType(elaborated->desugar().getTypePtr())
@@ -394,11 +405,11 @@ CallersAction::Visitor::printPlainType(clang::QualType const& qt) const {
    const clang::Type* type = qt.getTypePtr();
    switch(type->getTypeClass()) {
       case clang::Type::Builtin:
-         {  assert(llvm::dyn_cast<const clang::BuiltinType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::BuiltinType>(type));
             return printBuiltinType(static_cast<clang::BuiltinType const*>(type));
          };
       case clang::Type::Pointer:
-         {  assert(llvm::dyn_cast<const clang::PointerType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::PointerType>(type));
             const auto* pointerType = static_cast<clang::PointerType const*>(type);
             clang::QualType subPointerType = pointerType->getPointeeType();
             std::string subType = printPlainType(subPointerType);
@@ -415,7 +426,7 @@ CallersAction::Visitor::printPlainType(clang::QualType const& qt) const {
             return subType;
          };
       case clang::Type::LValueReference:
-         {  assert(llvm::dyn_cast<const clang::LValueReferenceType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::LValueReferenceType>(type));
             const auto* referenceType = static_cast<clang::PointerType const*>(type);
             clang::QualType subReferenceType = referenceType->getPointeeType();
             std::string subType = printPlainType(subReferenceType);
@@ -429,13 +440,13 @@ CallersAction::Visitor::printPlainType(clang::QualType const& qt) const {
             return subType;
          };
       case clang::Type::MemberPointer:
-         {  assert(llvm::dyn_cast<const clang::MemberPointerType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::MemberPointerType>(type));
             const auto* memberPointerType = static_cast<clang::MemberPointerType const*>(type);
             std::string className = printQualifiedName(*memberPointerType->getMostRecentCXXRecordDecl());
             if (memberPointerType->isMemberFunctionPointer()) {
                const auto* prototype = (memberPointerType->getPointeeType()
                      .getTypePtr()->getAs<clang::FunctionProtoType>());
-               assert(prototype);
+               ASSERT(prototype);
 #ifdef CLANG_VERSION_GREATER_OR_EQUAL_3_3_5
                std::string result = printType(prototype->getReturnType());
 #else
@@ -476,7 +487,7 @@ CallersAction::Visitor::printPlainType(clang::QualType const& qt) const {
             };
          };
       case clang::Type::ConstantArray:
-         {  assert(llvm::dyn_cast<const clang::ConstantArrayType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::ConstantArrayType>(type));
             const auto* arrayType = static_cast<clang::ConstantArrayType const*>(type);
             clang::QualType subArrayType = arrayType->getElementType();
             std::string subType = printPlainType(subArrayType);
@@ -496,7 +507,7 @@ CallersAction::Visitor::printPlainType(clang::QualType const& qt) const {
             return subType;
          };
       case clang::Type::IncompleteArray:
-         {  assert (llvm::dyn_cast<const clang::IncompleteArrayType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::IncompleteArrayType>(type));
             const auto* arrayType = static_cast<clang::IncompleteArrayType const*>(type);
             clang::QualType subArrayType = arrayType->getElementType();
             std::string subType = printPlainType(subArrayType);
@@ -510,7 +521,7 @@ CallersAction::Visitor::printPlainType(clang::QualType const& qt) const {
             return subType;
          }
       case clang::Type::FunctionProto:
-         {  assert(llvm::dyn_cast<const clang::FunctionProtoType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::FunctionProtoType>(type));
             const auto* functionType = static_cast<clang::FunctionProtoType const*>(type);
 #ifdef CLANG_VERSION_GREATER_OR_EQUAL_3_3_5
             std::string result = printType(functionType->getReturnType());
@@ -548,17 +559,17 @@ CallersAction::Visitor::printPlainType(clang::QualType const& qt) const {
          //       << "\nAborting\n";
          // exit(2);
       case clang::Type::Record:
-         {  assert(llvm::dyn_cast<const clang::RecordType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::RecordType>(type));
             const auto* recordType = static_cast<clang::RecordType const*>(type);
             return printQualifiedName(*recordType->getDecl());
          };
       case clang::Type::Enum:
-         {  assert(llvm::dyn_cast<const clang::EnumType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::EnumType>(type));
             const auto* enumType = static_cast<clang::EnumType const*>(type);
             return printQualifiedName(*enumType->getDecl());
          };
       case clang::Type::Auto:
-         {  assert(llvm::dyn_cast<const clang::AutoType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::AutoType>(type));
             const auto* autotype = static_cast<clang::AutoType const*>(type);
             if (autotype->isDeduced())
                return printPlainType(autotype->getDeducedType());
@@ -569,12 +580,12 @@ CallersAction::Visitor::printPlainType(clang::QualType const& qt) const {
             }
          }
       case clang::Type::SubstTemplateTypeParm:
-         {  assert(llvm::dyn_cast<const clang::SubstTemplateTypeParmType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::SubstTemplateTypeParmType>(type));
             const auto* replacementType = static_cast<clang::SubstTemplateTypeParmType const*>(type);
             return printPlainType(replacementType->getReplacementType());
          };
       case clang::Type::TemplateSpecialization:
-         {  assert(llvm::dyn_cast<const clang::TemplateSpecializationType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::TemplateSpecializationType>(type));
             const auto* sp_type = static_cast<clang::TemplateSpecializationType const*>(type);
             if (sp_type->isSugared())
                return printPlainType(sp_type->desugar());
@@ -585,14 +596,14 @@ CallersAction::Visitor::printPlainType(clang::QualType const& qt) const {
             }
          }
       case clang::Type::Typedef:
-         {  assert(llvm::dyn_cast<const clang::TypedefType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::TypedefType>(type));
             const auto* replacementType = static_cast<clang::TypedefType const*>(type);
             return printPlainType(replacementType->getDecl()->getUnderlyingType());
          };
 #ifdef CLANG_VERSION_GREATER_OR_EQUAL_3_3_5
       case clang::Type::Decayed:
       case clang::Type::Adjusted:
-         {  assert(llvm::dyn_cast<const clang::AdjustedType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::AdjustedType>(type));
             const auto* adjustedType = static_cast<clang::AdjustedType const*>(type);
             return printPlainType(adjustedType->getOriginalType());
          };
@@ -601,7 +612,7 @@ CallersAction::Visitor::printPlainType(clang::QualType const& qt) const {
       // Adjusted was apparently introduced in 3.5, but Decayed already exists
       // in 3.4
       case clang::Type::Decayed:
-         { assert(llvm::dyn_cast<const clang::DecayedType>(type));
+         { ASSERT(llvm::dyn_cast<const clang::DecayedType>(type));
             const auto* decayed = static_cast<clang::DecayedType const*>(type);
             return printPlainType(decayed->getOriginalType());
          }
@@ -618,12 +629,12 @@ CallersAction::Visitor::printPlainType(clang::QualType const& qt) const {
 #endif //3_3_5
 
       case clang::Type::Paren:
-         {  assert(llvm::dyn_cast<const clang::ParenType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::ParenType>(type));
             const auto* parentype = static_cast<clang::ParenType const*>(type);
             return printPlainType(parentype->getInnerType());
          };
       case clang::Type::Elaborated:
-         {  assert(llvm::dyn_cast<const clang::ElaboratedType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::ElaboratedType>(type));
             const auto* elaborated = static_cast<clang::ElaboratedType const*>(type);
             if (elaborated->isSugared())
                return printPlainType(elaborated->desugar());
@@ -634,7 +645,7 @@ CallersAction::Visitor::printPlainType(clang::QualType const& qt) const {
             }
          }
       case clang::Type::Decltype:
-         {  assert(llvm::dyn_cast<const clang::DecltypeType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::DecltypeType>(type));
             const auto* decltypeType = static_cast<clang::DecltypeType const*>(type);
             if (decltypeType->isSugared())
                return printPlainType(decltypeType->desugar());
@@ -645,7 +656,7 @@ CallersAction::Visitor::printPlainType(clang::QualType const& qt) const {
             }
          };
       case clang::Type::InjectedClassName:
-         {  assert(llvm::dyn_cast<const clang::InjectedClassNameType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::InjectedClassNameType>(type));
             const auto* injectedType = static_cast<clang::InjectedClassNameType const*>(type);
             return printPlainType(injectedType->getInjectedSpecializationType());
          }
@@ -680,44 +691,44 @@ std::string
 CallersAction::Visitor::printCompoundType(clang::Type const* type) const {
    switch(type->getTypeClass()) {
       case clang::Type::Record:
-         {  assert(llvm::dyn_cast<const clang::RecordType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::RecordType>(type));
             const auto* recordType = static_cast<clang::RecordType const*>(type);
             return printQualifiedName(*recordType->getDecl()) + printTemplateKind(*recordType->getDecl());
          }
       case clang::Type::LValueReference:
       case clang::Type::RValueReference:
-         {  assert(llvm::dyn_cast<const clang::ReferenceType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::ReferenceType>(type));
             const auto* referenceType = static_cast<clang::ReferenceType const*>(type);
             return printCompoundType(referenceType->getPointeeType().getTypePtr());
          }
       case clang::Type::Auto:
-         {  assert(llvm::dyn_cast<const clang::AutoType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::AutoType>(type));
             const auto* autotype = static_cast<clang::AutoType const*>(type);
             return autotype->isDeduced()
                   ? printCompoundType(autotype->getDeducedType().getTypePtr())
                   : std::string("");
          }
       case clang::Type::SubstTemplateTypeParm:
-         {  assert(llvm::dyn_cast<const clang::SubstTemplateTypeParmType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::SubstTemplateTypeParmType>(type));
             const auto* replacementType = static_cast<clang::SubstTemplateTypeParmType const*>(type);
             return printCompoundType(replacementType->getReplacementType().getTypePtr());
          };
       case clang::Type::TemplateSpecialization:
-         {  assert(llvm::dyn_cast<const clang::TemplateSpecializationType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::TemplateSpecializationType>(type));
             const auto* specializationType = static_cast<clang::TemplateSpecializationType const*>(type);
             return specializationType->isSugared()
                ? printCompoundType(specializationType->desugar().getTypePtr())
                : std::string("");
          }
       case clang::Type::Typedef:
-         {  assert(llvm::dyn_cast<const clang::TypedefType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::TypedefType>(type));
             const auto* replacementType = static_cast<clang::TypedefType const*>(type);
             return replacementType->isSugared()
                ? printCompoundType(replacementType->desugar().getTypePtr())
                : std::string("");
          };
       case clang::Type::Elaborated:
-         {  assert(llvm::dyn_cast<const clang::ElaboratedType>(type));
+         {  ASSERT(llvm::dyn_cast<const clang::ElaboratedType>(type));
             const auto* elaborated = static_cast<clang::ElaboratedType const*>(type);
             return elaborated->isSugared()
                ? printCompoundType(elaborated->desugar().getTypePtr())
@@ -901,7 +912,7 @@ CallersAction::Visitor::printRootNamespace(const clang::NamedDecl& namedDecl,
     /* bool has_namespace = */ CallersData::get_namespaces(defaultRootNamespace, nspc, namespaces, recordName);
   }
 
-  assert(nspc != CALLERS_UNSUPPORTED_EMPTY_NAMESPACE);
+  ASSERT(nspc != CALLERS_UNSUPPORTED_EMPTY_NAMESPACE);
   // currentJsonFile->get_or_create_namespace(nspc);
   return nspc;
 }
@@ -926,7 +937,7 @@ CallersAction::Visitor::printRecordName(const clang::CXXRecordDecl* record) cons
     // c'est le cas des record anonymes
     recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
   }
-  // assert(recordName != CALLERS_DEFAULT_RECORD_NAME);
+  // ASSERT(recordName != CALLERS_DEFAULT_RECORD_NAME);
   return recordName;
 }
 
@@ -985,8 +996,8 @@ CallersAction::Visitor::getMangledName(clang::MangleContext* ctx,
                                        const clang::FunctionDecl* nd,
                                        MangledName* result)
 {
-  assert(nd != NULL);
-  assert(ctx != NULL);
+  ASSERT(nd != NULL);
+  ASSERT(ctx != NULL);
 
   llvm::SmallVector<char, 512> output;
   llvm::raw_svector_ostream out(output);
@@ -1045,7 +1056,7 @@ CallersAction::Visitor::writeFunction(const clang::FunctionDecl& function, bool 
 bool
 CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* constructor) {
    clang::CXXConstructorDecl *constr = constructor->getConstructor();
-   assert(llvm::dyn_cast<clang::FunctionDecl>(constr));
+   ASSERT(llvm::dyn_cast<clang::FunctionDecl>(constr));
    const auto& function = *static_cast<const clang ::FunctionDecl*>(constr);
    if(this->isDeclarationOfInterest(function))
    {
@@ -1059,7 +1070,7 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
      result += printArgumentSignature(function);
      osOut << inputFile << ": " << printParentFunction() << " -1-> " << result << '\n';
 
-     assert(pfdParent != NULL);
+     ASSERT(pfdParent != NULL);
      auto parentMethod = llvm::dyn_cast<clang::CXXMethodDecl>(pfdParent);
 
      std::string caller_def_sign = printParentFunction();
@@ -1067,13 +1078,13 @@ CallersAction::Visitor::VisitCXXConstructExpr(const clang::CXXConstructExpr* con
      int caller_def_begin = getStartLine(constr->getSourceRange());
      int caller_def_end = getEndLine(constr->getSourceRange());
 
-     std::string caller_decl_file = caller_def_file; // CALLERS_NO_FCT_DECL_FILE;
+     std::string caller_decl_file = printLocation(pfdParent->getCanonicalDecl()->getSourceRange(), caller_def_file);
      CallersData::Virtuality caller_def_virtuality = (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual;
      if(constr != NULL)
      {
        // get the function declaration and check it's position
        const clang::FunctionDecl* caller_decl = constr->getCanonicalDecl();
-       caller_decl_file = printFilePath(caller_decl->getSourceRange(), caller_def_file);
+       caller_decl_file = printLocation(caller_decl->getSourceRange(), caller_def_file);
      }
      MangledName caller_def_mangledName;
      this->getMangledName(mangle_context_, pfdParent, &caller_def_mangledName);
@@ -1145,7 +1156,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
         auto parentMethod = llvm::dyn_cast<clang::CXXMethodDecl>(pfdParent);
 
         std::string caller_def_file = printParentFunctionFilePath();
-        std::string caller_decl_file = caller_def_file;
+        std::string caller_decl_file = printLocation(pfdParent->getCanonicalDecl()->getSourceRange(), caller_def_file);
         int caller_def_begin = getStartLine(pfdParent->getSourceRange());
         int caller_def_end = getEndLine(pfdParent->getSourceRange());
 
@@ -1156,7 +1167,7 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
 
           // get the function declaration and check it's position
           const clang::FunctionDecl* caller_decl = parentMethod->getCanonicalDecl();
-          caller_decl_file = printFilePath(caller_decl->getSourceRange(), caller_def_file);
+          caller_decl_file = printLocation(caller_decl->getSourceRange(), caller_def_file);
         }
 
         std::string caller_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
@@ -1227,13 +1238,13 @@ CallersAction::Visitor::VisitCXXDeleteExpr(const clang::CXXDeleteExpr* deleteExp
          int caller_def_begin = getStartLine(pfdParent->getSourceRange());
          int caller_def_end = getEndLine(pfdParent->getSourceRange());
 
-         std::string caller_decl_file = caller_def_file;
+         std::string caller_decl_file = printLocation(pfdParent->getCanonicalDecl()->getSourceRange(), caller_def_file);
 
          if(destructor != NULL)
          {
            // get the function declaration and check it's position
            const clang::FunctionDecl* caller_decl = destructor->getCanonicalDecl();
-           caller_decl_file = printFilePath(caller_decl->getSourceRange(), caller_def_file);
+           caller_decl_file = printLocation(caller_decl->getSourceRange(), caller_def_file);
          }
 
          std::string caller_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
@@ -1313,7 +1324,7 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
 
         std::string caller_def_file = printParentFunctionFilePath();
 
-        std::string caller_decl_file = caller_def_file;
+        std::string caller_decl_file = printLocation(pfdParent->getCanonicalDecl()->getSourceRange(), caller_def_file);
 
         int caller_def_begin = getStartLine(pfdParent->getSourceRange());
         int caller_def_end = getEndLine(pfdParent->getSourceRange());
@@ -1322,7 +1333,7 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
         {
           // get the function declaration and check it's position
           const clang::FunctionDecl* caller_decl = parentMethod->getCanonicalDecl();
-          caller_decl_file = printFilePath(caller_decl->getSourceRange(), caller_def_file);
+          caller_decl_file = printLocation(caller_decl->getSourceRange(), caller_def_file);
         }
 
         std::string caller_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
@@ -1388,12 +1399,12 @@ CallersAction::Visitor::VisitCXXNewExpr(const clang::CXXNewExpr* newExpr) {
       int caller_def_begin = getStartLine(pfdParent->getSourceRange());
       int caller_def_end = getEndLine(pfdParent->getSourceRange());
 
-      std::string caller_decl_file = caller_def_file;
+      std::string caller_decl_file = printLocation(pfdParent->getCanonicalDecl()->getSourceRange(), caller_def_file);
       if(parentMethod != NULL)
       {
         // get the function declaration and check it's position
         const clang::FunctionDecl* caller_decl = parentMethod->getCanonicalDecl();
-        caller_decl_file = printFilePath(caller_decl->getSourceRange(), caller_def_file);
+        caller_decl_file = printLocation(caller_decl->getSourceRange(), caller_def_file);
       }
 
       std::string caller_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
@@ -1456,7 +1467,7 @@ CallersAction::Visitor::VisitBuiltinFunction(const clang::FunctionDecl* fd) {
       }
     else
       {
-        assert(builtinName != "notFoundBuiltinName");
+        ASSERT(builtinName != "notFoundBuiltinName");
         // Tries to get the full path of the builtin implementation file
         //if(headerName.length() > 0)
 
@@ -1488,14 +1499,14 @@ CallersAction::Visitor::VisitBuiltinFunction(const clang::FunctionDecl* fd) {
       std::set<CallersData::File>::iterator file = otherJsonFiles.create_or_get_file(basename, dirpath);
 
       auto parentMethod = llvm::dyn_cast<clang::CXXMethodDecl>(pfdParent);
-      std::string caller_decl_file = headerName; // CALLERS_NO_FCT_DECL_FILE
+      std::string caller_decl_file = printLocation(pfdParent->getCanonicalDecl()->getSourceRange(), headerName);
       int caller_def_begin = getStartLine(pfdParent->getSourceRange());
       int caller_def_end = getEndLine(pfdParent->getSourceRange());
       if(parentMethod != NULL)
       {
         // get the function declaration and check it's position
         const clang::FunctionDecl* caller_decl = parentMethod->getCanonicalDecl();
-        caller_decl_file = printFilePath(caller_decl->getSourceRange(), headerName);
+        caller_decl_file = printLocation(caller_decl->getSourceRange(), headerName);
       }
 
       std::string caller_recordName(CALLERS_DEFAULT_NO_RECORD_NAME);
@@ -1546,22 +1557,23 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 
       std::string caller_def_file = printParentFunctionFilePath();
       CallersData::Virtuality caller_virtuality = (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual;
-      std::string caller_decl_file = caller_def_file;
+      std::string caller_decl_filepath = printFilePath(pfdParent->getCanonicalDecl()->getSourceRange(), caller_def_file);
+      std::string caller_decl_filepos = printLocation(pfdParent->getCanonicalDecl()->getSourceRange(), caller_def_file);
       int caller_def_begin = getStartLine(pfdParent->getSourceRange());
       int caller_def_end = getEndLine(pfdParent->getSourceRange());
       if(parentMethod != NULL)
       {
         // get the function declaration and check it's position
         const clang::FunctionDecl* caller_decl = parentMethod->getCanonicalDecl();
-        caller_decl_file = printFilePath(caller_decl->getSourceRange(), caller_def_file);
+        caller_decl_filepos = printLocation(caller_decl->getSourceRange(), caller_def_file);
       }
 
       std::string caller_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
-      std::string caller_recordFilePath = caller_decl_file;
+      std::string caller_recordFilePath = caller_decl_filepath;
       if((parentMethod != NULL) && (parentMethod->getParent() != NULL))
       {
         caller_recordName = printRecordName(parentMethod->getParent());
-        caller_recordFilePath = printFilePath(parentMethod->getParent()->getSourceRange(), caller_decl_file);
+        caller_recordFilePath = printFilePath(parentMethod->getParent()->getSourceRange(), caller_decl_filepath);
       }
       std::string caller_nspc = printRootNamespace(*pfdParent, printQualifiedName(*pfdParent), caller_recordName);
 
@@ -1589,7 +1601,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
            : (calleeMethod->isThisDeclarationADefinition() ? CallersData::VVirtualDefined : CallersData::VVirtualDeclared));
 
       CallersData::FctDef caller_def(caller_mangled, caller_sign, caller_virtuality, caller_nspc, caller_def_file,
-                                     caller_def_begin, caller_def_end, caller_decl_file,
+                                     caller_def_begin, caller_def_end, caller_decl_filepos,
                                      caller_recordName, caller_recordFilePath);
 
       CallersData::FctDecl callee_decl(callee_mangled, callee_sign, callee_virtuality, callee_nspc, callee_decl_file,
@@ -1684,7 +1696,7 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
                                    thr_routine_virtuality, thr_routine_nspc, thr_routine_file, thr_routine_begin, thr_routine_end,
                                    thr_routine_recordName, thr_routine_recordFilePath, thr_create_location, caller_mangled, caller_sign,
                                    caller_virtuality, caller_nspc, caller_def_file,
-                                   caller_def_begin, caller_def_end, caller_decl_file,
+                                   caller_def_begin, caller_def_end, caller_decl_filepos,
                                    caller_recordName, caller_recordFilePath);
         currentJsonFile->add_thread(&thread, &otherJsonFiles);
       }
@@ -1702,7 +1714,7 @@ CallersAction::Visitor::VisitMemberCallExpr(const clang::CXXMemberCallExpr* call
    const clang::Expr* callee = callExpr->getCallee();
    bool isVirtualCall = callExpr->getMethodDecl()->isVirtual();
    if (isVirtualCall && callee) {
-      assert(llvm::dyn_cast<const clang::MemberExpr>(callee));
+      ASSERT(llvm::dyn_cast<const clang::MemberExpr>(callee));
       isVirtualCall = !static_cast<const clang::MemberExpr*>(callee)->hasQualifier();
    }
    const clang::FunctionDecl* directCall = callExpr->getMethodDecl();
@@ -1872,13 +1884,14 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
 
         // get the function declaration and check it's position
         clang::FunctionDecl* functionDecl = function->getCanonicalDecl();
-        std::string fctDecl_file = printFilePath(functionDecl->getSourceRange());
+        std::string fctDecl_filepath = printFilePath(functionDecl->getSourceRange());
+        std::string fctDecl_filepos = printLocation(functionDecl->getSourceRange());
 
         int fctDecl_begin = getStartLine(functionDecl->getSourceRange());
         int fctDecl_end = getEndLine(functionDecl->getSourceRange());
 
         CallersData::FctDef v_fctDef(fctDef_mangledName, fctDef_sign, virtualityDef, fctDef_nspc,
-                                   fctDef_filepath, fctDef_begin, fctDef_end, fctDecl_file, fctDef_recordName, fctDef_recordFilePath);
+                                   fctDef_filepath, fctDef_begin, fctDef_end, fctDecl_filepos, fctDef_recordName, fctDef_recordFilePath);
         std::set<CallersData::FctDef>::iterator
         fctDef = currentJsonFile->get_or_create_defined_function(&v_fctDef, fctDef_filepath, &otherJsonFiles);
 
@@ -1888,35 +1901,37 @@ CallersAction::Visitor::VisitFunctionDefinition(clang::FunctionDecl* function) {
           : CallersData::VNoVirtual;
 
         std::string fctDecl_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
-        std::string fctDecl_recordFilePath = fctDecl_file;
+        std::string fctDecl_recordFilePath = fctDecl_filepath;
         if(methodDecl != NULL)
         {
           auto rec_decl = methodDecl->getParent();
           if(rec_decl != NULL)
           {
             fctDecl_recordName = printRecordName(rec_decl);
-            fctDecl_recordFilePath = printFilePath(rec_decl->getSourceRange(), fctDecl_file);
+            fctDecl_recordFilePath = printFilePath(rec_decl->getSourceRange(), fctDecl_filepath);
           }
         }
 
         osOut << "visiting function " << sParent
               << " defined at file " << fctDef_filepath << ':' << fctDef_begin
-              << " and declared at file " << fctDecl_file << ':' << fctDecl_begin << std::endl;
+              << " and declared at file " << fctDecl_filepath << ':' << fctDecl_begin << std::endl;
 
         std::string fctDecl_nspc = printRootNamespace(*functionDecl, printQualifiedName(*functionDecl), fctDecl_recordName);
 
         // Complete the function definition with a new "declaration" entry
         CallersData::FctDecl v_fctDecl(fctDef_mangledName, fctDef_sign, virtualityDecl, fctDecl_nspc,
-                                     fctDecl_file, fctDecl_begin, fctDecl_end, fctDecl_recordName, fctDecl_recordFilePath);
+                                     fctDecl_filepath, fctDecl_begin, fctDecl_end, fctDecl_recordName, fctDecl_recordFilePath);
 
-        std::set<CallersData::FctDecl>::iterator fctDecl = currentJsonFile->get_or_create_declared_function(&v_fctDecl, fctDecl_file, &otherJsonFiles);
+        std::set<CallersData::FctDecl>::iterator fctDecl = currentJsonFile->get_or_create_declared_function(&v_fctDecl, fctDecl_filepath, &otherJsonFiles);
 
         VisitFunctionParameters(*functionDecl, *fctDecl);
-        if(fctDef_filepath == fctDecl_file)
+        if(fctDef_filepath == fctDecl_filepos)
         {
-          std::ostringstream sline;
-          sline << fctDef_begin;
-          fctDef_pos = std::string(CALLERS_LOCAL_FCT_DECL) + ":" + sline.str();
+          std::ostringstream s_begin;
+          s_begin << fctDef_begin;
+          std::ostringstream s_end;
+          s_end << fctDef_end;
+          fctDef_pos = std::string(CALLERS_LOCAL_FCT_DECL) + ":" + s_begin.str() + ":" + s_end.str();
         }
         fctDecl->add_definition(fctDef_sign, fctDef_pos);
 
@@ -1947,7 +1962,7 @@ bool CallersAction::Visitor::VisitFunctionParameters(const clang::FunctionDecl& 
 bool
 CallersAction::Visitor::VisitFunctionDeclaration(clang::FunctionDecl* function) {
 
-      assert(function != NULL);
+      ASSERT(function != NULL);
       std::string fct_sign = writeFunction(*function);
       std::string fct_filepath = printFilePath(function->getSourceRange());
       int fct_begin = getStartLine(function->getSourceRange());
@@ -1987,7 +2002,7 @@ CallersAction::Visitor::VisitFunctionDeclaration(clang::FunctionDecl* function) 
 bool
 CallersAction::Visitor::VisitMethodDeclaration(clang::CXXMethodDecl* methodDecl) {
 
-      assert(methodDecl != NULL);
+      ASSERT(methodDecl != NULL);
       std::string fct_sign = writeFunction(*methodDecl);
       std::string fct_filepath = printFilePath(methodDecl->getSourceRange());
       int fct_begin = getStartLine(methodDecl->getSourceRange());

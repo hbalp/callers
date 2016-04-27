@@ -1,6 +1,6 @@
 #!/bin/bash
 
-rm -rf build
+#rm -rf build
 rm -rf analysis
 rm -f defined_symbols.json
 rm -f *.gen.callgraph

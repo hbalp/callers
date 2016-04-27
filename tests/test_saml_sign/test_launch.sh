@@ -8,9 +8,9 @@ build_tool="cmake"
 #build_tool="scan-build"
 
 #analysis_type=all
-analysis_type=callers
-#analysis_type=frama_c
-#analysis_type=frama_clang
+#analysis_type=callers
+analysis_type=frama-c
+#analysis_type=frama-clang
 #analysis_type=framaCIRGen
 
 #clang=`which clang`

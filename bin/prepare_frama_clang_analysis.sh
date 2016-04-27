@@ -15,22 +15,24 @@ function launch_frama_clang ()
     shift
     shift
     shift
-    file_analysis_options=$@
+    file_analysis_options="$@ -DFRAMA_CLANG"
 
     # localize frama-c
     frama_c=`which frama-c 2> /dev/null`
 
     # define frama-clang configuration options
-    #frama_clang_options="-cxx-nostdinc -cxx-keep-mangling -fclang-msg-key clang,cabs -fclang-verbose 2 -machdep x86_32 -print -cxx-clang-command"
-    #frama_clang_options="-machdep x86_64 -cxx-nostdinc -fclang-msg-key clang,cabs -cxx-clang-command" # for debug pruposes
-    frama_clang_options="-machdep x86_64 -cxx-nostdinc -cxx-clang-command"
+    #frama_clang_options="-cxx-nostdinc -cxx-keep-mangling -fclang-msg-key clang,cabs -fclang-verbose 2 -machdep x86_64 -print -cxx-clang-command"
+    #frama_clang_options="-machdep x86_64 -cxx-nostdinc -fclang-msg-key clang,cabs -cxx-clang-command" # for debug purposes
+    frama_clang_options="-machdep x86_64 -cxx-nostdinc -val -lib-entry -rte -deps -print -ocode ${cabs_file} -cxx-clang-command"
 
     # add target source file specific analysis options
     frama_clang_analysis_options="${file_analysis_options}"
 
+    framaCIRGen_options="-D__STRICT_ANSI__"
+
     # build the frama_clang analysis command
     # cpp_analysis="${frama_c} ${frama_clang_options} \"framaCIRGen \${system_includes} \${file_analysis_options}\" ${cpp_file} -cxx-keep-mangling -ocode ${cabs_file} -print"
-    cpp_analysis="${frama_c} ${frama_clang_options} \"framaCIRGen \${system_includes} \${file_analysis_options}\" ${cpp_file} -cxx-keep-mangling > ${cabs_file}"
+    cpp_analysis="${frama_c} ${frama_clang_options} \"framaCIRGen ${framaCIRGen_options} \${system_includes} \${file_analysis_options}\" ${cpp_file} -cxx-keep-mangling > ${cabs_file}.stdout"
 
     # make sure the output directories are well created before calling the analysis ?
 
@@ -63,7 +65,10 @@ function launch_frama_c ()
     shift
     shift
     shift
-    file_analysis_options="-I.. $@"
+    file_full_analysis_options="-I.. $@"
+
+    # filter -g option unsupported by frama-c
+    file_filtered_analysis_options=`echo $file_full_analysis_options` | sed "s/ -g / /g"
 
     # localize frama-c
     frama_c=`which frama-c 2> /dev/null`
@@ -72,10 +77,10 @@ function launch_frama_c ()
     frama_c_options="-machdep x86_32 -no-cpp-gnu-like "
 
     # add target source file specific analysis options
-    frama_c_analysis_options="-cpp-extra-args=\"${file_analysis_options}\""
+    frama_c_analysis_options="-cpp-extra-args=\"${file_filtered_analysis_options}\" -val -lib-entry -rte -deps -print -ocode ${cabs_file}"
 
     # build the frama_c analysis command
-    c_analysis="${frama_c} ${frama_c_options} \${frama_c_analysis_options} ${c_file} > ${cabs_file}"
+    c_analysis="${frama_c} ${frama_c_options} \${frama_c_analysis_options} ${c_file} > ${cabs_file}.stdout "
     # c_analysis="${frama_c} ${frama_c_options} \${frama_c_analysis_options} ${c_file} -ocode ${cabs_file} -print"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
@@ -112,7 +117,7 @@ function launch_framaCIRGen ()
     framaCIRGen=`which framaCIRGen 2> /dev/null`
 
     # define frama-clang configuration options
-    framaCIRGen_options=""
+    framaCIRGen_options="-D__STRICT_ANSI__"
 
     # add target source file specific analysis options
     framaCIRGen_analysis_options="${file_analysis_options}"
@@ -590,7 +595,10 @@ function prepare_frama_clang_analysis_from_compile_command()
 	        ;;
 
 	    *)
-	        #echo "builds the input file without any analysis..."
+	        echo "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" >> $stderr_file
+	        echo "WARNING: unknown analysis_type: $analysis_type" >> $stderr_file
+	        echo "WARNING: builds the input file without any analysis..." >> $stderr_file
+	        echo "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" >> $stderr_file
 	        ;;
         esac
     else

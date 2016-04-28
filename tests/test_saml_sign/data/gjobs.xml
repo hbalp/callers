@@ -1,46 +1,46 @@
 <?xml version="1.0"?>
-<gjob:Helping xmlns:gjob="http://www.gnome.org/some-location">
-  <gjob:Jobs>
+<ds:Helping xmlns:ds="http://www.gnome.org/some-location">
+  <ds:Jobs>
 
-    <gjob:Job>
-      <gjob:Project ID="3"/>
-      <gjob:Application>GBackup</gjob:Application>
-      <gjob:Category>Development</gjob:Category>
+    <ds:Job>
+      <ds:Project ID="3"/>
+      <ds:Application>GBackup</ds:Application>
+      <ds:Category>Development</ds:Category>
 
-      <gjob:Update>
-	<gjob:Status>Open</gjob:Status>
-	<gjob:Modified>Mon, 07 Jun 1999 20:27:45 -0400 MET DST</gjob:Modified>
-        <gjob:Salary>USD 0.00</gjob:Salary>
-      </gjob:Update>
+      <ds:Update>
+	<ds:Status>Open</ds:Status>
+	<ds:Modified>Mon, 07 Jun 1999 20:27:45 -0400 MET DST</ds:Modified>
+        <ds:Salary>USD 0.00</ds:Salary>
+      </ds:Update>
 
-      <gjob:Developers>
-        <gjob:Developer>
-        </gjob:Developer>
-      </gjob:Developers>
+      <ds:Developers>
+        <ds:Developer>
+        </ds:Developer>
+      </ds:Developers>
 
-      <gjob:Contact>
-        <gjob:Person>Nathan Clemons</gjob:Person>
-	<gjob:Email>nathan@windsofstorm.net</gjob:Email>
-        <gjob:Company>
-	</gjob:Company>
-        <gjob:Organisation>
-	</gjob:Organisation>
-        <gjob:Webpage>
-	</gjob:Webpage>
-	<gjob:Snailmail>
-	</gjob:Snailmail>
-	<gjob:Phone>
-	</gjob:Phone>
-      </gjob:Contact>
+      <ds:Contact>
+        <ds:Person>Nathan Clemons</ds:Person>
+	<ds:Email>nathan@windsofstorm.net</ds:Email>
+        <ds:Company>
+	</ds:Company>
+        <ds:Organisation>
+	</ds:Organisation>
+        <ds:Webpage>
+	</ds:Webpage>
+	<ds:Snailmail>
+	</ds:Snailmail>
+	<ds:Phone>
+	</ds:Phone>
+      </ds:Contact>
 
-      <gjob:Requirements>
+      <ds:Requirements>
       The program should be released as free software, under the GPL.
-      </gjob:Requirements>
+      </ds:Requirements>
 
-      <gjob:Skills>
-      </gjob:Skills>
+      <ds:Skills>
+      </ds:Skills>
 
-      <gjob:Details>
+      <ds:Details>
       A GNOME based system that will allow a superuser to configure 
       compressed and uncompressed files and/or file systems to be backed 
       up with a supported media in the system.  This should be able to 
@@ -48,10 +48,10 @@
       to tar, dd, cpio, cp, gzip, etc., to be directed to the tape machine 
       or via operations performed on the filesystem itself. Email 
       notification and GUI status display very important.
-      </gjob:Details>
+      </ds:Details>
 
-    </gjob:Job>
+    </ds:Job>
 
-  </gjob:Jobs>
-</gjob:Helping>
+  </ds:Jobs>
+</ds:Helping>
 

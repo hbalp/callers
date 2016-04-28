@@ -1,46 +1,42 @@
-<?xml version="1.0"?>
-<ds:Helping xmlns:ds="http://www.gnome.org/some-location">
-  <ds:Jobs>
+<saml:Assertion xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="ident" IssueInstant="1970-01-02T01:01:02.100Z" Version="2.0">
+  <saml:Job>
+    <saml:Project ID="3"/>
+    <saml:Application>GBackup</saml:Application>
+    <saml:Category>Development</saml:Category>
 
-    <ds:Job>
-      <ds:Project ID="3"/>
-      <ds:Application>GBackup</ds:Application>
-      <ds:Category>Development</ds:Category>
+    <saml:Update>
+      <saml:Status>Open</saml:Status>
+      <saml:Modified>Mon, 07 Jun 1999 20:27:45 -0400 MET DST</saml:Modified>
+      <saml:Salary>USD 0.00</saml:Salary>
+    </saml:Update>
 
-      <ds:Update>
-	<ds:Status>Open</ds:Status>
-	<ds:Modified>Mon, 07 Jun 1999 20:27:45 -0400 MET DST</ds:Modified>
-        <ds:Salary>USD 0.00</ds:Salary>
-      </ds:Update>
+    <saml:Developers>
+      <saml:Developer>
+      </saml:Developer>
+    </saml:Developers>
 
-      <ds:Developers>
-        <ds:Developer>
-        </ds:Developer>
-      </ds:Developers>
+    <saml:Contact>
+      <saml:NameID>John Doe</saml:NameID>
+      <saml:issueInstant>1970-01-02T01:01:02.100Z</saml:issueInstant>
+      <saml:Method>method</saml:Method>
+      <saml:Organisation>
+      </saml:Organisation>
+      <saml:Webpage>
+      </saml:Webpage>
+      <saml:Snailmail>
+      </saml:Snailmail>
+      <saml:Phone>
+      </saml:Phone>
+    </saml:Contact>
 
-      <ds:Contact>
-        <ds:Person>Nathan Clemons</ds:Person>
-	<ds:Email>nathan@windsofstorm.net</ds:Email>
-        <ds:Company>
-	</ds:Company>
-        <ds:Organisation>
-	</ds:Organisation>
-        <ds:Webpage>
-	</ds:Webpage>
-	<ds:Snailmail>
-	</ds:Snailmail>
-	<ds:Phone>
-	</ds:Phone>
-      </ds:Contact>
-
-      <ds:Requirements>
+    <saml:Requirements>
       The program should be released as free software, under the GPL.
-      </ds:Requirements>
+    </saml:Requirements>
 
-      <ds:Skills>
-      </ds:Skills>
+    <saml:Skills>
+    </saml:Skills>
 
-      <ds:Details>
+    <saml:Details>
       A GNOME based system that will allow a superuser to configure 
       compressed and uncompressed files and/or file systems to be backed 
       up with a supported media in the system.  This should be able to 
@@ -48,10 +44,8 @@
       to tar, dd, cpio, cp, gzip, etc., to be directed to the tape machine 
       or via operations performed on the filesystem itself. Email 
       notification and GUI status display very important.
-      </ds:Details>
+    </saml:Details>
 
-    </ds:Job>
+  </saml:Job>
 
-  </ds:Jobs>
-</ds:Helping>
-
+</saml:Assertion>

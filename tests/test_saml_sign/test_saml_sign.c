@@ -31,7 +31,7 @@
  */
 typedef struct person {
     xmlChar *name;
-    xmlChar *email;
+    xmlChar *issueInstant;
     xmlChar *company;
     xmlChar *organisation;
     xmlChar *smail;
@@ -43,10 +43,10 @@ typedef struct person {
  * And the code needed to parse it
  */
 static personPtr
-parsePerson(xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur) {
+parseNameID(xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur) {
     personPtr ret = NULL;
 
-DEBUG("parsePerson\n");
+DEBUG("parseNameID\n");
     /*
      * allocate the struct
      */
@@ -61,12 +61,12 @@ DEBUG("parsePerson\n");
     /* COMPAT xmlChildrenNode is a macro unifying libxml1 and libxml2 names */
     cur = cur->xmlChildrenNode;
     while (cur != NULL) {
-        if ((!xmlStrcmp(cur->name, (const xmlChar *)"Person")) &&
+        if ((!xmlStrcmp(cur->name, (const xmlChar *)"NameID")) &&
 	    (cur->ns == ns))
 	    ret->name = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-        if ((!xmlStrcmp(cur->name, (const xmlChar *)"Email")) &&
+        if ((!xmlStrcmp(cur->name, (const xmlChar *)"issueInstant")) &&
 	    (cur->ns == ns))
-	    ret->email = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+	    ret->issueInstant = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
 	cur = cur->next;
     }
 
@@ -77,11 +77,11 @@ DEBUG("parsePerson\n");
  * and to print it
  */
 static void
-printPerson(personPtr cur) {
+printNameID(personPtr cur) {
     if (cur == NULL) return;
-    printf("------ Person\n");
+    printf("------ NameID\n");
     if (cur->name) printf("	name: %s\n", cur->name);
-    if (cur->email) printf("	email: %s\n", cur->email);
+    if (cur->issueInstant) printf("	issueInstant: %s\n", cur->issueInstant);
     if (cur->company) printf("	company: %s\n", cur->company);
     if (cur->organisation) printf("	organisation: %s\n", cur->organisation);
     if (cur->smail) printf("	smail: %s\n", cur->smail);
@@ -141,7 +141,7 @@ DEBUG("parseJob\n");
 		xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
         if ((!xmlStrcmp(cur->name, (const xmlChar *) "Contact")) &&
 	    (cur->ns == ns))
-	    ret->contact = parsePerson(doc, ns, cur);
+	    ret->contact = parseNameID(doc, ns, cur);
 	cur = cur->next;
     }
 
@@ -160,10 +160,10 @@ printJob(jobPtr cur) {
     if (cur->projectID != NULL) printf("projectID: %s\n", cur->projectID);
     if (cur->application != NULL) printf("application: %s\n", cur->application);
     if (cur->category != NULL) printf("category: %s\n", cur->category);
-    if (cur->contact != NULL) printPerson(cur->contact);
+    if (cur->contact != NULL) printNameID(cur->contact);
     printf("%d developers\n", cur->nbDevelopers);
 
-    for (i = 0;i < cur->nbDevelopers;i++) printPerson(cur->developers[i]);
+    for (i = 0;i < cur->nbDevelopers;i++) printNameID(cur->developers[i]);
     printf("======= \n");
 }
 
@@ -174,7 +174,6 @@ typedef struct gjob {
     int nbJobs;
     jobPtr jobs[500]; /* using dynamic alloc is left as an exercise */
 } gJob, *gJobPtr;
-
 
 static gJobPtr
 parseGjobFile(char *filename) {
@@ -208,15 +207,15 @@ parseGjobFile(char *filename) {
 	return(NULL);
     }
     ns = xmlSearchNsByHref(doc, cur,
-	    (const xmlChar *) "http://www.gnome.org/some-location");
+                           (const xmlChar *) "urn:oasis:names:tc:SAML:2.0:assertion");
     if (ns == NULL) {
         fprintf(stderr,
-	        "document of the wrong type, GJob Namespace not found\n");
+	        "document of the wrong type, OASIS SAML Namespace not found\n");
 	xmlFreeDoc(doc);
 	return(NULL);
     }
-    if (xmlStrcmp(cur->name, (const xmlChar *) "Helping")) {
-        fprintf(stderr,"document of the wrong type, root node != Helping");
+    if (xmlStrcmp(cur->name, (const xmlChar *) "Assertion")) {
+        fprintf(stderr,"document of the wrong type, root node != Assertion");
 	xmlFreeDoc(doc);
 	return(NULL);
     }
@@ -245,8 +244,8 @@ parseGjobFile(char *filename) {
 	free(ret);
 	return ( NULL );
     }
-    if ((xmlStrcmp(cur->name, (const xmlChar *) "Jobs")) || (cur->ns != ns)) {
-        fprintf(stderr,"document of the wrong type, was '%s', Jobs expected",
+    if ((xmlStrcmp(cur->name, (const xmlChar *) "Job")) || (cur->ns != ns)) {
+        fprintf(stderr,"document of the wrong type, was '%s', Job expected",
 		cur->name);
 	fprintf(stderr,"xmlDocDump follows\n");
 #ifdef LIBXML_OUTPUT_ENABLED
@@ -259,17 +258,17 @@ parseGjobFile(char *filename) {
     }
 
     /* Second level is a list of Job, but be laxist */
-    cur = cur->xmlChildrenNode;
-    while (cur != NULL) {
+    /* cur = cur->xmlChildrenNode; */
+    /* while (cur != NULL) { */
         if ((!xmlStrcmp(cur->name, (const xmlChar *) "Job")) &&
 	    (cur->ns == ns)) {
 	    curjob = parseJob(doc, ns, cur);
 	    if (curjob != NULL)
 	        ret->jobs[ret->nbJobs++] = curjob;
-            if (ret->nbJobs >= 500) break;
+            // if (ret->nbJobs >= 500) break;
 	}
-	cur = cur->next;
-    }
+    /*     cur = cur->next; */
+    /* } */
 
     return(ret);
 }

@@ -94,12 +94,10 @@ printNameID(signaturePtr cur) {
  * a Description for a Assertion
  */
 typedef struct assertion {
-    xmlChar *projectID;
-    xmlChar *application;
-    xmlChar *category;
-    signaturePtr contact;
-    int nbDevelopers;
-    signaturePtr developers[100]; /* using dynamic alloc is left as an exercise */
+    xmlChar *issuer;
+    signaturePtr subject;
+    xmlChar *authStmt;
+    signaturePtr signature;
 } assertion, *assertionPtr;
 
 /*
@@ -126,22 +124,14 @@ DEBUG("parseAssertion\n");
         
         if ((!xmlStrcmp(cur->name, (const xmlChar *) "Project")) &&
 	    (cur->ns == ns)) {
-	    ret->projectID = xmlGetProp(cur, (const xmlChar *) "ID");
-	    if (ret->projectID == NULL) {
+	    ret->issuer = xmlGetProp(cur, (const xmlChar *) "ID");
+	    if (ret->issuer == NULL) {
 		fprintf(stderr, "Project has no ID\n");
 	    }
 	}
-        if ((!xmlStrcmp(cur->name, (const xmlChar *) "Application")) &&
-            (cur->ns == ns))
-	    ret->application = 
-		xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-        if ((!xmlStrcmp(cur->name, (const xmlChar *) "Category")) &&
+        if ((!xmlStrcmp(cur->name, (const xmlChar *) "Subject")) &&
 	    (cur->ns == ns))
-	    ret->category =
-		xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-        if ((!xmlStrcmp(cur->name, (const xmlChar *) "Contact")) &&
-	    (cur->ns == ns))
-	    ret->contact = parseNameID(doc, ns, cur);
+	    ret->subject = parseNameID(doc, ns, cur);
 	cur = cur->next;
     }
 
@@ -157,13 +147,10 @@ printAssertion(assertionPtr cur) {
 
     if (cur == NULL) return;
     printf("=======  Assertion\n");
-    if (cur->projectID != NULL) printf("projectID: %s\n", cur->projectID);
-    if (cur->application != NULL) printf("application: %s\n", cur->application);
-    if (cur->category != NULL) printf("category: %s\n", cur->category);
-    if (cur->contact != NULL) printNameID(cur->contact);
-    printf("%d developers\n", cur->nbDevelopers);
-
-    for (i = 0;i < cur->nbDevelopers;i++) printNameID(cur->developers[i]);
+    if (cur->issuer != NULL) printf("issuer: %s\n", cur->issuer);
+    if (cur->subject != NULL) printNameID(cur->subject);
+    if (cur->authStmt != NULL) printf("authStmt: %s\n", cur->authStmt);
+    if (cur->signature != NULL) printNameID(cur->signature);
     printf("======= \n");
 }
 

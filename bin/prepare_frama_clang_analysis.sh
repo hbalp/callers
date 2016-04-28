@@ -23,7 +23,8 @@ function launch_frama_clang ()
     # define frama-clang configuration options
     #frama_clang_options="-cxx-nostdinc -cxx-keep-mangling -fclang-msg-key clang,cabs -fclang-verbose 2 -machdep x86_64 -print -cxx-clang-command"
     #frama_clang_options="-machdep x86_64 -cxx-nostdinc -fclang-msg-key clang,cabs -cxx-clang-command" # for debug purposes
-    frama_clang_options="-machdep x86_64 -cxx-nostdinc -val -lib-entry -rte -deps -print -ocode ${cabs_file} -cxx-clang-command"
+    #frama_clang_options="-machdep x86_64 -cxx-nostdinc -val -lib-entry -rte -deps -print -ocode ${cabs_file} -cxx-clang-command"
+    frama_clang_options="-machdep x86_64 -cxx-nostdinc -print -ocode ${cabs_file} -cxx-clang-command"
 
     # add target source file specific analysis options
     frama_clang_analysis_options="${file_analysis_options}"
@@ -68,7 +69,7 @@ function launch_frama_c ()
     file_full_analysis_options="-I.. $@"
 
     # filter -g option unsupported by frama-c
-    file_filtered_analysis_options=`echo $file_full_analysis_options` | sed "s/ -g / /g"
+    file_filtered_analysis_options=`echo ${file_full_analysis_options} | sed -e "s/ -g / /g"`
 
     # localize frama-c
     frama_c=`which frama-c 2> /dev/null`
@@ -77,10 +78,18 @@ function launch_frama_c ()
     frama_c_options="-machdep x86_32 -no-cpp-gnu-like "
 
     # add target source file specific analysis options
-    frama_c_analysis_options="-cpp-extra-args=\"${file_filtered_analysis_options}\" -val -lib-entry -rte -deps -print -ocode ${cabs_file}"
+    #frama_c_analysis_options="-cpp-extra-args=\\\"${file_filtered_analysis_options}\\\" -val -lib-entry -rte -deps -print -ocode ${cabs_file}"
+    frama_c_analysis_options="-val -lib-entry -rte -deps -print -ocode ${cabs_file}"
+
+    if [ "${file_filtered_analysis_options}" != "" ]
+    then
+        frama_c_file_args="-cpp-extra-args=\"${file_filtered_analysis_options}\""
+    else
+        frama_c_file_args=""
+    fi
 
     # build the frama_c analysis command
-    c_analysis="${frama_c} ${frama_c_options} \${frama_c_analysis_options} ${c_file} > ${cabs_file}.stdout "
+    c_analysis="${frama_c} ${frama_c_options} ${frama_c_file_args} \${frama_c_analysis_options} ${c_file} > ${cabs_file}.stdout "
     # c_analysis="${frama_c} ${frama_c_options} \${frama_c_analysis_options} ${c_file} -ocode ${cabs_file} -print"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
@@ -88,7 +97,7 @@ function launch_frama_c ()
     echo "echo \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\""
     echo "mkdir -p $cabs_dir"
     echo "touch $cabs_stderr"
-    echo "frama_c_analysis_options=${frama_c_analysis_options}"
+    echo "frama_c_analysis_options=\"${frama_c_analysis_options}\""
     echo "#gdb --args "
     echo "#valgrind --tool=callgrind "
     echo "#valgrind "

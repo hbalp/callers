@@ -39,7 +39,7 @@ then
     list_defined_symbols defined_symbols.json
 
     ## generate callee's tree from main entry point
-    source extract_fcg.sh callees ${canonical_pwd}/test_saml_sign.cpp "main" "int main()" files
+    source extract_fcg.sh callees ${canonical_pwd}/test_saml_sign.cpp "main" "int main(int, ((char)*)*)" files
     # source extract_fcg.sh callees ${canonical_pwd}/test_saml_sign.c "main" "int main()" files
 
     ## generate caller's tree from main entry point

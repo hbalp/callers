@@ -5,6 +5,7 @@
  * hugues.balp@thalesgroup.com
  */
 
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -52,7 +53,7 @@ DEBUG("parseNameID\n");
     ret = (signaturePtr) malloc(sizeof(signature));
     if (ret == NULL) {
         fprintf(stderr,"out of memory\n");
-	return(NULL);
+	assert(0);
     }
     memset(ret, 0, sizeof(signature));
 
@@ -115,7 +116,7 @@ DEBUG("parseAssertion\n");
     ret = (assertionPtr) malloc(sizeof(assertion));
     if (ret == NULL) {
         fprintf(stderr,"out of memory\n");
-	return(NULL);
+	assert(0);
     }
     memset(ret, 0, sizeof(assertion));
 
@@ -179,7 +180,7 @@ parseGassertionFile(char *filename) {
     xmlDocPtr doc;
     gAssertionPtr ret;
     assertionPtr curassertion;
-    xmlNsPtr ns_saml, ns_dsig;
+    xmlNsPtr ns_saml, ns_samlp, ns_dsig;
     xmlNodePtr cur;
 
 #ifdef LIBXML_SAX1_ENABLED
@@ -187,37 +188,37 @@ parseGassertionFile(char *filename) {
      * build an XML tree from a the file;
      */
     doc = xmlParseFile(filename);
-    if (doc == NULL) return(NULL);
+    if (doc == NULL) assert(0);
 #else
     /*
      * the library has been compiled without some of the old interfaces
      */
-    return(NULL);
+    assert(0);
 #endif /* LIBXML_SAX1_ENABLED */
 
     /*
      * Check the document is of the right kind
      */
-    
     cur = xmlDocGetRootElement(doc);
     if (cur == NULL) {
         fprintf(stderr,"empty document\n");
 	xmlFreeDoc(doc);
-	return(NULL);
+	assert(0);
     }
-    ns_saml = xmlSearchNsByHref(doc, cur,
-                           (const xmlChar *) "urn:oasis:names:tc:SAML:2.0:assertion");
-    if (ns_saml == NULL) {
-        fprintf(stderr,
-	        "document of the wrong type, OASIS SAML Namespace not found\n");
-	xmlFreeDoc(doc);
-	return(NULL);
+
+    if (!xmlStrcmp(cur->name, (const xmlChar *) "Response"))
+    {
+        ns_samlp = xmlSearchNsByHref(doc, cur,
+                                    (const xmlChar *) "urn:oasis:names:tc:SAML:2.0:protocol");
+        if (ns_samlp == NULL) {
+            fprintf(stderr,
+                    "document of the wrong type, samlp:Response namespace not found\n");
+            xmlFreeDoc(doc);
+            assert(0);
+        }
     }
-    if (xmlStrcmp(cur->name, (const xmlChar *) "Assertion")) {
-        fprintf(stderr,"document of the wrong type, root node != Assertion");
-	xmlFreeDoc(doc);
-	return(NULL);
-    }
+    else
+        assert(0);
 
     /*
      * Allocate the structure to be returned.
@@ -226,22 +227,37 @@ parseGassertionFile(char *filename) {
     if (ret == NULL) {
         fprintf(stderr,"out of memory\n");
 	xmlFreeDoc(doc);
-	return(NULL);
+	assert(0);
     }
     memset(ret, 0, sizeof(gAssertion));
 
     /*
      * Now, walk the tree.
      */
-    /* First level we expect just Assertions */
+    /* First level we expect just SAML Responses */
     cur = cur->xmlChildrenNode;
+
+    ns_saml = xmlSearchNsByHref(doc, cur,
+                           (const xmlChar *) "urn:oasis:names:tc:SAML:2.0:assertion");
+    if (ns_saml == NULL) {
+        fprintf(stderr,
+	        "document of the wrong type, OASIS SAML Namespace not found\n");
+	xmlFreeDoc(doc);
+	assert(0);
+    }
+    if (xmlStrcmp(cur->name, (const xmlChar *) "Assertion")) {
+        fprintf(stderr,"document of the wrong type, root node != Assertion");
+	xmlFreeDoc(doc);
+	assert(0);
+    }
+
     while ( cur && xmlIsBlankNode ( cur ) ) {
 	cur = cur -> next;
     }
     if ( cur == 0 ) {
 	xmlFreeDoc(doc);
 	free(ret);
-	return (NULL);
+	assert(0);
     }
 
     if (!xmlStrcmp(cur->name, (const xmlChar *) "Signature"))
@@ -252,7 +268,7 @@ parseGassertionFile(char *filename) {
             fprintf(stderr,
                     "document of the wrong type, xmldsig Namespace not found\n");
             xmlFreeDoc(doc);
-            return(NULL);
+            assert(0);
         }
     }
 
@@ -268,7 +284,7 @@ parseGassertionFile(char *filename) {
 #endif /* LIBXML_OUTPUT_ENABLED */
 	xmlFreeDoc(doc);
 	free(ret);
-	return(NULL);
+	assert(0);
     }
 
     /* Second level is a list of Assertion, but be laxist */
@@ -283,15 +299,15 @@ parseGassertionFile(char *filename) {
             // if (ret->nbAssertions >= 500) break;
 	}
 
-	cur = cur -> next;
+	// cur = cur -> next;
 
-        if ((!xmlStrcmp(cur->name, (const xmlChar *) "Assertion")) &&
-	    (cur->ns == ns_saml)) {
-	    curassertion = parseAssertion(doc, ns_saml, cur);
-	    if (curassertion != NULL)
-	        ret->assertions[ret->nbAssertions++] = curassertion;
-            // if (ret->nbAssertions >= 500) break;
-	}
+        // if ((!xmlStrcmp(cur->name, (const xmlChar *) "Assertion")) &&
+	//     (cur->ns == ns_saml)) {
+	//     curassertion = parseAssertion(doc, ns_saml, cur);
+	//     if (curassertion != NULL)
+	//         ret->assertions[ret->nbAssertions++] = curassertion;
+        //     // if (ret->nbAssertions >= 500) break;
+	// }
 
     /*     cur = cur->next; */
     /* } */
@@ -332,5 +348,3 @@ int main(int argc, char **argv) {
 
     return(0);
 }
-
-

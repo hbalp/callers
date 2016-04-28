@@ -1,0 +1,30 @@
+<html>
+	<head>
+		<title>SAML Binding</title>
+	</head>
+	<body>
+		<form method="POST" action="<mlp action/>">
+		<mlpif TARGET>
+			<input type="hidden" name="TARGET" value="<mlp TARGET/>"/>
+		</mlpif>
+		<mlpif RelayState>
+			<input type="hidden" name="RelayState" value="<mlp RelayState/>"/>
+		</mlpif>
+		<mlpif SAMLRequest>
+			<input type="hidden" name="SAMLRequest" value="<mlp SAMLRequest/>"/>
+		</mlpif>
+		<mlpif SAMLResponse>
+			<input type="hidden" name="SAMLResponse" value="<mlp SAMLResponse/>"/>
+		</mlpif>
+		<mlpif SAMLart>
+			<input type="hidden" name="SAMLart" value="<mlp SAMLart/>"/>
+		</mlpif>
+		<mlpif SigAlg>
+			<input type="hidden" name="SigAlg" value="<mlp SigAlg/>"/>
+		</mlpif>
+		<mlpif Signature>
+			<input type="hidden" name="Signature" value="<mlp Signature/>"/>
+		</mlpif>
+		</form>
+	</body>
+</html>

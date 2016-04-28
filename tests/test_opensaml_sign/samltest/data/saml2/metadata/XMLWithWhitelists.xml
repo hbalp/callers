@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FilesystemMetadataProvider path="../samltest/data/saml2/metadata/InCommon-metadata.xml" validate="0">
+    <WhitelistMetadataFilter>
+        <Include>urn:mace:incommon:washington.edu</Include>
+        <Include>urn:mace:incommon:osu.edu</Include>
+    </WhitelistMetadataFilter>
+</FilesystemMetadataProvider>

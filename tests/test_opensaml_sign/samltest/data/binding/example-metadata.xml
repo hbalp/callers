@@ -1,0 +1,95 @@
+<EntitiesDescriptor
+    xmlns="urn:oasis:names:tc:SAML:2.0:metadata"
+    xmlns:ds="http://www.w3.org/2000/09/xmldsig#"
+    validUntil="2030-01-01T00:00:00Z">
+
+	<EntityDescriptor entityID="https://idp.example.org/">
+		
+		<IDPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:1.1:protocol urn:oasis:names:tc:SAML:2.0:protocol">
+			<KeyDescriptor>
+                <ds:KeyInfo>
+                    <ds:KeyName>sp.example.org</ds:KeyName>
+                    <ds:X509Data>
+                        <ds:X509Certificate>
+                            MIICjzCCAfigAwIBAgIJAKk8t1hYcMkhMA0GCSqGSIb3DQEBBAUAMDoxCzAJBgNV
+                            BAYTAlVTMRIwEAYDVQQKEwlJbnRlcm5ldDIxFzAVBgNVBAMTDnNwLmV4YW1wbGUu
+                            b3JnMB4XDTA1MDYyMDE1NDgzNFoXDTMyMTEwNTE1NDgzNFowOjELMAkGA1UEBhMC
+                            VVMxEjAQBgNVBAoTCUludGVybmV0MjEXMBUGA1UEAxMOc3AuZXhhbXBsZS5vcmcw
+                            gZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBANlZ1L1mKzYbUVKiMQLhZlfGDyYa
+                            /jjCiaXP0WhLNgvJpOTeajvsrApYNnFX5MLNzuC3NeQIjXUNLN2Yo2MCSthBIOL5
+                            qE5dka4z9W9zytoflW1LmJ8vXpx8Ay/meG4z//J5iCpYVEquA0xl28HUIlownZUF
+                            7w7bx0cF/02qrR23AgMBAAGjgZwwgZkwHQYDVR0OBBYEFJZiO1qsyAyc3HwMlL9p
+                            JpN6fbGwMGoGA1UdIwRjMGGAFJZiO1qsyAyc3HwMlL9pJpN6fbGwoT6kPDA6MQsw
+                            CQYDVQQGEwJVUzESMBAGA1UEChMJSW50ZXJuZXQyMRcwFQYDVQQDEw5zcC5leGFt
+                            cGxlLm9yZ4IJAKk8t1hYcMkhMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQAD
+                            gYEAMFq/UeSQyngE0GpZueyD2UW0M358uhseYOgGEIfm+qXIFQF6MYwNoX7WFzhC
+                            LJZ2E6mEvZZFHCHUtl7mGDvsRwgZ85YCtRbvleEpqfgNQToto9pLYe+X6vvH9Z6p
+                            gmYsTmak+kxO93JprrOd9xp8aZPMEprL7VCdrhbZEfyYER0=
+                        </ds:X509Certificate>
+                    </ds:X509Data>
+                </ds:KeyInfo>
+                <EncryptionMethod Algorithm="http://www.w3.org/2001/04/xmlenc#rsa-1_5"/>
+			</KeyDescriptor>
+
+			<SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:protocol"
+			    Location="https://idp.example.org/SSO"/>
+		</IDPSSODescriptor>
+		
+		<Organization>
+		    <OrganizationName xml:lang="en">Example Identity Provider</OrganizationName>
+		    <OrganizationDisplayName xml:lang="en">Identities 'R' Us</OrganizationDisplayName>
+		    <OrganizationURL xml:lang="en">http://idp.example.org/</OrganizationURL>
+		</Organization>
+		<ContactPerson contactType="technical">
+		    <SurName>Technical Support</SurName>
+		    <EmailAddress>support@idp.example.org</EmailAddress>
+		</ContactPerson>
+
+	</EntityDescriptor>
+
+	<EntityDescriptor entityID="https://sp.example.org/">
+	
+		<SPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:1.1:protocol urn:oasis:names:tc:SAML:2.0:protocol">
+			<KeyDescriptor>
+				<ds:KeyInfo>
+					<ds:KeyName>sp.example.org</ds:KeyName>
+			    	<ds:X509Data>
+			    		<ds:X509Certificate>
+			    			MIICjzCCAfigAwIBAgIJAKk8t1hYcMkhMA0GCSqGSIb3DQEBBAUAMDoxCzAJBgNV
+			    			BAYTAlVTMRIwEAYDVQQKEwlJbnRlcm5ldDIxFzAVBgNVBAMTDnNwLmV4YW1wbGUu
+			    			b3JnMB4XDTA1MDYyMDE1NDgzNFoXDTMyMTEwNTE1NDgzNFowOjELMAkGA1UEBhMC
+			    			VVMxEjAQBgNVBAoTCUludGVybmV0MjEXMBUGA1UEAxMOc3AuZXhhbXBsZS5vcmcw
+			    			gZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBANlZ1L1mKzYbUVKiMQLhZlfGDyYa
+			    			/jjCiaXP0WhLNgvJpOTeajvsrApYNnFX5MLNzuC3NeQIjXUNLN2Yo2MCSthBIOL5
+			    			qE5dka4z9W9zytoflW1LmJ8vXpx8Ay/meG4z//J5iCpYVEquA0xl28HUIlownZUF
+			    			7w7bx0cF/02qrR23AgMBAAGjgZwwgZkwHQYDVR0OBBYEFJZiO1qsyAyc3HwMlL9p
+			    			JpN6fbGwMGoGA1UdIwRjMGGAFJZiO1qsyAyc3HwMlL9pJpN6fbGwoT6kPDA6MQsw
+			    			CQYDVQQGEwJVUzESMBAGA1UEChMJSW50ZXJuZXQyMRcwFQYDVQQDEw5zcC5leGFt
+			    			cGxlLm9yZ4IJAKk8t1hYcMkhMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQAD
+			    			gYEAMFq/UeSQyngE0GpZueyD2UW0M358uhseYOgGEIfm+qXIFQF6MYwNoX7WFzhC
+			    			LJZ2E6mEvZZFHCHUtl7mGDvsRwgZ85YCtRbvleEpqfgNQToto9pLYe+X6vvH9Z6p
+			    			gmYsTmak+kxO93JprrOd9xp8aZPMEprL7VCdrhbZEfyYER0=
+			    		</ds:X509Certificate>
+			    	</ds:X509Data>
+			    </ds:KeyInfo>
+			</KeyDescriptor>
+			
+			<AssertionConsumerService index="1" isDefault="true"
+				Binding="urn:oasis:names:tc:SAML:1.0:profiles:browser-post"
+				Location="https://sp.example.org/SAML/POST"/>
+
+		</SPSSODescriptor>
+
+		<Organization>
+			<OrganizationName xml:lang="en">Example Service Provider</OrganizationName>
+			<OrganizationDisplayName xml:lang="en">Services 'R' Us</OrganizationDisplayName>
+			<OrganizationURL xml:lang="en">http://sp.example.org/</OrganizationURL>
+		</Organization>
+		<ContactPerson contactType="technical">
+			<SurName>Technical Support</SurName>
+			<EmailAddress>support@sp.example.org</EmailAddress>
+		</ContactPerson>
+		
+	</EntityDescriptor>
+
+</EntitiesDescriptor>

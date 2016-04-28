@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FilesystemMetadataProvider path="../samltest/data/saml2/metadata/InCommon-metadata.xml" validate="0">
+    <SignatureMetadataFilter>
+        <CredentialResolver type="File">
+            <Certificate>
+                <Path>../samltest/data/incommon.pem</Path>
+            </Certificate>
+        </CredentialResolver>
+    </SignatureMetadataFilter>
+</FilesystemMetadataProvider>

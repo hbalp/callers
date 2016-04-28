@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FilesystemMetadataProvider path="../samltest/data/security/example-metadata.xml" validate="0">
+    <KeyInfoResolver type="Inline" keyInfoReferences="true"/>
+</FilesystemMetadataProvider>

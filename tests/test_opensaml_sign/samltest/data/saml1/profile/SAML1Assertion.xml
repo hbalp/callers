@@ -1,0 +1,17 @@
+<saml:Assertion xmlns:saml="urn:oasis:names:tc:SAML:1.0:assertion" AssertionID="aident"
+IssueInstant="1970-01-02T01:01:02.100Z" Issuer="https://idp.example.org/" MajorVersion="1" MinorVersion="1">
+    <saml:Conditions NotBefore="2008-01-02T01:01:02.100Z" NotOnOrAfter="2030-01-02T01:01:02.100Z">
+        <saml:AudienceRestrictionCondition>
+            <saml:Audience>https://sp.example.org</saml:Audience>
+        </saml:AudienceRestrictionCondition>
+        <saml:DoNotCacheCondition/>
+    </saml:Conditions>
+    <saml:AuthenticationStatement AuthenticationInstant="1970-01-02T01:01:02.100Z" AuthenticationMethod="method">
+        <saml:Subject>
+            <saml:NameIdentifier>John Doe</saml:NameIdentifier>
+            <saml:SubjectConfirmation>
+                <saml:ConfirmationMethod>urn:oasis:names:tc:SAML:1.0:cm:bearer</saml:ConfirmationMethod>
+            </saml:SubjectConfirmation>
+        </saml:Subject>
+    </saml:AuthenticationStatement>
+</saml:Assertion>

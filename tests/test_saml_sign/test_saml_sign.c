@@ -372,7 +372,7 @@ printSamlResponse(samlResponsePtr cur) {
     for (i = 0; i < cur->nbAssertions; i++) printAssertion(cur->assertions[i]);
 }
 
-xmlNodePtr getElementByID(xmlNodePtr node, char* id)
+xmlNodePtr getElementByID(xmlNodePtr node, xmlChar* id)
 {
   xmlChar* curid = xmlGetProp(node, (const xmlChar *)"ID");
 
@@ -479,7 +479,7 @@ int main(int argc, char **argv) {
     int i;
     samlResponsePtr cur;
 
-    /* COMPAT: Do not genrate nodes for formatting spaces */
+    /* COMPAT: Do not generate nodes for formatting spaces */
     LIBXML_TEST_VERSION
     xmlKeepBlanksDefault(0);
 

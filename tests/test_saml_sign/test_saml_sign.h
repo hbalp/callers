@@ -44,10 +44,6 @@ typedef struct signedInfo {
     dsigReference reference;
 } dsigSignedInfo;
 
-struct assertion;
-
-typedef struct assertion* assertionPtr;
-
 typedef struct signature {
     xmlChar *value;
     dsigSignedInfo signedInfo;

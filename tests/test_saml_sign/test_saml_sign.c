@@ -23,31 +23,11 @@
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 
-#define DEBUG(x) /* printf(x) */
+#include "test_saml_sign.h"
 
 /********************************************************************************/
 /*                                Signature                                     */
 /********************************************************************************/
-
-/*
- * A signature record
- * an xmlChar * is really an UTF8 encoded char string (0 terminated)
- */
-typedef struct dsigReference {
-    xmlChar *URI;
-} dsigReference;
-
-typedef struct signedInfo {
-    dsigReference reference;
-} dsigSignedInfo;
-
-//struct assertionPtr;
-
-typedef struct signature {
-    xmlChar *value;
-    dsigSignedInfo signedInfo;
-    assertionPtr parent;
-} signature, *signaturePtr;
 
 /*
  * And the code needed to parse it
@@ -112,13 +92,6 @@ printSignature(signaturePtr cur) {
 /********************************************************************************/
 
 /*
- * a Description for a Subject
- */
-typedef struct subject {
-    xmlChar *nameID;
-} subject, *subjectPtr;
-
-/*
  * And the code needed to parse it
  */
 static subjectPtr
@@ -165,17 +138,6 @@ printSubject(subjectPtr subject) {
 /********************************************************************************/
 /*                              SAML Assertion                                  */
 /********************************************************************************/
-
-/*
- * a Description for a Assertion
- */
-typedef struct assertion {
-    xmlChar *issuer;
-    xmlChar *id;
-    subjectPtr subject;
-    xmlChar *authStmt;
-    signaturePtr signature;
-} assertion, *assertionPtr;
 
 /*
  * And the code needed to parse the assertion
@@ -227,7 +189,6 @@ parseAssertion(xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur) {
 
         }
 
-        
         if ((!xmlStrcmp(cur->name, (const xmlChar *) "Issuer")) &&
 	    (cur->ns == ns))
 	    ret->issuer = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
@@ -264,17 +225,6 @@ printAssertion(assertionPtr cur) {
 /********************************************************************************/
 /*                              SAML Response                                   */
 /********************************************************************************/
-
-/*
- * a Description for a SAML Response
- */
-typedef struct samlResponse {
-    xmlChar *issuer;
-    int nbAssertions;
-    assertionPtr assertions[2];
-    // extension
-    xmlDocPtr doc;
-} samlResponse, *samlResponsePtr;
 
 static samlResponsePtr
 parseSamlResponseFile(char *filename) {
@@ -451,7 +401,6 @@ bool checkSamlResponse(samlResponsePtr response)
 
     return result;
 }
-
 
 static void
 handleSamlResponse(samlResponsePtr response) {

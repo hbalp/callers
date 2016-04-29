@@ -120,8 +120,8 @@ DEBUG("parseAssertion\n");
 
     /* We don't care what the top level element name is */
     cur = cur->xmlChildrenNode;
-    while (cur != NULL) {
-        
+    while (cur != NULL)
+    {
         if ((!xmlStrcmp(cur->name, (const xmlChar *) "Project")) &&
 	    (cur->ns == ns)) {
 	    ret->issuer = xmlGetProp(cur, (const xmlChar *) "ID");
@@ -155,17 +155,18 @@ printAssertion(assertionPtr cur) {
 }
 
 /*
- * A pool of Gnome Assertions
+ * a Description for a SAML Response
  */
-typedef struct gassertion {
+typedef struct samlResponse {
+    // extension
     int nbAssertions;
     assertionPtr assertions[500]; /* using dynamic alloc is left as an exercise */
-} gAssertion, *gAssertionPtr;
+} samlAssertion, *samlAssertionPtr;
 
-static gAssertionPtr
-parseGassertionFile(char *filename) {
+static samlAssertionPtr
+parseSamlResponseFile(char *filename) {
     xmlDocPtr doc;
-    gAssertionPtr ret;
+    samlAssertionPtr ret;
     assertionPtr curassertion;
     xmlNsPtr ns_saml, ns_samlp, ns_dsig;
     xmlNodePtr cur;
@@ -210,13 +211,13 @@ parseGassertionFile(char *filename) {
     /*
      * Allocate the structure to be returned.
      */
-    ret = (gAssertionPtr) malloc(sizeof(gAssertion));
+    ret = (samlAssertionPtr) malloc(sizeof(samlAssertion));
     if (ret == NULL) {
         fprintf(stderr,"out of memory\n");
 	xmlFreeDoc(doc);
 	assert(0);
     }
-    memset(ret, 0, sizeof(gAssertion));
+    memset(ret, 0, sizeof(samlAssertion));
 
     /*
      * Now, walk the tree.
@@ -278,23 +279,23 @@ parseGassertionFile(char *filename) {
     /* cur = cur->xmlChildrenNode; */
     /* while (cur != NULL) { */
 
-        if ((!xmlStrcmp(cur->name, (const xmlChar *) "Signature")) &&
-	    (cur->ns == ns_dsig)) {
-	    curassertion = parseAssertion(doc, ns_dsig, cur);
-	    if (curassertion != NULL)
-	        ret->assertions[ret->nbAssertions++] = curassertion;
-            // if (ret->nbAssertions >= 500) break;
-	}
-
-	// cur = cur -> next;
-
-        // if ((!xmlStrcmp(cur->name, (const xmlChar *) "Assertion")) &&
-	//     (cur->ns == ns_saml)) {
-	//     curassertion = parseAssertion(doc, ns_saml, cur);
+        // if ((!xmlStrcmp(cur->name, (const xmlChar *) "Signature")) &&
+	//     (cur->ns == ns_dsig)) {
+	//     curassertion = parseAssertion(doc, ns_dsig, cur);
 	//     if (curassertion != NULL)
 	//         ret->assertions[ret->nbAssertions++] = curassertion;
         //     // if (ret->nbAssertions >= 500) break;
 	// }
+
+	// cur = cur -> next;
+
+        if ((!xmlStrcmp(cur->name, (const xmlChar *) "Assertion")) &&
+	    (cur->ns == ns_saml)) {
+	    curassertion = parseAssertion(doc, ns_saml, cur);
+	    if (curassertion != NULL)
+	        ret->assertions[ret->nbAssertions++] = curassertion;
+            // if (ret->nbAssertions >= 500) break;
+	}
 
     /*     cur = cur->next; */
     /* } */
@@ -303,7 +304,7 @@ parseGassertionFile(char *filename) {
 }
 
 static void
-handleGassertion(gAssertionPtr cur) {
+handleSamlResponse(samlAssertionPtr cur) {
     int i;
 
     /*
@@ -315,19 +316,18 @@ handleGassertion(gAssertionPtr cur) {
 
 int main(int argc, char **argv) {
     int i;
-    gAssertionPtr cur;
+    samlAssertionPtr cur;
 
     /* COMPAT: Do not genrate nodes for formatting spaces */
     LIBXML_TEST_VERSION
     xmlKeepBlanksDefault(0);
 
     for (i = 1; i < argc ; i++) {
-	cur = parseGassertionFile(argv[i]);
+	cur = parseSamlResponseFile(argv[i]);
 	if ( cur )
-	  handleGassertion(cur);
+	  handleSamlResponse(cur);
 	else
 	  fprintf( stderr, "Error parsing file '%s'\n", argv[i]);
-
     }
 
     /* Clean up everything else before quitting. */

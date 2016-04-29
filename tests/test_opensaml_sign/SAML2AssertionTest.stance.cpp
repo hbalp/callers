@@ -178,9 +178,9 @@ int main()
   m_resolver = XMLToolingConfig::getConfig()
     .CredentialResolverManager
     .newPlugin(
-	       FILESYSTEM_CREDENTIAL_RESOLVER,
-	       doc->getDocumentElement()
-	       );
+               FILESYSTEM_CREDENTIAL_RESOLVER,
+               doc->getDocumentElement()
+               );
 
   auto_ptr_XMLCh issuer("issuer");
   auto_ptr_XMLCh issueInstant("1970-01-02T01:01:02.100Z");
@@ -264,8 +264,10 @@ int main()
   try {
     opensaml::SignatureProfileValidator spv;
     SignatureValidator sv(cred);
-    spv.validate(dynamic_cast<Assertion*>(assertion2.get())->getSignature());
-    sv.validate(dynamic_cast<Assertion*>(assertion2.get())->getSignature());
+    spv.validate(assertion->getSignature());
+    sv.validate(assertion->getSignature());
+    // spv.validate(dynamic_cast<Assertion*>(assertion2.get())->getSignature());
+    // sv.validate(dynamic_cast<Assertion*>(assertion2.get())->getSignature());
   }
   catch (XMLToolingException& e) {
     //TS_TRACE(e.what());

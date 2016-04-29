@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 /*
  * This example should compile and run indifferently with libxml-1.8.8 +
@@ -17,8 +18,7 @@
  */
 
 /*
- * COMPAT using xml-config --cflags to get the include path this will
- * work with both 
+ * COMPAT using xml-config --cflags to get the include path this will work with both
  */
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
@@ -33,14 +33,17 @@
  * A signature record
  * an xmlChar * is really an UTF8 encoded char string (0 terminated)
  */
+typedef struct dsigReference {
+    xmlChar *URI;
+} dsigReference;
+
+typedef struct signedInfo {
+    dsigReference reference;
+} dsigSignedInfo;
+
 typedef struct signature {
-    xmlChar *name;
-    xmlChar *issueInstant;
-    xmlChar *company;
-    xmlChar *organisation;
-    xmlChar *smail;
-    xmlChar *webPage;
-    xmlChar *phone;
+    xmlChar *value;
+    dsigSignedInfo signedInfo;
 } signature, *signaturePtr;
 
 /*
@@ -65,12 +68,23 @@ DEBUG("parseSignature\n");
     /* COMPAT xmlChildrenNode is a macro unifying libxml1 and libxml2 names */
     cur = cur->xmlChildrenNode;
     while (cur != NULL) {
-        if ((!xmlStrcmp(cur->name, (const xmlChar *)"NameID")) &&
+        if ((!xmlStrcmp(cur->name, (const xmlChar *)"SignedInfo")) &&
 	    (cur->ns == ns))
-	    ret->name = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-        if ((!xmlStrcmp(cur->name, (const xmlChar *)"issueInstant")) &&
+            {
+              xmlNodePtr ch = cur->xmlChildrenNode;
+              while (ch != NULL) {
+                  if ((!xmlStrcmp(ch->name, (const xmlChar *)"Reference")) &&
+                      (ch->ns == ns))
+                      {
+                        ret->signedInfo.reference.URI = xmlGetProp(ch, (const xmlChar *) "URI");
+                      }
+                  ch = ch->next;
+              }
+
+            }
+        if ((!xmlStrcmp(cur->name, (const xmlChar *)"SignatureValue")) &&
 	    (cur->ns == ns))
-	    ret->issueInstant = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+	    ret->value = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
 	cur = cur->next;
     }
 
@@ -84,13 +98,8 @@ static void
 printSignature(signaturePtr cur) {
     if (cur == NULL) return;
     printf("- Signature\n");
-    if (cur->name) printf("	name: %s\n", cur->name);
-    if (cur->issueInstant) printf("	issueInstant: %s\n", cur->issueInstant);
-    if (cur->company) printf("	company: %s\n", cur->company);
-    if (cur->organisation) printf("	organisation: %s\n", cur->organisation);
-    if (cur->smail) printf("	smail: %s\n", cur->smail);
-    if (cur->webPage) printf("	Web: %s\n", cur->webPage);
-    if (cur->phone) printf("	phone: %s\n", cur->phone);
+    if (cur->value) printf("	value: %s\n", cur->value);
+    if (cur->signedInfo.reference.URI) printf("	URI: %s\n", cur->signedInfo.reference.URI);
     printf("-\n");
 }
 
@@ -223,6 +232,10 @@ DEBUG("parseAssertion\n");
 	    (cur->ns == ns))
 	    ret->subject = parseSubject(doc, ns, cur);
 
+        if ((!xmlStrcmp(cur->name, (const xmlChar *) "AuthnStatement")) &&
+	    (cur->ns == ns))
+	    ret->authStmt = xmlGetProp(cur, (const xmlChar *) "AuthnInstant");
+
 	cur = cur->next;
     }
 
@@ -236,9 +249,9 @@ printAssertion(assertionPtr cur) {
     if (cur == NULL) return;
     printf("=======  Assertion\n");
     if (cur->issuer != NULL) printf("- Issuer: %s\n", cur->issuer);
+    if (cur->signature != NULL) printSignature(cur->signature);
     if (cur->subject != NULL) printSubject(cur->subject);
     if (cur->authStmt != NULL) printf("- AuthStmt: %s\n", cur->authStmt);
-    if (cur->signature != NULL) printSignature(cur->signature);
     printf("======= \n");
 }
 
@@ -251,9 +264,10 @@ printAssertion(assertionPtr cur) {
  * a Description for a SAML Response
  */
 typedef struct samlResponse {
-    // extension
+    xmlChar *issuer;
     int nbAssertions;
     assertionPtr assertions[500]; /* using dynamic alloc is left as an exercise */
+    // extension
 } samlAssertion, *samlAssertionPtr;
 
 static samlAssertionPtr
@@ -326,8 +340,8 @@ parseSamlResponseFile(char *filename) {
 	xmlFreeDoc(doc);
 	assert(0);
     }
-    if (xmlStrcmp(cur->name, (const xmlChar *) "Assertion")) {
-        fprintf(stderr,"document of the wrong type, root node != Assertion");
+    if (xmlStrcmp(cur->name, (const xmlChar *) "Issuer")) {
+        fprintf(stderr,"document of the wrong type, root node != Issuer");
 	xmlFreeDoc(doc);
 	assert(0);
     }
@@ -341,7 +355,8 @@ parseSamlResponseFile(char *filename) {
 	assert(0);
     }
 
-    if ((xmlStrcmp(cur->name, (const xmlChar *) "Signature")) &&
+    if ((xmlStrcmp(cur->name, (const xmlChar *) "Issuer")) &&
+        (xmlStrcmp(cur->name, (const xmlChar *) "Assertion")) &&
         (xmlStrcmp(cur->name, (const xmlChar *) "Assertion")))
     {
         fprintf(stderr,"document of the wrong type, was '%s', Assertion expected",
@@ -360,7 +375,11 @@ parseSamlResponseFile(char *filename) {
     /* cur = cur->xmlChildrenNode; */
     /* while (cur != NULL) { */
 
-	// cur = cur -> next;
+        if ((!xmlStrcmp(cur->name, (const xmlChar *) "Issuer")) &&
+	    (cur->ns == ns_saml))
+	    ret->issuer = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+
+	cur = cur -> next;
 
         if ((!xmlStrcmp(cur->name, (const xmlChar *) "Assertion")) &&
 	    (cur->ns == ns_saml)) {
@@ -377,14 +396,32 @@ parseSamlResponseFile(char *filename) {
 }
 
 static void
+printSamlResponse(samlAssertionPtr cur) {
+    int i;
+    printf("=======  SAML Response\n");
+
+    if (cur->issuer != NULL) printf("- Issuer: %s\n", cur->issuer);
+
+    printf("%d Assertion(s) registered\n", cur->nbAssertions);
+    for (i = 0; i < cur->nbAssertions; i++) printAssertion(cur->assertions[i]);
+}
+
+bool checkSamlResponse()
+{
+    printf("=======  Check SAML Response TBC\n");
+    
+}
+
+static void
 handleSamlResponse(samlAssertionPtr cur) {
     int i;
 
     /*
      * Do whatever you want and free the structure.
      */
-    printf("%d Assertion(s) registered\n", cur->nbAssertions);
-    for (i = 0; i < cur->nbAssertions; i++) printAssertion(cur->assertions[i]);
+    printSamlResponse(cur);
+
+    checkSamlResponse();
 }
 
 /********************************************************************************/

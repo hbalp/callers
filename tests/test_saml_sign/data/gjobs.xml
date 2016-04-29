@@ -1,19 +1,7 @@
-<!-- <samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" -->
-<!--     IssueInstant="1970-01-02T01:01:02.100Z" Version="2.0" ID="rident" Destination="https://sp.example.org/SAML/SSO"> -->
-<!--     <saml:Issuer>https://idp.example.org/</saml:Issuer> -->
-<!--     <samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status> -->
-<!--     <saml:Assertion ID="aident" IssueInstant="1970-01-02T01:01:02.100Z" Version="2.0"> -->
-<!--         <saml:Issuer>https://idp.example.org/</saml:Issuer> -->
-<!--         <saml:Subject><saml:NameID>John Doe</saml:NameID></saml:Subject> -->
-<!--         <saml:AuthnStatement AuthnInstant="1970-01-02T01:01:02.100Z"> -->
-<!--             <saml:AuthnContext><saml:AuthnContextClassRef>foo</saml:AuthnContextClassRef></saml:AuthnContext> -->
-<!--         </saml:AuthnStatement> -->
-<!--     </saml:Assertion> -->
-<!-- </samlp:Response> -->
 <samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"
                 IssueInstant="1970-01-02T01:01:02.100Z" Version="2.0" ID="rident" Destination="https://sp.example.org/SAML/SSO">
   <saml:Issuer>https://idp.example.org/</saml:Issuer>
-  <saml:Assertion ID="ident" IssueInstant="1970-01-02T01:01:02.100Z" Version="2.0">
+  <saml:Assertion ID="123" IssueInstant="1970-01-02T01:01:02.100Z" Version="2.0">
     <saml:Issuer>https://idp.example.org/</saml:Issuer>
     <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
       <ds:SignedInfo>
@@ -54,59 +42,10 @@
       </ds:KeyInfo>
     </ds:Signature>
     <!-- <samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status> -->
-    <saml:Subject><saml:NameID>John Doe</saml:NameID></saml:Subject>
+    <saml:Subject><saml:NameID>Bob</saml:NameID></saml:Subject>
     <saml:AuthnStatement AuthnInstant="1970-01-02T01:01:02.100Z"/>
     <!-- <saml:AuthnStatement AuthnInstant="1970-01-02T01:01:02.100Z"> -->
     <!--   <saml:AuthnContext><saml:AuthnContextClassRef>aMethod</saml:AuthnContextClassRef></saml:AuthnContext> -->
     <!-- </saml:AuthnStatement> -->
-    <saml:Job>
-      <saml:Project ID="3"/>
-      <saml:Application>GBackup</saml:Application>
-      <saml:Category>Development</saml:Category>
-
-      <saml:Update>
-        <saml:Status>Open</saml:Status>
-        <saml:Modified>Mon, 07 Jun 1999 20:27:45 -0400 MET DST</saml:Modified>
-        <saml:Salary>USD 0.00</saml:Salary>
-      </saml:Update>
-
-      <saml:Developers>
-        <saml:Developer>
-        </saml:Developer>
-      </saml:Developers>
-
-      <saml:Contact>
-        <saml:NameID>John Doe</saml:NameID>
-        <saml:issueInstant>1970-01-02T01:01:02.100Z</saml:issueInstant>
-        <saml:Method>method</saml:Method>
-        <saml:Organisation>
-        </saml:Organisation>
-        <saml:Webpage>
-        </saml:Webpage>
-        <saml:Snailmail>
-        </saml:Snailmail>
-        <saml:Phone>
-        </saml:Phone>
-      </saml:Contact>
-
-      <saml:Requirements>
-        The program should be released as free software, under the GPL.
-      </saml:Requirements>
-
-      <saml:Skills>
-      </saml:Skills>
-
-      <saml:Details>
-        A GNOME based system that will allow a superuser to configure 
-        compressed and uncompressed files and/or file systems to be backed 
-        up with a supported media in the system.  This should be able to 
-        perform via find commands generating a list of files that are passed 
-        to tar, dd, cpio, cp, gzip, etc., to be directed to the tape machine 
-        or via operations performed on the filesystem itself. Email 
-        notification and GUI status display very important.
-      </saml:Details>
-
-    </saml:Job>
-
   </saml:Assertion>
 </samlp:Response>

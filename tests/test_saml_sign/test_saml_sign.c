@@ -98,9 +98,8 @@ static void
 printSignature(signaturePtr cur) {
     if (cur == NULL) return;
     printf("- Signature\n");
-    if (cur->value) printf("	value: %s\n", cur->value);
-    if (cur->signedInfo.reference.URI) printf("	URI: %s\n", cur->signedInfo.reference.URI);
-    printf("-\n");
+    if (cur->signedInfo.reference.URI) printf("   URI: %s\n", cur->signedInfo.reference.URI);
+    if (cur->value) printf("    value: %s\n", cur->value);
 }
 
 /********************************************************************************/
@@ -167,6 +166,7 @@ printSubject(subjectPtr subject) {
  */
 typedef struct assertion {
     xmlChar *issuer;
+    xmlChar *id;
     subjectPtr subject;
     xmlChar *authStmt;
     signaturePtr signature;
@@ -181,7 +181,8 @@ parseAssertion(xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur) {
     xmlNsPtr ns_dsig;
     signaturePtr curSign;
 
-DEBUG("parseAssertion\n");
+    DEBUG("parseAssertion\n");
+
     /*
      * allocate the struct
      */
@@ -191,6 +192,11 @@ DEBUG("parseAssertion\n");
 	assert(0);
     }
     memset(ret, 0, sizeof(assertion));
+
+    ret->id = xmlGetProp(cur, (const xmlChar *) "ID");
+    if (ret->id == NULL) {
+        fprintf(stderr, "Assertion has no ID !\n");
+    }
 
     /* We don't care what the top level element name is */
     cur = cur->xmlChildrenNode;
@@ -216,14 +222,7 @@ DEBUG("parseAssertion\n");
 
         }
 
-        if ((!xmlStrcmp(cur->name, (const xmlChar *) "Project")) &&
-	    (cur->ns == ns)) {
-	    ret->issuer = xmlGetProp(cur, (const xmlChar *) "ID");
-	    if (ret->issuer == NULL) {
-		fprintf(stderr, "Project has no ID\n");
-	    }
-	}
-
+        
         if ((!xmlStrcmp(cur->name, (const xmlChar *) "Issuer")) &&
 	    (cur->ns == ns))
 	    ret->issuer = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
@@ -249,6 +248,7 @@ printAssertion(assertionPtr cur) {
     if (cur == NULL) return;
     printf("=======  Assertion\n");
     if (cur->issuer != NULL) printf("- Issuer: %s\n", cur->issuer);
+    if (cur->id != NULL) printf("- ID: %s\n", cur->id);
     if (cur->signature != NULL) printSignature(cur->signature);
     if (cur->subject != NULL) printSubject(cur->subject);
     if (cur->authStmt != NULL) printf("- AuthStmt: %s\n", cur->authStmt);

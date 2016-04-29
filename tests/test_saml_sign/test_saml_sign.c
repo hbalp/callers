@@ -23,7 +23,7 @@
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 
-#define DEBUG(x) printf(x)
+#define DEBUG(x) /* printf(x) */
 
 /********************************************************************************/
 /*                                Signature                                     */
@@ -41,9 +41,12 @@ typedef struct signedInfo {
     dsigReference reference;
 } dsigSignedInfo;
 
+//struct assertionPtr;
+
 typedef struct signature {
     xmlChar *value;
     dsigSignedInfo signedInfo;
+    assertionPtr parent;
 } signature, *signaturePtr;
 
 /*
@@ -53,7 +56,7 @@ static signaturePtr
 parseSignature(xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur) {
     signaturePtr ret = NULL;
 
-DEBUG("parseSignature\n");
+    DEBUG("parseSignature\n");
     /*
      * allocate the struct
      */
@@ -63,6 +66,8 @@ DEBUG("parseSignature\n");
 	assert(0);
     }
     memset(ret, 0, sizeof(signature));
+
+    ret->parent = cur->parent;
 
     /* We don't care what the top level element name is */
     /* COMPAT xmlChildrenNode is a macro unifying libxml1 and libxml2 names */
@@ -266,24 +271,36 @@ printAssertion(assertionPtr cur) {
 typedef struct samlResponse {
     xmlChar *issuer;
     int nbAssertions;
-    assertionPtr assertions[500]; /* using dynamic alloc is left as an exercise */
+    assertionPtr assertions[2];
     // extension
-} samlAssertion, *samlAssertionPtr;
-
-static samlAssertionPtr
-parseSamlResponseFile(char *filename) {
     xmlDocPtr doc;
-    samlAssertionPtr ret;
+} samlResponse, *samlResponsePtr;
+
+static samlResponsePtr
+parseSamlResponseFile(char *filename) {
+
+    samlResponsePtr ret;
     assertionPtr curassertion;
     xmlNsPtr ns_saml, ns_samlp, ns_dsig;
-    xmlNodePtr cur;
+    xmlNodePtr cur, ch;
+
+    /*
+     * Allocate the structure to be returned.
+     */
+    ret = (samlResponsePtr) malloc(sizeof(samlResponse));
+    if (ret == NULL) {
+        fprintf(stderr,"out of memory\n");
+	xmlFreeDoc(ret->doc);
+	assert(0);
+    }
+    memset(ret, 0, sizeof(samlResponse));
 
 #ifdef LIBXML_SAX1_ENABLED
     /*
      * build an XML tree from a the file;
      */
-    doc = xmlParseFile(filename);
-    if (doc == NULL) assert(0);
+    ret->doc = xmlParseFile(filename);
+    if (ret->doc == NULL) assert(0);
 #else
     /*
      * the library has been compiled without some of the old interfaces
@@ -294,21 +311,21 @@ parseSamlResponseFile(char *filename) {
     /*
      * Check the document is of the right kind
      */
-    cur = xmlDocGetRootElement(doc);
+    cur = xmlDocGetRootElement(ret->doc);
     if (cur == NULL) {
         fprintf(stderr,"empty document\n");
-	xmlFreeDoc(doc);
+	xmlFreeDoc(ret->doc);
 	assert(0);
     }
 
     if (!xmlStrcmp(cur->name, (const xmlChar *) "Response"))
     {
-        ns_samlp = xmlSearchNsByHref(doc, cur,
+        ns_samlp = xmlSearchNsByHref(ret->doc, cur,
                                     (const xmlChar *) "urn:oasis:names:tc:SAML:2.0:protocol");
         if (ns_samlp == NULL) {
             fprintf(stderr,
                     "document of the wrong type, samlp:Response namespace not found\n");
-            xmlFreeDoc(doc);
+            xmlFreeDoc(ret->doc);
             assert(0);
         }
     }
@@ -316,33 +333,22 @@ parseSamlResponseFile(char *filename) {
         assert(0);
 
     /*
-     * Allocate the structure to be returned.
-     */
-    ret = (samlAssertionPtr) malloc(sizeof(samlAssertion));
-    if (ret == NULL) {
-        fprintf(stderr,"out of memory\n");
-	xmlFreeDoc(doc);
-	assert(0);
-    }
-    memset(ret, 0, sizeof(samlAssertion));
-
-    /*
      * Now, walk the tree.
      */
     /* First level we expect just SAML Responses */
     cur = cur->xmlChildrenNode;
 
-    ns_saml = xmlSearchNsByHref(doc, cur,
+    ns_saml = xmlSearchNsByHref(ret->doc, cur,
                            (const xmlChar *) "urn:oasis:names:tc:SAML:2.0:assertion");
     if (ns_saml == NULL) {
         fprintf(stderr,
 	        "document of the wrong type, OASIS SAML Namespace not found\n");
-	xmlFreeDoc(doc);
+	xmlFreeDoc(ret->doc);
 	assert(0);
     }
     if (xmlStrcmp(cur->name, (const xmlChar *) "Issuer")) {
         fprintf(stderr,"document of the wrong type, root node != Issuer");
-	xmlFreeDoc(doc);
+	xmlFreeDoc(ret->doc);
 	assert(0);
     }
 
@@ -350,53 +356,61 @@ parseSamlResponseFile(char *filename) {
 	cur = cur -> next;
     }
     if ( cur == 0 ) {
-	xmlFreeDoc(doc);
+	xmlFreeDoc(ret->doc);
 	free(ret);
 	assert(0);
     }
 
     if ((xmlStrcmp(cur->name, (const xmlChar *) "Issuer")) &&
-        (xmlStrcmp(cur->name, (const xmlChar *) "Assertion")) &&
+        (xmlStrcmp(cur->name, (const xmlChar *) "Extension")) &&
         (xmlStrcmp(cur->name, (const xmlChar *) "Assertion")))
     {
         fprintf(stderr,"document of the wrong type, was '%s', Assertion expected",
 		cur->name);
 	fprintf(stderr,"xmlDocDump follows\n");
 #ifdef LIBXML_OUTPUT_ENABLED
-	xmlDocDump ( stderr, doc );
+	xmlDocDump ( stderr, ret->doc );
 	fprintf(stderr,"xmlDocDump finished\n");
 #endif /* LIBXML_OUTPUT_ENABLED */
-	xmlFreeDoc(doc);
+	xmlFreeDoc(ret->doc);
 	free(ret);
 	assert(0);
     }
 
     /* Second level is a list of Assertion, but be laxist */
     /* cur = cur->xmlChildrenNode; */
-    /* while (cur != NULL) { */
+    while (cur != NULL) {
 
         if ((!xmlStrcmp(cur->name, (const xmlChar *) "Issuer")) &&
 	    (cur->ns == ns_saml))
-	    ret->issuer = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+	    ret->issuer = xmlNodeListGetString(ret->doc, cur->xmlChildrenNode, 1);
 
-	cur = cur -> next;
-
-        if ((!xmlStrcmp(cur->name, (const xmlChar *) "Assertion")) &&
-	    (cur->ns == ns_saml)) {
-	    curassertion = parseAssertion(doc, ns_saml, cur);
+        if ((!xmlStrcmp(cur->name, (const xmlChar *) "Extensions")) &&
+	    (cur->ns == ns_samlp))
+        {
+            ch = cur->xmlChildrenNode;
+	    curassertion = parseAssertion(ret->doc, ns_saml, ch);
 	    if (curassertion != NULL)
 	        ret->assertions[ret->nbAssertions++] = curassertion;
             // if (ret->nbAssertions >= 500) break;
 	}
 
-    /*     cur = cur->next; */
-    /* } */
+        if ((!xmlStrcmp(cur->name, (const xmlChar *) "Assertion")) &&
+	    (cur->ns == ns_saml)) {
+	    curassertion = parseAssertion(ret->doc, ns_saml, cur);
+	    if (curassertion != NULL)
+	        ret->assertions[ret->nbAssertions++] = curassertion;
+            // if (ret->nbAssertions >= 500) break;
+	}
+
+        cur = cur->next;
+     }
 
     return(ret);
 }
 
 static void
-printSamlResponse(samlAssertionPtr cur) {
+printSamlResponse(samlResponsePtr cur) {
     int i;
     printf("=======  SAML Response\n");
 
@@ -406,22 +420,49 @@ printSamlResponse(samlAssertionPtr cur) {
     for (i = 0; i < cur->nbAssertions; i++) printAssertion(cur->assertions[i]);
 }
 
-bool checkSamlResponse()
+bool saml_SignatureProfileValidator_validate(signaturePtr sign, xmlDocPtr doc)
 {
-    printf("=======  Check SAML Response TBC\n");
-    
+    assert(doc != NULL);
+    if(sign == NULL) return false;
+    bool is_valid = false;
+    xmlNodePtr root = xmlDocGetRootElement(doc);
+
+    printf("=======  Validate SAML signature TBC\n");
+
+    return is_valid;
 }
 
+bool checkSamlAssertion(assertionPtr assertion, xmlDocPtr doc)
+{
+    printf("=======  Check SAML Assertion\n");
+    return saml_SignatureProfileValidator_validate(assertion->signature, doc);
+}
+
+bool checkSamlResponse(samlResponsePtr response)
+{
+    printf("=======  Check SAML Response\n");
+    bool result = false;
+    int a;
+    for(a = 0; !result &&  a < response->nbAssertions; a++)
+    {
+        assertionPtr assertion = response->assertions[a];
+        result = checkSamlAssertion(assertion, response->doc);
+    }
+
+    return result;
+}
+
+
 static void
-handleSamlResponse(samlAssertionPtr cur) {
+handleSamlResponse(samlResponsePtr response) {
     int i;
 
     /*
      * Do whatever you want and free the structure.
      */
-    printSamlResponse(cur);
+    printSamlResponse(response);
 
-    checkSamlResponse();
+    checkSamlResponse(response);
 }
 
 /********************************************************************************/
@@ -431,7 +472,7 @@ handleSamlResponse(samlAssertionPtr cur) {
 
 int main(int argc, char **argv) {
     int i;
-    samlAssertionPtr cur;
+    samlResponsePtr cur;
 
     /* COMPAT: Do not genrate nodes for formatting spaces */
     LIBXML_TEST_VERSION

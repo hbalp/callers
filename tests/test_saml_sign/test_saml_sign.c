@@ -421,6 +421,7 @@ bool saml_SignatureProfileValidator_validate(signaturePtr sign, xmlDocPtr doc)
       return false;
     }
 
+    // Countermeasure against XSW attacks
     // Check wether signature parent node is same as assertion by ID
     if(sign->parent == assertionByID)
     {
@@ -436,7 +437,11 @@ bool checkSamlAssertion(assertionPtr assertion, xmlDocPtr doc)
     if (result == false)
       printf("FALSE\n");
     else
+    {
       printf("TRUE\n");
+      // decode assertion
+      printAssertion(assertion);
+    }
     return result;
 }
 
@@ -447,8 +452,8 @@ bool checkSamlResponse(samlResponsePtr response)
     int a;
     for(a = 0; !result &&  a < response->nbAssertions; a++)
     {
-        assertionPtr assertion = response->assertions[a];
-        result = checkSamlAssertion(assertion, response->doc);
+      assertionPtr assertion = response->assertions[a];
+      result = checkSamlAssertion(assertion, response->doc);
     }
     return result;
 }

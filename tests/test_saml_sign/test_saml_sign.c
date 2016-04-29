@@ -25,6 +25,10 @@
 
 #define DEBUG(x) printf(x)
 
+/********************************************************************************/
+/*                                Signature                                     */
+/********************************************************************************/
+
 /*
  * A signature record
  * an xmlChar * is really an UTF8 encoded char string (0 terminated)
@@ -77,9 +81,9 @@ DEBUG("parseSignature\n");
  * and to print it
  */
 static void
-printNameID(signaturePtr cur) {
+printSignature(signaturePtr cur) {
     if (cur == NULL) return;
-    printf("------ NameID\n");
+    printf("------ Signature\n");
     if (cur->name) printf("	name: %s\n", cur->name);
     if (cur->issueInstant) printf("	issueInstant: %s\n", cur->issueInstant);
     if (cur->company) printf("	company: %s\n", cur->company);
@@ -90,12 +94,72 @@ printNameID(signaturePtr cur) {
     printf("------\n");
 }
 
+/********************************************************************************/
+/*                                Subject                                       */
+/********************************************************************************/
+
+/*
+ * a Description for a Subject
+ */
+typedef struct subject {
+    xmlChar *nameID;
+} subject, *subjectPtr;
+
+/*
+ * And the code needed to parse it
+ */
+static subjectPtr
+parseSubject(xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur) {
+    subjectPtr ret = NULL;
+
+    DEBUG("parseSubject\n");
+    /*
+     * allocate the struct
+     */
+    ret = (subjectPtr) malloc(sizeof(subject));
+    if (ret == NULL) {
+        fprintf(stderr,"out of memory\n");
+	assert(0);
+    }
+    memset(ret, 0, sizeof(subject));
+
+    /* We don't care what the top level element name is */
+    /* COMPAT xmlChildrenNode is a macro unifying libxml1 and libxml2 names */
+    cur = cur->xmlChildrenNode;
+    while (cur != NULL) {
+        if ((!xmlStrcmp(cur->name, (const xmlChar *)"NameID")) &&
+	    (cur->ns == ns))
+	    ret->nameID = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+        // if ((!xmlStrcmp(cur->name, (const xmlChar *)"issueInstant")) &&
+	//     (cur->ns == ns))
+	//     ret->issueInstant = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+	cur = cur->next;
+    }
+
+    return(ret);
+}
+
+/*
+ * and to print it
+ */
+static void
+printSubject(subjectPtr subject) {
+    if (subject == NULL) return;
+    printf("------- Subject\n");
+    if (subject->nameID) printf("	nameID: %s\n", subject->nameID);
+    printf("-------\n");
+}
+
+/********************************************************************************/
+/*                              SAML Assertion                                  */
+/********************************************************************************/
+
 /*
  * a Description for a Assertion
  */
 typedef struct assertion {
     xmlChar *issuer;
-    signaturePtr subject;
+    subjectPtr subject;
     xmlChar *authStmt;
     signaturePtr signature;
 } assertion, *assertionPtr;
@@ -154,7 +218,7 @@ DEBUG("parseAssertion\n");
 
         if ((!xmlStrcmp(cur->name, (const xmlChar *) "Subject")) &&
 	    (cur->ns == ns))
-	    ret->subject = parseSignature(doc, ns, cur);
+	    ret->subject = parseSubject(doc, ns, cur);
 
 	cur = cur->next;
     }
@@ -162,9 +226,6 @@ DEBUG("parseAssertion\n");
     return(ret);
 }
 
-/*
- * and to print it
- */
 static void
 printAssertion(assertionPtr cur) {
     int i;
@@ -172,11 +233,16 @@ printAssertion(assertionPtr cur) {
     if (cur == NULL) return;
     printf("=======  Assertion\n");
     if (cur->issuer != NULL) printf("issuer: %s\n", cur->issuer);
-    if (cur->subject != NULL) printNameID(cur->subject);
+    if (cur->subject != NULL) printSubject(cur->subject);
     if (cur->authStmt != NULL) printf("authStmt: %s\n", cur->authStmt);
-    if (cur->signature != NULL) printNameID(cur->signature);
+    if (cur->signature != NULL) printSignature(cur->signature);
     printf("======= \n");
 }
+
+
+/********************************************************************************/
+/*                              SAML Response                                   */
+/********************************************************************************/
 
 /*
  * a Description for a SAML Response
@@ -317,6 +383,11 @@ handleSamlResponse(samlAssertionPtr cur) {
     printf("%d Assertion(s) registered\n", cur->nbAssertions);
     for (i = 0; i < cur->nbAssertions; i++) printAssertion(cur->assertions[i]);
 }
+
+/********************************************************************************/
+/*                                    main                                      */
+/********************************************************************************/
+/* unitary test verifying parsing of SAML Response messages and SAML signature validation */
 
 int main(int argc, char **argv) {
     int i;

@@ -43,10 +43,10 @@ typedef struct signature {
  * And the code needed to parse it
  */
 static signaturePtr
-parseNameID(xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur) {
+parseSignature(xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur) {
     signaturePtr ret = NULL;
 
-DEBUG("parseNameID\n");
+DEBUG("parseSignature\n");
     /*
      * allocate the struct
      */
@@ -106,6 +106,8 @@ typedef struct assertion {
 static assertionPtr
 parseAssertion(xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur) {
     assertionPtr ret = NULL;
+    xmlNsPtr ns_dsig;
+    signaturePtr curSign;
 
 DEBUG("parseAssertion\n");
     /*
@@ -122,6 +124,26 @@ DEBUG("parseAssertion\n");
     cur = cur->xmlChildrenNode;
     while (cur != NULL)
     {
+        if (!xmlStrcmp(cur->name, (const xmlChar *) "Signature"))
+        {
+            ns_dsig = xmlSearchNsByHref(doc, cur,
+                                      (const xmlChar *) "http://www.w3.org/2000/09/xmldsig#");
+            if (ns_dsig == NULL) {
+                fprintf(stderr,
+                        "document of the wrong type, xmldsig Namespace not found\n");
+                xmlFreeDoc(doc);
+                assert(0);
+            }
+
+            if (cur->ns == ns_dsig) {
+                curSign = parseSignature(doc, ns_dsig, cur);
+                if (curSign != NULL)
+                    ret->signature = curSign;
+                // if (ret->nbAssertions >= 500) break;
+            }
+
+        }
+
         if ((!xmlStrcmp(cur->name, (const xmlChar *) "Project")) &&
 	    (cur->ns == ns)) {
 	    ret->issuer = xmlGetProp(cur, (const xmlChar *) "ID");
@@ -129,9 +151,11 @@ DEBUG("parseAssertion\n");
 		fprintf(stderr, "Project has no ID\n");
 	    }
 	}
+
         if ((!xmlStrcmp(cur->name, (const xmlChar *) "Subject")) &&
 	    (cur->ns == ns))
-	    ret->subject = parseNameID(doc, ns, cur);
+	    ret->subject = parseSignature(doc, ns, cur);
+
 	cur = cur->next;
     }
 
@@ -248,18 +272,6 @@ parseSamlResponseFile(char *filename) {
 	assert(0);
     }
 
-    if (!xmlStrcmp(cur->name, (const xmlChar *) "Signature"))
-    {
-        ns_dsig = xmlSearchNsByHref(doc, cur,
-                                  (const xmlChar *) "http://www.w3.org/2000/09/xmldsig#");
-        if (ns_dsig == NULL) {
-            fprintf(stderr,
-                    "document of the wrong type, xmldsig Namespace not found\n");
-            xmlFreeDoc(doc);
-            assert(0);
-        }
-    }
-
     if ((xmlStrcmp(cur->name, (const xmlChar *) "Signature")) &&
         (xmlStrcmp(cur->name, (const xmlChar *) "Assertion")))
     {
@@ -278,14 +290,6 @@ parseSamlResponseFile(char *filename) {
     /* Second level is a list of Assertion, but be laxist */
     /* cur = cur->xmlChildrenNode; */
     /* while (cur != NULL) { */
-
-        // if ((!xmlStrcmp(cur->name, (const xmlChar *) "Signature")) &&
-	//     (cur->ns == ns_dsig)) {
-	//     curassertion = parseAssertion(doc, ns_dsig, cur);
-	//     if (curassertion != NULL)
-	//         ret->assertions[ret->nbAssertions++] = curassertion;
-        //     // if (ret->nbAssertions >= 500) break;
-	// }
 
 	// cur = cur -> next;
 

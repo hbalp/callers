@@ -83,7 +83,7 @@ DEBUG("parseSignature\n");
 static void
 printSignature(signaturePtr cur) {
     if (cur == NULL) return;
-    printf("------ Signature\n");
+    printf("- Signature\n");
     if (cur->name) printf("	name: %s\n", cur->name);
     if (cur->issueInstant) printf("	issueInstant: %s\n", cur->issueInstant);
     if (cur->company) printf("	company: %s\n", cur->company);
@@ -91,7 +91,7 @@ printSignature(signaturePtr cur) {
     if (cur->smail) printf("	smail: %s\n", cur->smail);
     if (cur->webPage) printf("	Web: %s\n", cur->webPage);
     if (cur->phone) printf("	phone: %s\n", cur->phone);
-    printf("------\n");
+    printf("-\n");
 }
 
 /********************************************************************************/
@@ -145,9 +145,8 @@ parseSubject(xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur) {
 static void
 printSubject(subjectPtr subject) {
     if (subject == NULL) return;
-    printf("------- Subject\n");
-    if (subject->nameID) printf("	nameID: %s\n", subject->nameID);
-    printf("-------\n");
+    printf("- Subject ");
+    if (subject->nameID) printf("NameID: %s\n", subject->nameID);
 }
 
 /********************************************************************************/
@@ -216,6 +215,10 @@ DEBUG("parseAssertion\n");
 	    }
 	}
 
+        if ((!xmlStrcmp(cur->name, (const xmlChar *) "Issuer")) &&
+	    (cur->ns == ns))
+	    ret->issuer = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+
         if ((!xmlStrcmp(cur->name, (const xmlChar *) "Subject")) &&
 	    (cur->ns == ns))
 	    ret->subject = parseSubject(doc, ns, cur);
@@ -232,9 +235,9 @@ printAssertion(assertionPtr cur) {
 
     if (cur == NULL) return;
     printf("=======  Assertion\n");
-    if (cur->issuer != NULL) printf("issuer: %s\n", cur->issuer);
+    if (cur->issuer != NULL) printf("- Issuer: %s\n", cur->issuer);
     if (cur->subject != NULL) printSubject(cur->subject);
-    if (cur->authStmt != NULL) printf("authStmt: %s\n", cur->authStmt);
+    if (cur->authStmt != NULL) printf("- AuthStmt: %s\n", cur->authStmt);
     if (cur->signature != NULL) printSignature(cur->signature);
     printf("======= \n");
 }

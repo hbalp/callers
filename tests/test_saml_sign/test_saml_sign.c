@@ -65,7 +65,6 @@ parseSignature(xmlDocPtr doc, xmlNsPtr ns, xmlNodePtr cur) {
                       }
                   ch = ch->next;
               }
-
             }
         if ((!xmlStrcmp(cur->name, (const xmlChar *)"SignatureValue")) &&
 	    (cur->ns == ns))
@@ -258,6 +257,9 @@ parseSamlResponseFile(char *filename) {
     assert(0);
 #endif /* LIBXML_SAX1_ENABLED */
 
+    // Could be better
+    //assert(ret->doc->refs != NULL);
+
     /*
      * Check the document is of the right kind
      */
@@ -370,22 +372,72 @@ printSamlResponse(samlResponsePtr cur) {
     for (i = 0; i < cur->nbAssertions; i++) printAssertion(cur->assertions[i]);
 }
 
+xmlNodePtr getElementByID(xmlNodePtr node, char* id)
+{
+  xmlChar* curid = xmlGetProp(node, (const xmlChar *)"ID");
+
+  // printf("getElementByID:DEBUG: curid=%s, id=%s\n", curid, id);
+
+  if ((curid != NULL)&&(!xmlStrcmp(curid, (const xmlChar *) id)))
+  {
+    return node;
+  }
+
+  xmlNodePtr ch = node->xmlChildrenNode;
+  while (ch != NULL) {
+      xmlNodePtr result = getElementByID(ch, id);
+      if(result != NULL)
+      {
+        return result;
+      }
+      ch = ch->next;
+  }
+  return NULL;
+}
+
 bool saml_SignatureProfileValidator_validate(signaturePtr sign, xmlDocPtr doc)
 {
     assert(doc != NULL);
-    if(sign == NULL) return false;
+    if(sign == NULL)
+    {
+      return false;
+    }
     bool is_valid = false;
     xmlNodePtr root = xmlDocGetRootElement(doc);
 
-    printf("=======  Validate SAML signature TBC\n");
+    printf("=======  Validate SAML signature: \n");
 
+    // Ensure that the signature parent node is well a SAML Assertion
+    if (xmlStrcmp(sign->parent->name, (const xmlChar *) "Assertion"))
+    {
+      return false;
+    }
+
+    // Get all XML elements with same ID as the one pointed to by the signature URI
+    // xmlListPtr refs = xmlGetRefs(doc, sign->signedInfo.reference.URI);
+    xmlNodePtr assertionByID = getElementByID(root, sign->signedInfo.reference.URI);
+    if(assertionByID == NULL)
+    {
+      return false;
+    }
+
+    // Check wether signature parent node is same as assertion by ID
+    if(sign->parent == assertionByID)
+    {
+      is_valid = true;
+    }
     return is_valid;
 }
 
 bool checkSamlAssertion(assertionPtr assertion, xmlDocPtr doc)
 {
     printf("=======  Check SAML Assertion\n");
-    return saml_SignatureProfileValidator_validate(assertion->signature, doc);
+    bool result = saml_SignatureProfileValidator_validate(assertion->signature, doc);
+    if (result == false)
+      printf("FALSE\n");
+    else
+      printf("TRUE\n");
+    return result;
 }
 
 bool checkSamlResponse(samlResponsePtr response)
@@ -398,7 +450,6 @@ bool checkSamlResponse(samlResponsePtr response)
         assertionPtr assertion = response->assertions[a];
         result = checkSamlAssertion(assertion, response->doc);
     }
-
     return result;
 }
 

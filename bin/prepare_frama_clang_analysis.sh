@@ -23,7 +23,7 @@ function launch_frama_clang ()
     # define frama-clang configuration options
     #frama_clang_options="-cxx-nostdinc -cxx-keep-mangling -fclang-msg-key clang,cabs -fclang-verbose 2 -machdep x86_64 -print -cxx-clang-command"
     #frama_clang_options="-machdep x86_64 -cxx-nostdinc -fclang-msg-key clang,cabs -cxx-clang-command" # for debug purposes
-    frama_clang_options="-machdep x86_64 -cxx-nostdinc -val -lib-entry -rte -deps -print -ocode ${cabs_file} -cxx-clang-command"
+    frama_clang_options="-machdep x86_64 -cxx-nostdinc -val -lib-entry -rte -deps -print -ocode ${cabs_file} -metrics -metrics-print -cxx-clang-command"
     #frama_clang_options="-machdep x86_64 -cxx-nostdinc -print -ocode ${cabs_file} -cxx-clang-command"
 
     # add target source file specific analysis options
@@ -33,7 +33,7 @@ function launch_frama_clang ()
 
     # build the frama_clang analysis command
     # cpp_analysis="${frama_c} ${frama_clang_options} \"framaCIRGen \${system_includes} \${file_analysis_options}\" ${cpp_file} -cxx-keep-mangling -ocode ${cabs_file} -print"
-    cpp_analysis="${frama_c} ${frama_clang_options} \"framaCIRGen ${framaCIRGen_options} \${system_includes} \${file_analysis_options}\" ${cpp_file} -cxx-keep-mangling > ${cabs_file}.stdout"
+    cpp_analysis="${frama_c} ${frama_clang_options} \"framaCIRGen ${framaCIRGen_options} \${system_includes} \${file_analysis_options}\" ${cpp_file} -cxx-keep-mangling -save ${cabs_file}.sav > ${cabs_file}.stdout"
 
     # make sure the output directories are well created before calling the analysis ?
 
@@ -79,7 +79,7 @@ function launch_frama_c ()
 
     # add target source file specific analysis options
     #frama_c_analysis_options="-cpp-extra-args=\\\"${file_filtered_analysis_options}\\\" -val -lib-entry -rte -deps -print -ocode ${cabs_file}"
-    frama_c_analysis_options="-val -lib-entry -rte -deps -print -ocode ${cabs_file}"
+    frama_c_analysis_options="-val -lib-entry -rte -deps -print -ocode ${cabs_file} -metrics -metrics-print"
 
     if [ "${file_filtered_analysis_options}" != "" ]
     then
@@ -89,7 +89,7 @@ function launch_frama_c ()
     fi
 
     # build the frama_c analysis command
-    c_analysis="${frama_c} ${frama_c_options} ${frama_c_file_args} \${frama_c_analysis_options} ${c_file} > ${cabs_file}.stdout "
+    c_analysis="${frama_c} ${frama_c_options} ${frama_c_file_args} \${frama_c_analysis_options} ${c_file} -save ${cabs_file}.sav > ${cabs_file}.stdout "
     # c_analysis="${frama_c} ${frama_c_options} \${frama_c_analysis_options} ${c_file} -ocode ${cabs_file} -print"
 
     echo "echo \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\""
@@ -600,7 +600,7 @@ function prepare_frama_clang_analysis_from_compile_command()
 	        run_clang="true"
 	        run_callers="true"
 	        run_frama_clang="true"
-	        run_framaCIRGen="true"
+	        #run_framaCIRGen="true"
 	        ;;
 
 	    *)

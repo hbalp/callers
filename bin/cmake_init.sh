@@ -5,7 +5,6 @@
 #     coded by Hugues Balp
 
 # exename=$1
-# src_dir=$2
 
 function cmakelists_gen ()
 {
@@ -104,4 +103,4 @@ function cmake_build ()
   cd ${src_dir}
 }
 
-#cmake_init ${exename} ${src_dir}
+#cmake_init ${exename}

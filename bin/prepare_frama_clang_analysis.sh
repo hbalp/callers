@@ -21,10 +21,11 @@ function launch_frama_clang ()
     frama_c=`which frama-c 2> /dev/null`
 
     # define frama-clang configuration options
-    #frama_clang_options="-cxx-nostdinc -cxx-keep-mangling -fclang-msg-key clang,cabs -fclang-verbose 2 -machdep x86_64 -print -cxx-clang-command"
-    #frama_clang_options="-machdep x86_64 -cxx-nostdinc -fclang-msg-key clang,cabs -cxx-clang-command" # for debug purposes
-    frama_clang_options="-machdep x86_64 -cxx-nostdinc -val -lib-entry -rte -deps -print -ocode ${cabs_file} -metrics -metrics-print -cxx-clang-command"
-    #frama_clang_options="-machdep x86_64 -cxx-nostdinc -print -ocode ${cabs_file} -cxx-clang-command"
+    #frama_clang_options="-machdep x86_64 -cxx-nostdinc -print -ocode ${cabs_file} -cxx-clang-command -cxx-keep-mangling"
+    #frama_clang_options="-machdep x86_64 -cxx-nostdinc -print -ocode ${cabs_file} -cxx-clang-command -fclang-msg-key clang,cabs -fclang-verbose 2" # print many additional information for debug purposes
+
+    # Do not launch value analysis now
+#    frama_clang_options="-machdep x86_64 -cxx-nostdinc -val -lib-entry -main fc_main -rte -deps -print -ocode ${cabs_file} -metrics -metrics-print -cxx-clang-command"
 
     # add target source file specific analysis options
     frama_clang_analysis_options="${file_analysis_options}"
@@ -54,7 +55,7 @@ function launch_frama_clang ()
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $cabs_stderr"
     echo "    return 10"
     echo "fi"
-    echo "gzip -f ${cabs_file}"
+    echo "#gzip -f ${cabs_file}"
 }
 
 function launch_frama_c ()
@@ -108,7 +109,7 @@ function launch_frama_c ()
     echo "    echo \"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\" >> $cabs_stderr"
     echo "    return 11"
     echo "fi"
-    echo "gzip -f ${cabs_file}"
+    echo "#gzip -f ${cabs_file}"
 }
 
 function launch_framaCIRGen ()

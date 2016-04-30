@@ -25,6 +25,14 @@ source $launch_scan_build
 
 launch_the_analysis ${build_tool} ${analysis_type}
 
+cd analysis
+# build the executable
+make &&
+# generate the fc_main.c thanks to gdb
+fc_main_generate.sh fc_main.gen.SAMLResponse.sane.c test_saml_sign ../data/SAMLResponse.sane.xml
+#fc_main_generate.sh fc_main.gen.SAMLResponse.malicious_xsw.c test_saml_sign ../data/SAMLResponse.malicious_xsw.xml
+cd ..
+
 if [ $build_tool != "scan-build" ]
 #if false
 then

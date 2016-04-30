@@ -3,7 +3,7 @@ set pagination off
 set logging file test_saml_sign.gen.gdb.stdout
 set logging overwrite on
 
-file build/test_saml_sign
+file analysis/test_saml_sign
 
 # init of local some variables
 set var $min_a=0

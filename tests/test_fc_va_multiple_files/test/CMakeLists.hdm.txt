@@ -30,4 +30,5 @@ test_division.c)
 
 # add path to external libraries
 # target_link_libraries(div_test ../build/src/libdiv_src.a)
-target_link_libraries(div_test /net/alpha.sc2.theresis.org/works/home/balp/src/tests/tests/languages/c/test_frama_c/test_va_multiple_files/build/src/libdiv_src.a)
+#target_link_libraries(div_test /net/alpha.sc2.theresis.org/works/home/balp/src/tests/tests/languages/c/test_frama_c/test_va_multiple_files/build/src/libdiv_src.a)
+target_link_libraries(div_test /works/home/balp/third_parties/llvm/tools/clang/tools/extra/callers/tests/test_fc_va_multiple_files/build/src/libdiv_src.a)

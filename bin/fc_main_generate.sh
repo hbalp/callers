@@ -4,9 +4,8 @@
 #       - All Rights Reserved
 #     coded by Hugues Balp
 
-fc_main_filename=$1
-shift
-cmd_args=$@
+#fc_main_filename=$1
+#cmd_args=$@
 
 function fc_main_args_gdbinit_gen ()
 {
@@ -78,9 +77,8 @@ function fc_main_args_gdb_run ()
 
 function fc_main_gen ()
 {
-  fc_main_filename=$1
-  shift
   cmd_args=$@
+  fc_main_filename="fc_main.gen.i"
   fc_main_gen_args="fc_main.gen.args.c"
   fc_main_args_gdb_run $fc_main_gen_args $cmd_args
 
@@ -95,4 +93,4 @@ EOF
   rm ${fc_main_gen_args}
 }
 
-fc_main_gen ${fc_main_filename} ${cmd_args}
+#fc_main_gen ${cmd_args}

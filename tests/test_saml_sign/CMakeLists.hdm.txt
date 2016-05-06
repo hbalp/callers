@@ -13,7 +13,7 @@ option(SAVE_TEMPS "Save temporary files" ON)
 #option(SAVE_TEMPS "Save temporary files" OFF)
 
 if(SAVE_TEMPS)
-set(CMAKE_C_FLAGS " -save-temps")
+set(CMAKE_C_FLAGS " -save-temps -DFRAMA_C -D__FC_MACHDEP_X86_64")
 set(CMAKE_CXX_FLAGS " -save-temps")
 endif()
 

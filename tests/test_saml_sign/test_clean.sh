@@ -3,8 +3,9 @@
 #rm -rf build
 rm -rf analysis
 rm -f defined_symbols.json
-rm -f *.gen.callgraph
-rm -f *.gen.aird
+#rm -f *.gen.callgraph
+#rm -f *.gen.aird
+rm -f *.gen.*
 rm -f *.stderr
 rm -f *.stdout
 find . -type f -name "*.gen.json.gz" -exec rm -f {} \;

@@ -8,10 +8,18 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_BUILD_TYPE Debug)
 
 #option(USE_CXX_EXCEPTIONS "Enable C++ exception support" ON)
+
+# option to use the system library libxml2-dev
+option(SYSTEM_LIB "Use the system library libxml2" OFF)
+
+# option to use a manual installed library libxml2-dev
+option(DEV_LIB "Use the manual installed library libxml2" OFF)
+
+# option to use a fake stub library libxml2-dev
+option(STUB_LIB "Use the stub library libxml2" ON)
+
 # save temporary files when needed
 option(SAVE_TEMPS "Save temporary files" ON)
-#option(SAVE_TEMPS "Save temporary files" OFF)
-
 if(SAVE_TEMPS)
 set(CMAKE_C_FLAGS " -save-temps -DFRAMA_C -D__FC_MACHDEP_X86_64")
 set(CMAKE_CXX_FLAGS " -save-temps")
@@ -21,10 +29,23 @@ endif()
 add_subdirectory(data)
 
 # add path to header files
-include_directories("/data/balp/src/tools/exec/include/libxml2")
+if(DEV_LIB)
+  include_directories("/data/balp/src/tools/exec/include/libxml2")
+endif()
+if(SYSTEM_LIB)
+  include_directories("/usr/include/libxml2")
+endif()
+if(STUB_LIB)
+  include_directories("./stub")
+endif()
 
 # define by default a build target when source files are present
 add_executable(xsw_test_saml_sign test_saml_sign.c)
 
 # add path to external libraries
-target_link_libraries(xsw_test_saml_sign /data/balp/src/tools/exec/lib/libxml2.so)
+if(DEV_LIB)
+  target_link_libraries(xsw_test_saml_sign /data/balp/src/tools/exec/lib/libxml2.so)
+endif()
+if(SYSTEM_LIB)
+  target_link_libraries(xsw_test_saml_sign /usr/lib/x86_64-linux-gnu/libxml2.so)
+endif()

@@ -49,5 +49,3 @@ frama-c -frama-c-stdlib \
 ./build/test_saml_sign.i \
 ./fc_main.gen.i \
 -save fc_parsed.gen.sav
-
-

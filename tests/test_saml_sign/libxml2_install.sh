@@ -8,9 +8,10 @@ libinstalldir="${librootdir}/exec"
 
 function libxml2_install ()
 {
-  cd ${librootdir}
+  sudo apt-get install libxml2-dev
+  #cd ${librootdir}
   #tar -zxvf libxml2-2.9.3.tar.gz
-  tar -zxvf libxml2-2.9.3.stance_sso.tar.gz
+  #tar -zxvf libxml2-2.9.3.stance_sso.tar.gz
 }
 
 function libxml2_config ()

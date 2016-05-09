@@ -1,5 +1,5 @@
-#ifndef _TEST_SAML_SIGN_H_
-#define _TEST_SAML_SIGN_H_
+#ifndef _VALIDATE_SAML_SIGN_H_
+#define _VALIDATE_SAML_SIGN_H_
 
 /*
  * test_saml_sign.c: libxml c parsing of openSAML assertions

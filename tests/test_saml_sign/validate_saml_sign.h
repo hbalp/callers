@@ -124,6 +124,9 @@ parseSamlResponseFile(char *filename);
 void
 printSamlResponse(samlResponsePtr cur);
 
+xmlNodePtr
+getElementByID(xmlNodePtr node, xmlChar* id);
+
 bool
 saml_SignatureProfileValidator_validate(signaturePtr sign, xmlDocPtr doc);
 

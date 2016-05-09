@@ -10,13 +10,13 @@ set(CMAKE_BUILD_TYPE Debug)
 #option(USE_CXX_EXCEPTIONS "Enable C++ exception support" ON)
 
 # option to use the system library libxml2-dev
-option(SYSTEM_LIB "Use the system library libxml2" ON)
+option(SYSTEM_LIB "Use the system library libxml2" OFF)
 
 # option to use a manual installed library libxml2-dev
 option(DEV_LIB "Use the manual installed library libxml2" OFF)
 
 # option to build the integration test
-option(INTG_TEST "Build the integration test" ON)
+option(INTG_TEST "Build the integration test" OFF)
 
 # option to build the unitary test
 option(UNIT_TEST "Build the unitary test" OFF)

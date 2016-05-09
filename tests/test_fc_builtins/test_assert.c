@@ -1,13 +1,3 @@
-/* #if 0 */
-/* #define assert Frama_C_assert */
-/* #else */
-/* void assert(int val) */
-/* { */
-/*   if(val == 0) */
-/*     abort(); */
-/* } */
-/* #endif */
-
 #include <assert.h>
 
 int main()

@@ -1,30 +1,5 @@
-#ifndef _VALIDATE_SAML_SIGN_H_
-#define _VALIDATE_SAML_SIGN_H_
-
-/*
- * test_saml_sign.c: libxml c parsing of openSAML assertions
- * copyright Thales Communications & Security 2013 to 2016
- * IST STANCE project
- * hugues.balp@thalesgroup.com
- */
-
-#include <assert.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-
-/*
- * This example should compile and run indifferently with libxml-1.8.8 +
- * and libxml2-2.1.0 +
- * Check the COMPAT comments below
- */
-
-/*
- * COMPAT using xml-config --cflags to get the include path this will work with both
- */
-#include <libxml/xmlmemory.h>
-#include <libxml/parser.h>
+#ifndef _PARSE_SAML_RESPONSE_H_
+#define _PARSE_SAML_RESPONSE_H_
 
 #define DEBUG(x) /* printf(x) */
 

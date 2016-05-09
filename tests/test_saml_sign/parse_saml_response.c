@@ -23,7 +23,7 @@
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 
-#include "validate_saml_sign.h"
+#include "parse_saml_response.h"
 
 /********************************************************************************/
 /*                                Signature                                     */

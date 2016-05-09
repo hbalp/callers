@@ -23,7 +23,7 @@
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 
-#include "test_saml_sign.h"
+#include "validate_saml_sign.h"
 
 /********************************************************************************/
 /*                                Signature                                     */
@@ -220,12 +220,11 @@ printAssertion(assertionPtr cur) {
     printf("======= \n");
 }
 
-
 /********************************************************************************/
 /*                              SAML Response                                   */
 /********************************************************************************/
 
-static samlResponsePtr
+samlResponsePtr
 parseSamlResponseFile(char *filename) {
 
     samlResponsePtr ret;
@@ -361,7 +360,7 @@ parseSamlResponseFile(char *filename) {
     return(ret);
 }
 
-static void
+void
 printSamlResponse(samlResponsePtr cur) {
     int i;
     printf("=======  SAML Response\n");
@@ -458,7 +457,7 @@ bool checkSamlResponse(samlResponsePtr response)
     return result;
 }
 
-static void
+void
 handleSamlResponse(samlResponsePtr response) {
     int i;
 
@@ -468,31 +467,4 @@ handleSamlResponse(samlResponsePtr response) {
     printSamlResponse(response);
 
     checkSamlResponse(response);
-}
-
-/********************************************************************************/
-/*                                    main                                      */
-/********************************************************************************/
-/* unitary test verifying parsing of SAML Response messages and SAML signature validation */
-
-int main(int argc, char **argv) {
-    int i;
-    samlResponsePtr cur;
-
-    /* COMPAT: Do not generate nodes for formatting spaces */
-    LIBXML_TEST_VERSION
-    xmlKeepBlanksDefault(0);
-
-    for (i = 1; i < argc ; i++) {
-	cur = parseSamlResponseFile(argv[i]);
-	if ( cur )
-	  handleSamlResponse(cur);
-	else
-	  fprintf( stderr, "Error parsing file '%s'\n", argv[i]);
-    }
-
-    /* Clean up everything else before quitting. */
-    xmlCleanupParser();
-
-    return(0);
 }

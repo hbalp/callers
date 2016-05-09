@@ -118,17 +118,22 @@ typedef struct samlResponse {
     xmlDocPtr doc;
 } samlResponse, *samlResponsePtr;
 
-static samlResponsePtr parseSamlResponseFile(char *filename);
+samlResponsePtr
+parseSamlResponseFile(char *filename);
 
-static void printSamlResponse(samlResponsePtr cur);
+void
+printSamlResponse(samlResponsePtr cur);
 
-bool saml_SignatureProfileValidator_validate(signaturePtr sign, xmlDocPtr doc);
+bool
+saml_SignatureProfileValidator_validate(signaturePtr sign, xmlDocPtr doc);
 
-bool checkSamlAssertion(assertionPtr assertion, xmlDocPtr doc);
+bool
+checkSamlAssertion(assertionPtr assertion, xmlDocPtr doc);
 
-bool checkSamlResponse(samlResponsePtr response);
+bool
+checkSamlResponse(samlResponsePtr response);
 
-static void
+void
 handleSamlResponse(samlResponsePtr response);
 
 #endif

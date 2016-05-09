@@ -13,8 +13,8 @@ option(FRAMA_C "Option to activate Frama-C VA analysis" ON)
 
 # save temporary files when needed
 if(FRAMA_C)
-option(SAVE_TEMPS "Save temporary files" ON)
-set(CMAKE_C_FLAGS " -save-temps -C -DFRAMA_C -D__FC_MACHDEP_X86_64")
+#option(SAVE_TEMPS "Save temporary files" ON)
+set(CMAKE_C_FLAGS " -save-temps -C -D__FC_MACHDEP_X86_64")
 set(CMAKE_CXX_FLAGS " -save-temps -C")
 endif()
 
@@ -27,4 +27,6 @@ else()
 endif()
 
 # define by default a build target when source files are present
-add_executable(test_assert test_assert.c)
+#add_executable(test_assert test_assert.c)
+add_executable(test_stdio test_stdio.c)
+

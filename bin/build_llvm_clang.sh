@@ -3,37 +3,51 @@ set -x
 # from http://clang.llvm.org/get_started.html
 # Checkout LLVM:
 
-#     Change directory to where you want the llvm directory placed.
-svn co http://llvm.org/svn/llvm-project/llvm/trunk llvm
+src_dir=/home/hbalp/hugues/work/third_parties/src
 
-# Checkout Clang:
+llvm_src_dir=${src_dir}/llvm
 
-cd llvm/tools
-svn co http://llvm.org/svn/llvm-project/cfe/trunk clang
-cd ../..
+function llvm_install ()
+{
+    cd ${llvm_src_dir}
 
-# Checkout extra Clang Tools: (optional)
+    #     Change directory to where you want the llvm directory placed.
+    svn co http://llvm.org/svn/llvm-project/llvm/trunk llvm
 
-cd llvm/tools/clang/tools
-svn co http://llvm.org/svn/llvm-project/clang-tools-extra/trunk extra
-cd ../../../..
+    # Checkout Clang:
 
-# Checkout Compiler-RT:
+    cd llvm/tools
+    svn co http://llvm.org/svn/llvm-project/cfe/trunk clang
+    cd ../..
 
-cd llvm/projects
-svn co http://llvm.org/svn/llvm-project/compiler-rt/trunk compiler-rt
-cd ../..
+    # Checkout extra Clang Tools: (optional)
 
-# Checkout libcxx: (only required to build and run Compiler-RT tests on OS X, optional otherwise)
+    cd llvm/tools/clang/tools
+    svn co http://llvm.org/svn/llvm-project/clang-tools-extra/trunk extra
+    cd ../../../..
 
-#     cd llvm/projects
-#     svn co http://llvm.org/svn/llvm-project/libcxx/trunk libcxx
-#     cd ../..
+    # Checkout Compiler-RT:
+
+    cd llvm/projects
+    svn co http://llvm.org/svn/llvm-project/compiler-rt/trunk compiler-rt
+    cd ../..
+
+    # Checkout libcxx: (only required to build and run Compiler-RT tests on OS X, optional otherwise)
+
+    #     cd llvm/projects
+    #     svn co http://llvm.org/svn/llvm-project/libcxx/trunk libcxx
+    #     cd ../..
+}
 
 # Build LLVM and Clang:
+function llvm_build ()
+{
+    cd ${src_dir}
 
-#     mkdir build (in-tree build is not supported)
-mkdir build
-cd build
-cmake -G "Unix Makefiles" ../llvm
-make
+    #     mkdir build (in-tree build is not supported)
+    mkdir -p build
+    cd build
+    cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=/tools/exec -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release ../llvm
+    make CXXFLAGS="-DKEY_WOW64_32KEY=0x0200 -D_GLIBCXX_HAVE_FENV_H"
+    sudo make install
+}

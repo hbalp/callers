@@ -47,39 +47,64 @@ bool saml_SignatureProfileValidator_validate(signaturePtr sign, xmlDocPtr doc)
     return is_valid;
 }
 
+static xmlNode rootElement;
+static xmlNode validAssertion;
+static xmlNode maliciousAssertion;
+
+//bool maliciousSAMLResponse; // = true;
+int maliciousSAMLResponse; // 0: false , else : true;
+
 xmlNodePtr
 xmlDocGetRootElement (const xmlDoc *doc)
-{}
+{
+  return &rootElement;
+}
 
 int
 xmlStrcmp (const xmlChar *str1,
 	   const xmlChar *str2)
-{}
+{
+  return 0;
+}
 
 xmlNodePtr
 getElementByID(xmlNodePtr node, xmlChar* id)
-{}
-
-bool ut1_saml_SignatureProfileValidator_validate()
 {
-  signaturePtr sign;
-  xmlDocPtr doc;
-  bool is_valid = saml_SignatureProfileValidator_validate(sign, doc);
-  return(is_valid);
+  xmlNodePtr elementByID;  
+  if(maliciousSAMLResponse != 0)
+    {
+      elementByID = &maliciousAssertion;
+    }
+  else
+    {
+      elementByID = &validAssertion;
+    }
+  return elementByID;
 }
 
-bool ut2_saml_SignatureProfileValidator_validate()
+bool ut_saml_SignatureProfileValidator_validate(int under_XSW_attack)
 {
-  signaturePtr sign;
-  xmlDocPtr doc;
-  bool is_valid = saml_SignatureProfileValidator_validate(sign, doc);
+  xmlNodePtr parent = &validAssertion;
+  signature sign;
+  xmlDoc doc;
+  parent->name = "Assertion";
+  sign.parent = parent;
+
+  maliciousSAMLResponse = under_XSW_attack;
+  
+  bool is_valid = saml_SignatureProfileValidator_validate(&sign, &doc);
+  if(is_valid)
+    printf("TRUE\n");
+  else
+    printf("FALSE\n");
   return(is_valid);
 }
 
 int main()
 {
   bool status = true;
-  status = status && ut1_saml_SignatureProfileValidator_validate();
-  status = status && ut2_saml_SignatureProfileValidator_validate();
+  int maliciousSAMLResponse = 0;
+  status = status && ut_saml_SignatureProfileValidator_validate(0);
+  status = status && ut_saml_SignatureProfileValidator_validate(1);
   return(status);
 }

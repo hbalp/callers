@@ -10,7 +10,7 @@ set(CMAKE_BUILD_TYPE Debug)
 #option(USE_CXX_EXCEPTIONS "Enable C++ exception support" ON)
 
 # option to use the system library libxml2-dev
-option(SYSTEM_LIB "Use the system library libxml2" OFF)
+option(SYSTEM_LIB "Use the system library libxml2" ON)
 
 # option to use a manual installed library libxml2-dev
 option(DEV_LIB "Use the manual installed library libxml2" OFF)
@@ -19,7 +19,7 @@ option(DEV_LIB "Use the manual installed library libxml2" OFF)
 option(INTG_TEST "Build the integration test" OFF)
 
 # option to build the unitary test
-option(UNIT_TEST "Build the unitary test" OFF)
+option(UNIT_TEST "Build the unitary test" ON)
 
 # save temporary files when needed
 option(SAVE_TEMPS "Save temporary files" ON)
@@ -38,22 +38,22 @@ endif()
 if(SYSTEM_LIB)
   include_directories("/usr/include/libxml2")
 endif()
-if(UNIT_TEST)
-  include_directories(".")
-endif()
 
 # define by default a build target when source files are present
 if(INTG_TEST)
-  add_executable(xsw_test_saml_sign validate_saml_sign.c test_saml_sign.c)
+  add_executable(xsw_test_saml_sign validate_saml_sign.c test_saml_sign.it.c)
 endif()
 if(UNIT_TEST)
-  add_executable(xsw_test_saml_sign ut_saml_sign.c *.c)
+#  add_executable(xsw_test_saml_sign validate_saml_sign.c test_saml_sign.ut.c)
+  add_executable(xsw_test_saml_sign test_saml_sign.ut.c)
 endif()
 
 # add path to external libraries
-if(DEV_LIB)
-  target_link_libraries(xsw_test_saml_sign /data/balp/src/tools/exec/lib/libxml2.so)
-endif()
-if(SYSTEM_LIB)
-  target_link_libraries(xsw_test_saml_sign /usr/lib/x86_64-linux-gnu/libxml2.so)
+if(INTG_TEST)
+  if(DEV_LIB)
+    target_link_libraries(xsw_test_saml_sign /data/balp/src/tools/exec/lib/libxml2.so)
+  endif()
+  if(SYSTEM_LIB)
+    target_link_libraries(xsw_test_saml_sign /usr/lib/x86_64-linux-gnu/libxml2.so)
+  endif()
 endif()

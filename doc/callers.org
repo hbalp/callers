@@ -1576,6 +1576,11 @@ We assume here that you have succeeded in building LLVM and clang from the sourc
 To install the Callers plugin, you have first to uncompress and untar it in the source directory
 dedicated to the clang extra tools, namely: work_dir/trunk/llvm/tools/clang/tools/extra.
 
+Then you have to make sure that all system packages used by the callers are well installed on the host, like:
+ + rapidjson-dev
+ + libboost-filesystem-dev
+ + libboost-regex-dev
+
 Then you can go back to the root build directory work_dir/build and update the cmake build tree
 through the commands:
 

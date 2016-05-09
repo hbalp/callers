@@ -63,7 +63,7 @@ void assert_homedir_prefix(std::string path)
   bool has_prefix = id_contains(home_prefix, path);
   if(has_prefix == true)
   {
-    std::cerr << "DEBUG: Bad Directory prefix: /tmp/callers/home" << std::cerr;
+    std::cerr << "DEBUG: Bad Directory prefix: /tmp/callers/home" << std::endl;
     ASSERT(0);
   }
   return;
@@ -83,7 +83,7 @@ std::string check_rootdir_prefix(std::string path)
   else
     // add the root dir prefix to the input path
     {
-      std::cout << "check_root_dir: adds the rootdir prefix \"" << gc_root_prefix << "\" to the path \"" << path << "\"" << std::endl;
+      std::cout << std::string("check_root_dir: adds the rootdir prefix \"") << gc_root_prefix << "\" to the path \"" << path << "\"" << std::endl;
       path = gc_root_prefix + path;
       return path;
     }

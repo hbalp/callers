@@ -1,10 +1,10 @@
 # download libxml2-2.9.3.tar.gz
 ici=`pwd`
-#libxml2=libxml2-2.9.3
-libxml2=libxml2
+libxml2=libxml2-2.9.3
+#libxml2=libxml2
 #librootdir=${ici}
-#librootdir="/data/balp/src/tools"
-librootdir="/home/hbalp/hugues/work/third_parties/src"
+librootdir="/data/balp/src/tools"
+#librootdir="/home/hbalp/hugues/work/third_parties/src"
 libdir="${librootdir}/${libxml2}"
 #libinstalldir="${librootdir}/exec"
 libinstalldir="/tools/exec"
@@ -12,11 +12,10 @@ libinstalldir="/tools/exec"
 function libxml2_workflow ()
 {
     # you should choose between a system install
-    #libxml2_system_install
     libxml2_binary_workflow
     
     # ... or a build and install from sources
-    libxml2_source_workflow    
+    libxml2_source_workflow
 }
 
 function libxml2_binary_workflow ()
@@ -24,7 +23,7 @@ function libxml2_binary_workflow ()
     cd ${librootdir}
 
     # Uninstall
-    libxml2_binary_uninstall
+    #libxml2_binary_uninstall
     
     # Install
     libxml2_binary_install
@@ -35,10 +34,21 @@ function libxml2_source_workflow ()
     cd ${librootdir}
 
     # Uninstall
-    libxml2_source_uninstall
+    #libxml2_source_uninstall
     
     # Install
     libxml2_source_install
+}
+
+function libxml2_fc_va_prepare ()
+{
+    cd ${librootdir}
+
+    # Uninstall
+    #libxml2_source_uninstall
+
+    # Install
+    libxml2_fc_va_preproc
 }
 
 function libxml2_binary_uninstall ()
@@ -62,10 +72,12 @@ function libxml2_source_install ()
     libxml2_cots_install
 
     # download libxml2 sources
-    libxml2_git_master_clone
-    
+    #libxml2_git_master_clone
+    # or unzip a local archive when download is not possible
+    tar -zxf libxml2-2.9.3.tar.gz
+
     # Configure
-    libxml2_config > .libxml2_config.stdout 2> .libxml2_config.stderr
+    libxml2_config "" > .libxml2_config.stdout 2> .libxml2_config.stderr
 
     # Build
     libxml2_build > .libxml2_build.stdout 2> .libxml2_build.stderr
@@ -86,6 +98,29 @@ function libxml2_source_uninstall ()
 
     # uninstall COTS used by libxml2 only when needed
     libxml2_cots_uninstall
+}
+
+function libxml2_fc_va_preproc ()
+{
+    # install COTS used by libxml2
+    #libxml2_cots_install
+
+    # download libxml2 sources
+    #libxml2_git_master_clone
+    # or unzip a local archive when download is not possible
+    tar -zxf libxml2-2.9.3.tar.gz
+
+    # Configure
+    libxml2_config "-save-temps -C -D__FC_MACHDEP_X86_64 -I/opt/stance/share/frama-c/libc" > .libxml2_config.stdout 2> .libxml2_config.stderr
+
+    # Build
+    libxml2_build > .libxml2_preproc.stdout 2> .libxml2_preproc.stderr
+
+    # Install built library
+    #libxml2_git_master_install
+    
+    # Prepare FC analysis
+    # libxml2_fc_prepare > /dev/null 2> .libxml2_fc_prepare.stderr
 }
 
 function libxml2_cots_install ()
@@ -136,12 +171,14 @@ function libxml2_git_master_uninstall ()
 
 function libxml2_config ()
 {
+    cflags=$1
     cd ${libdir}
-    autogen.sh &&
-    #CFLAGS+="-save-temps -DSTANCE_SSO -DFRAMA_C -D__FC_MACHDEP_X86_64" ./configure --without-ftp --without-http --without-zlib --with-run-debug --with-mem-debug --prefix=${libinstalldir}
+    #autogen.sh &&
+    autoreconf &&
+    #CFLAGS+="-save-temps -C -DSTANCE_SSO -DFRAMA_C -D__FC_MACHDEP_X86_64" ./configure --without-ftp --without-http --without-zlib --with-run-debug --with-mem-debug --prefix=${libinstalldir}
     ##CFLAGS+="-save-temps -DSTANCE_SSO -D__FC_MACHDEP_X86_64 -I /opt/stance/share/frama-c/libc" ./configure --without-ftp --without-http --without-zlib --with-run-debug --with-mem-debug --prefix=${libinstalldir}
 
-    ./configure \
+    CFLAGS+="${cflags}" ./configure \
 	--prefix=/tools/exec \
 	--enable-ipv6=no \
 	--without-c14n \
@@ -192,5 +229,5 @@ function libxml2_fc_prepare ()
 {
   cd ${libdir}
   source fc_analysis.sh
-  fc_parse libxml2
+  fc_parse
 }

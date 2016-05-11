@@ -16,10 +16,10 @@ option(SYSTEM_LIB "Use the system library libxml2" OFF)
 option(DEV_LIB "Use the manual installed library libxml2" ON)
 
 # option to build the integration test
-option(INTG_TEST "Build the integration test" OFF)
+option(INTG_TEST "Build the integration test" ON)
 
 # option to build the unitary test
-option(UNIT_TEST "Build the unitary test" ON)
+option(UNIT_TEST "Build the unitary test" OFF)
 
 # option to use a wellformed call context
 option(ADAPTED_CALL_CONTEXT "Use a wellformed call context" ON)
@@ -28,7 +28,7 @@ option(ADAPTED_CALL_CONTEXT "Use a wellformed call context" ON)
 option(FRAMA_C "Option to activate Frama-C VA analysis" ON)
 
 # option to stub the libxml2 library
-option(LIBXML2_STUB "Option to stub the libxml2 library" OFF)
+option(LIBXML2_STUB "Option to stub the libxml2 library" ON)
 
 # save temporary files when needed
 option(SAVE_TEMPS "Save temporary files" ON)
@@ -114,11 +114,7 @@ if(UNIT_TEST)
       stub/SAX2.c
       test_saml_sign.ut.c)
   else()
-    if(FRAMA_C)
-      add_executable(xsw_test_saml_sign validate_saml_sign.c stub/tree.c test_saml_sign.ut.c)
-    else()
-      add_executable(xsw_test_saml_sign validate_saml_sign.c test_saml_sign.ut.c)
-    endif()
+    add_executable(xsw_test_saml_sign validate_saml_sign.c test_saml_sign.ut.c)
   endif()
 endif()
 

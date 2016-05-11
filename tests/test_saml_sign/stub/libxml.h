@@ -109,4 +109,5 @@ int xmlNop(void);
 #if !defined(PIC) && !defined(NOLIBTOOL)
 #  define LIBXML_STATIC
 #endif
+
 #endif /* ! __XML_LIBXML_H__ */

@@ -44,6 +44,18 @@
 #include "buf.h"
 #include "save.h"
 
+// Defined in ./stub/entities.c:754 but not declared in headers of libxml2
+// => frama-c generates a parsing error as follows
+// [kernel] Parsing build/test_saml_sign.ut.i.c (with preprocessing)                           |
+// [kernel] user error: Incompatible declaration for xmlEncodeAttributeEntities:               |
+// different type constructors: xmlChar * vs. int                         |
+// First declaration was at  stub/entities.c:753                          |
+// Current declaration is at stub/tree.c:1688                             |
+// [kernel] Frama-C aborted: invalid user input.                                               |
+                                              
+xmlChar *
+xmlEncodeAttributeEntities(xmlDocPtr doc, const xmlChar *input);
+
 int __xmlRegisterCallbacks = 0;
 
 /************************************************************************

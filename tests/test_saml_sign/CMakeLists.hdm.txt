@@ -25,10 +25,10 @@ option(UNIT_TEST "Build the unitary test" ON)
 option(ADAPTED_CALL_CONTEXT "Use a wellformed call context" ON)
 
 # option to activate Frama-C analysis
-option(FRAMA_C "Option to activate Frama-C VA analysis" OFF)
+option(FRAMA_C "Option to activate Frama-C VA analysis" ON)
 
 # option to stub the libxml2 library
-option(LIBXML2_STUB "Option to stub the libxml2 library" OFF)
+option(LIBXML2_STUB "Option to stub the libxml2 library" ON)
 
 # save temporary files when needed
 option(SAVE_TEMPS "Save temporary files" ON)
@@ -73,8 +73,8 @@ if(FRAMA_C)
   include_directories("/home/hbalp/ocamlbrew/ocaml-4.02.3/.opam/system/share/frama-c/libc")
 endif()
 if(DEV_LIB)
-  include_directories("/data/balp/src/tools/exec/include/libxml2")
-  # include_directories("/tools/exec/include/libxml2")
+  # include_directories("/data/balp/src/tools/exec/include/libxml2")
+  include_directories("/tools/exec/include/libxml2")
 endif()
 if(SYSTEM_LIB)
   include_directories("/usr/include/libxml2")
@@ -90,7 +90,15 @@ if(UNIT_TEST)
     include_directories("/home/hbalp/hugues/work/third_parties/src/libxml2")
     # add_executable(xsw_test_saml_sign validate_saml_sign.c libxml2_empty_stub.c test_saml_sign.ut.c)
     # add_executable(xsw_test_saml_sign validate_saml_sign.c libxml2_stub.c test_saml_sign.ut.c)
-    add_executable(xsw_test_saml_sign validate_saml_sign.c stub/xmlstring.c stub/entities.c stub/tree.c test_saml_sign.ut.c)
+    add_executable(
+      xsw_test_saml_sign
+      validate_saml_sign.c
+      stub/entities.c
+      stub/hash.c
+      stub/tree.c
+      stub/valid.c
+      stub/xmlstring.c
+      test_saml_sign.ut.c)
   else()
     add_executable(xsw_test_saml_sign validate_saml_sign.c test_saml_sign.ut.c)
   endif()
@@ -100,8 +108,8 @@ endif()
 if (LIBXML2_STUB)
 else()
   if(DEV_LIB)
-    target_link_libraries(xsw_test_saml_sign /data/balp/src/tools/exec/lib/libxml2.so)
-    # target_link_libraries(xsw_test_saml_sign /tools/exec/lib/libxml2.so)
+    # target_link_libraries(xsw_test_saml_sign /data/balp/src/tools/exec/lib/libxml2.so)
+    target_link_libraries(xsw_test_saml_sign /tools/exec/lib/libxml2.so)
   endif()
   if(SYSTEM_LIB)
     target_link_libraries(xsw_test_saml_sign /usr/lib/x86_64-linux-gnu/libxml2.so)

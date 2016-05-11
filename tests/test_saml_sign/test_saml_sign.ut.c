@@ -62,18 +62,20 @@ bool ut_saml_SignatureProfileValidator_validate(bool under_XSW_attack)
   xmlNode validAssertion;
   xmlNode maliciousAssertion;
   signature sign;
-  
-#if ADAPTED_CALL_CONTEXT == ON
+
+  //printf("MANUAL_CALLING_CONTEXT ? : %d\n", MANUAL_CALLING_CONTEXT);
+  //printf("ADAPTED_CALL_CONTEXT ? : %d\n", ADAPTED_CALL_CONTEXT);
+#if ADAPTED_CALL_CONTEXT
   xmlNode validAssertionIDval;
   validAssertionIDval.type = XML_TEXT_NODE;
   validAssertionIDval.content = ASSERTION_ID;
   validAssertionIDval.next = NULL;
-  
+
   xmlAttr validAssertionIDattr;
   validAssertionIDattr.type = XML_ATTRIBUTE_NODE;
   validAssertionIDattr.name = "ID";
   validAssertionIDattr.children = &validAssertionIDval;
-  
+
   validAssertion.type = XML_ELEMENT_NODE;
   validAssertion.name = "Assertion";
   validAssertion.properties = &validAssertionIDattr;
@@ -87,22 +89,22 @@ bool ut_saml_SignatureProfileValidator_validate(bool under_XSW_attack)
   maliciousAssertionIDval.type = XML_TEXT_NODE;
   maliciousAssertionIDval.content = ASSERTION_ID;
   maliciousAssertionIDval.next = NULL;
-  
+
   xmlAttr maliciousAssertionIDattr;
   maliciousAssertionIDattr.type = XML_ATTRIBUTE_NODE;
   maliciousAssertionIDattr.name = "ID";
   maliciousAssertionIDattr.children = &maliciousAssertionIDval;
-  
+
   maliciousAssertion.type = XML_ELEMENT_NODE;
   maliciousAssertion.name = "Assertion";
   maliciousAssertion.properties = &maliciousAssertionIDattr;
 #else
-  printf("WARNING: unverified call context ! is probably malformed and will probably crash !\n");
+  printf("WARNING: unverified call context !\nIt is probably malformed and will probably crash !\n");
 #endif
-  
+
   xmlDoc doc;
   doc.intSubset = NULL;
-  
+
   maliciousSAMLResponse = under_XSW_attack;
   if(maliciousSAMLResponse == false)
     {

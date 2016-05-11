@@ -10,10 +10,10 @@ set(CMAKE_BUILD_TYPE Debug)
 #option(USE_CXX_EXCEPTIONS "Enable C++ exception support" ON)
 
 # option to use the system library libxml2-dev
-option(SYSTEM_LIB "Use the system library libxml2" ON)
+option(SYSTEM_LIB "Use the system library libxml2" OFF)
 
 # option to use a manual installed library libxml2-dev
-option(DEV_LIB "Use the manual installed library libxml2" OFF)
+option(DEV_LIB "Use the manual installed library libxml2" ON)
 
 # option to build the integration test
 option(INTG_TEST "Build the integration test" OFF)
@@ -21,17 +21,31 @@ option(INTG_TEST "Build the integration test" OFF)
 # option to build the unitary test
 option(UNIT_TEST "Build the unitary test" ON)
 
+# option to use a wellformed call context
+option(ADAPTED_CALL_CONTEXT "Use a wellformed call context" OFF)
+
 # option to activate Frama-C analysis
-option(FRAMA_C "Option to activate Frama-C VA analysis" ON)
+option(FRAMA_C "Option to activate Frama-C VA analysis" OFF)
 
 # option to stub the libxml2 library
-option(LIBXML2_STUB "Option to stub the libxml2 library" ON)
+option(LIBXML2_STUB "Option to stub the libxml2 library" OFF)
 
 # save temporary files when needed
-if(FRAMA_C)
 option(SAVE_TEMPS "Save temporary files" ON)
-set(CMAKE_C_FLAGS " -save-temps -C -DFRAMA_C -D__FC_MACHDEP_X86_64")
-set(CMAKE_CXX_FLAGS " -save-temps -C ")
+
+configure_file (
+  "/home/hbalp/hugues/work/third_parties/src/llvm/tools/clang/tools/extra/callers/tests/test_saml_sign/validate_saml_sign.h.in"
+  "/home/hbalp/hugues/work/third_parties/src/llvm/tools/clang/tools/extra/callers/tests/test_saml_sign/validate_saml_sign.h"
+  )
+
+if(SAVE_TEMPS)
+  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -save-temps -C" )
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -save-temps -C" )
+endif()
+
+if(FRAMA_C)
+  set(CMAKE_C_FLAGS    "${CMAKE_C_FLAGS}   -DFRAMA_C -D__FC_MACHDEP_X86_64")
+  set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DFRAMA_C -D__FC_MACHDEP_X86_64")
 endif()
 
 # add subdirectories when needed
@@ -43,7 +57,7 @@ if(FRAMA_C)
   include_directories("/home/hbalp/ocamlbrew/ocaml-4.02.3/.opam/system/share/frama-c/libc")
 endif()
 if(DEV_LIB)
-  include_directories("/data/balp/src/tools/exec/include/libxml2")
+  include_directories("/tools/exec/include/libxml2")
 endif()
 if(SYSTEM_LIB)
   include_directories("/usr/include/libxml2")
@@ -56,18 +70,20 @@ endif()
 if(UNIT_TEST)
   #  add_executable(xsw_test_saml_sign validate_saml_sign.c test_saml_sign.ut.c)
   if(LIBXML2_STUB)
+    include_directories("/home/hbalp/hugues/work/third_parties/src/libxml2")
     # add_executable(xsw_test_saml_sign validate_saml_sign.c libxml2_empty_stub.c test_saml_sign.ut.c)
-    # add_executable(xsw_test_saml_sign validate_saml_sign.c libxml2_stub2.c test_saml_sign.ut.c)
-    add_executable(xsw_test_saml_sign validate_saml_sign.c stub/xmlstring.c stub/tree.c stub/xmlentities.c test_saml_sign.ut.c)
+    # add_executable(xsw_test_saml_sign validate_saml_sign.c libxml2_stub.c test_saml_sign.ut.c)
+    add_executable(xsw_test_saml_sign validate_saml_sign.c stub/xmlstring.c stub/entities.c stub/tree.c test_saml_sign.ut.c)    
   else()
     add_executable(xsw_test_saml_sign validate_saml_sign.c test_saml_sign.ut.c)
   endif()
 endif()
 
 # add path to external libraries
-if(INTG_TEST)
+if (LIBXML2_STUB)
+else()
   if(DEV_LIB)
-    target_link_libraries(xsw_test_saml_sign /data/balp/src/tools/exec/lib/libxml2.so)
+    target_link_libraries(xsw_test_saml_sign /tools/exec/lib/libxml2.so)
   endif()
   if(SYSTEM_LIB)
     target_link_libraries(xsw_test_saml_sign /usr/lib/x86_64-linux-gnu/libxml2.so)

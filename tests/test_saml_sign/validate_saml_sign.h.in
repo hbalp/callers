@@ -1,7 +1,7 @@
 #ifndef _VALIDATE_SAML_SIGN_H_
 #define _VALIDATE_SAML_SIGN_H_
 
-#define ADAPTED_CALL_CONTEXT OFF
+#define ADAPTED_CALL_CONTEXT @ADAPTED_CALL_CONTEXT@
 
 bool
 saml_SignatureProfileValidator_validate(signaturePtr sign, xmlDocPtr doc);

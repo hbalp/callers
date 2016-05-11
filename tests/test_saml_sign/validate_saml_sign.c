@@ -76,7 +76,7 @@ getElementByID(xmlNodePtr node, xmlChar* id)
   {
     return node;
   }
-
+  assert(node != NULL);
   xmlNodePtr ch = node->xmlChildrenNode;
   while (ch != NULL) {
       xmlNodePtr result = getElementByID(ch, id);

@@ -24,6 +24,7 @@
 #include <libxml/parser.h>
 
 #include "parse_saml_response.h"
+#include "validate_saml_sign.h"
 
 /********************************************************************************/
 /*                                Signature                                     */
@@ -253,6 +254,7 @@ parseSamlResponseFile(char *filename) {
     /*
      * the library has been compiled without some of the old interfaces
      */
+    printf("ERROR: the libxml2 library has been compiled without some of the old interfaces\n");
     assert(0);
 #endif /* LIBXML_SAX1_ENABLED */
 

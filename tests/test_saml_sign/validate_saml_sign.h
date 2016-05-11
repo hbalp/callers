@@ -4,4 +4,7 @@
 bool
 saml_SignatureProfileValidator_validate(signaturePtr sign, xmlDocPtr doc);
 
+xmlNodePtr
+getElementByID(xmlNodePtr node, xmlChar* id);
+
 #endif

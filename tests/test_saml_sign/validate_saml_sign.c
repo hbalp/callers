@@ -57,3 +57,34 @@ bool saml_SignatureProfileValidator_validate(signaturePtr sign, xmlDocPtr doc)
     }
     return is_valid;
 }
+
+/* xmlNodePtr */
+/* getElementByID(xmlNodePtr node, xmlChar* id) */
+/* { */
+/*   xmlNodePtr elementById; */
+/*   return elementById; */
+/* } */
+
+xmlNodePtr
+getElementByID(xmlNodePtr node, xmlChar* id)
+{
+  xmlChar* curid = xmlGetProp(node, (const xmlChar *)"ID");
+
+  // printf("getElementByID:DEBUG: curid=%s, id=%s\n", curid, id);
+
+  if ((curid != NULL)&&(!xmlStrcmp(curid, (const xmlChar *) id)))
+  {
+    return node;
+  }
+
+  xmlNodePtr ch = node->xmlChildrenNode;
+  while (ch != NULL) {
+      xmlNodePtr result = getElementByID(ch, id);
+      if(result != NULL)
+      {
+        return result;
+      }
+      ch = ch->next;
+  }
+  return NULL;
+}

@@ -19,10 +19,3 @@ xmlDocGetRootElement (const xmlDoc *doc)
   xmlNodePtr node;
   return node;
 }
-
-xmlNodePtr
-getElementByID(xmlNodePtr node, xmlChar* id)
-{
-  xmlNodePtr elementById;
-  return elementById;
-}

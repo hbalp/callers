@@ -5,6 +5,20 @@
  * hugues.balp@thalesgroup.com
  */
 
+
+#include <assert.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
+
+/*
+ * COMPAT using xml-config --cflags to get the include path this will work with both
+ */
+#include <libxml/xmlmemory.h>
+#include <libxml/parser.h>
+
+#include "parse_saml_response.h"
 #include "validate_saml_sign.h"
 
 /********************************************************************************/

@@ -32,34 +32,6 @@ static xmlNode maliciousAssertion;
 //bool maliciousSAMLResponse; // = true;
 int maliciousSAMLResponse; // 0: false , else : true;
 
-xmlNodePtr
-xmlDocGetRootElement (const xmlDoc *doc)
-{
-  return &rootElement;
-}
-
-int
-xmlStrcmp (const xmlChar *str1,
-	   const xmlChar *str2)
-{
-  return 0;
-}
-
-xmlNodePtr
-getElementByID(xmlNodePtr node, xmlChar* id)
-{
-  xmlNodePtr elementByID;  
-  if(maliciousSAMLResponse != 0)
-    {
-      elementByID = &maliciousAssertion;
-    }
-  else
-    {
-      elementByID = &validAssertion;
-    }
-  return elementByID;
-}
-
 bool ut_saml_SignatureProfileValidator_validate(int under_XSW_attack)
 {
   xmlNodePtr parent = &validAssertion;

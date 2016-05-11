@@ -8,7 +8,4 @@ xmlStrcmp (const xmlChar *str1,
 xmlNodePtr
 xmlDocGetRootElement (const xmlDoc *doc);
 
-xmlNodePtr
-getElementByID(xmlNodePtr node, xmlChar* id);
-
 #endif

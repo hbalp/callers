@@ -24,6 +24,12 @@ option(UNIT_TEST "Build the unitary test" ON)
 # option to use a wellformed call context
 option(ADAPTED_CALL_CONTEXT "Use a wellformed call context" ON)
 
+# option to set the XML_MEM_TRACE environment variable
+option(USE_XML_MEM_TRACE "Option to set the XML_MEM_TRACE environment variable" ON)
+
+# option to set the XML_MEM_BREAKPOINT environment variable
+option(USE_XML_MEM_BREAKPOINT "Option to set the XML_MEM_BREAKPOINT environment variable" ON)
+
 # option to activate Frama-C analysis
 option(FRAMA_C "Option to activate Frama-C VA analysis" ON)
 
@@ -49,9 +55,9 @@ configure_file (
   "../validate_saml_sign.h"
   )
 
-if(ADAPTED_CALL_CONTEXT)
-  set(MANUAL_CALL_CONTEXT "try1" 1)
-endif()
+# if(ADAPTED_CALL_CONTEXT)
+
+# endif()
 
 if(SAVE_TEMPS)
   set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -save-temps -C" )
@@ -74,8 +80,8 @@ if(FRAMA_C)
   include_directories("/opt/stance/share/frama-c/libc")
 endif()
 if(DEV_LIB)
-  include_directories("/data/balp/src/tools/exec/include/libxml2")
-  # include_directories("/tools/exec/include/libxml2")
+  # include_directories("/data/balp/src/tools/exec/include/libxml2")
+  include_directories("/tools/exec/include/libxml2")
 endif()
 if(SYSTEM_LIB)
   include_directories("/usr/include/libxml2")
@@ -126,8 +132,8 @@ endif()
 if (LIBXML2_STUB)
 else()
   if(DEV_LIB)
-    target_link_libraries(xsw_test_saml_sign /data/balp/src/tools/exec/lib/libxml2.so)
-    # target_link_libraries(xsw_test_saml_sign /tools/exec/lib/libxml2.so)
+    # target_link_libraries(xsw_test_saml_sign /data/balp/src/tools/exec/lib/libxml2.so)
+    target_link_libraries(xsw_test_saml_sign /tools/exec/lib/libxml2.so)
   endif()
   if(SYSTEM_LIB)
     target_link_libraries(xsw_test_saml_sign /usr/lib/x86_64-linux-gnu/libxml2.so)

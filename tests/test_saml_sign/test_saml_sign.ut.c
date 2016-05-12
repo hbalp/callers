@@ -98,6 +98,15 @@ bool ut_saml_SignatureProfileValidator_validate(bool under_XSW_attack)
   maliciousAssertion.type = XML_ELEMENT_NODE;
   maliciousAssertion.name = "Assertion";
   maliciousAssertion.properties = &maliciousAssertionIDattr;
+
+#if USE_XML_MEM_TRACE
+  setenv("XML_MEM_TRACE", "yes", 1);
+#endif
+
+#if USE_XML_MEM_BREAKPOINT
+  setenv("XML_MEM_BREAKPOINT", "yes", 1);
+#endif
+
 #else
   printf("WARNING: unverified call context !\nIt is probably malformed and will probably crash !\n");
 #endif

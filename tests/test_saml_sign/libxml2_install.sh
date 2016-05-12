@@ -1,10 +1,10 @@
 # download libxml2-2.9.3.tar.gz
 ici=`pwd`
-libxml2=libxml2-2.9.3
-#libxml2=libxml2
+#libxml2=libxml2-2.9.3
+libxml2=libxml2
 #librootdir=${ici}
-librootdir="/data/balp/src/tools"
-#librootdir="/home/hbalp/hugues/work/third_parties/src"
+#librootdir="/data/balp/src/tools"
+librootdir="/home/hbalp/hugues/work/third_parties/src"
 libdir="${librootdir}/${libxml2}"
 #libinstalldir="${librootdir}/exec"
 libinstalldir="/tools/exec"
@@ -106,13 +106,14 @@ function libxml2_fc_va_preproc ()
     #libxml2_cots_install
 
     # download libxml2 sources
-    #libxml2_git_master_clone
+    libxml2_git_master_clone
     # or unzip a local archive when download is not possible
-    tar -zxf libxml2-2.9.3.tar.gz
+    #tar -zxf libxml2-2.9.3.tar.gz
 
     # Configure
-    libxml2_config "-save-temps -C -D__FC_MACHDEP_X86_64 -I/opt/stance/share/frama-c/libc" > .libxml2_config.stdout 2> .libxml2_config.stderr
-
+    #libxml2_config "-save-temps -C -D__FC_MACHDEP_X86_64 -I/opt/stance/share/frama-c/libc" > .libxml2_config.stdout 2> .libxml2_config.stderr
+    libxml2_config "-save-temps -C -D__FC_MACHDEP_X86_64 -I/home/hbalp/ocamlbrew/ocaml-4.02.3/.opam/system/share/frama-c/libc" > .libxml2_config.stdout 2> .libxml2_config.stderr
+    
     # Build
     libxml2_build > .libxml2_preproc.stdout 2> .libxml2_preproc.stderr
 
@@ -173,11 +174,10 @@ function libxml2_config ()
 {
     cflags=$1
     cd ${libdir}
-    #autogen.sh &&
-    autoreconf &&
+    autogen.sh &&
+    #autoreconf &&
     #CFLAGS+="-save-temps -C -DSTANCE_SSO -DFRAMA_C -D__FC_MACHDEP_X86_64" ./configure --without-ftp --without-http --without-zlib --with-run-debug --with-mem-debug --prefix=${libinstalldir}
     ##CFLAGS+="-save-temps -DSTANCE_SSO -D__FC_MACHDEP_X86_64 -I /opt/stance/share/frama-c/libc" ./configure --without-ftp --without-http --without-zlib --with-run-debug --with-mem-debug --prefix=${libinstalldir}
-
     CFLAGS+="${cflags}" ./configure \
 	--prefix=/tools/exec \
 	--enable-ipv6=no \

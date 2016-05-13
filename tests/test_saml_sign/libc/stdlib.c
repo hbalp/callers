@@ -23,6 +23,7 @@
    FRAMA_C_MALLOC_HEAP
    to select the proper one. */
 
+#define FRAMA_C_MALLOC_INDIVIDUAL
 
 #ifdef FRAMA_C_MALLOC_INDIVIDUAL
 

@@ -21,13 +21,14 @@ endif()
 # add path to header files
 if(FRAMA_C)
   # frama-c -print-share-path
-  include_directories("/opt/stance/share/frama-c/libc")
-  # include_directories("/home/hbalp/ocamlbrew/ocaml-4.02.3/.opam/system/share/frama-c/libc")
+  # include_directories("/opt/stance/share/frama-c/libc")
+  include_directories("/home/hbalp/ocamlbrew/ocaml-4.02.3/.opam/system/share/frama-c/libc")
 else()
   include_directories("/usr/include")
 endif()
 
 # define by default a build target when source files are present
 #add_executable(test_assert test_assert.c)
-add_executable(test_stdio test_stdio.c)
+#add_executable(test_stdio test_stdio.c)
 #add_executable(test_pp-annot test_pp-annot.c)
+add_executable(test_malloc test_malloc.c)

@@ -25,7 +25,7 @@
 #ifndef FRAMA_C_MEMCPY
 //#include "builtin.h"
 //STANCE_ACK
-#include "libc/__fc_builtin.h"
+#include "__fc_builtin.h"
 //STANCE_ACK
 void* memcpy(void* region1, const void* region2, size_t n)
 {
@@ -66,8 +66,9 @@ void* memset (void* dest, int val, size_t len)
 
 int strcmp(const char *s1, const char *s2)
 {
-  if (s1 == s2)
-    return (0);
+  /* if (s1 == s2) */
+  /*   return (0); */
+  /*@ loop pragma UNROLL 80; */
   while (*s1 == *s2++)
     if (*s1++ == '\0')
       return (0);
@@ -270,7 +271,8 @@ char * strrchr (const char *s, int c)
   return (rtnval);
 }
 
-char * strstr (char *s1, char* s2)
+// bug syntaxique de cette release
+char * strstr (char *s1, char *s2)
 {
   char *p = s1;
   int len = strlen (s2);
@@ -302,3 +304,11 @@ int abs (int i)
   return i;
 }
 
+
+char *strdup(const char *s)
+{
+  size_t l = strlen(s) + 1;
+  char *p = malloc(l);
+  memcpy(p, s, l);
+  return p;
+}

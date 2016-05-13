@@ -70,7 +70,7 @@ bool ut_saml_SignatureProfileValidator_validate(bool under_XSW_attack)
   validAssertionIDval.type = XML_TEXT_NODE;
   validAssertionIDval.content = ASSERTION_ID;
   validAssertionIDval.next = NULL;
-
+  
   xmlAttr validAssertionIDattr;
   validAssertionIDattr.type = XML_ATTRIBUTE_NODE;
   validAssertionIDattr.name = "ID";
@@ -89,11 +89,20 @@ bool ut_saml_SignatureProfileValidator_validate(bool under_XSW_attack)
   maliciousAssertionIDval.type = XML_TEXT_NODE;
   maliciousAssertionIDval.content = ASSERTION_ID;
   maliciousAssertionIDval.next = NULL;
-
+  
   xmlAttr maliciousAssertionIDattr;
   maliciousAssertionIDattr.type = XML_ATTRIBUTE_NODE;
   maliciousAssertionIDattr.name = "ID";
   maliciousAssertionIDattr.children = &maliciousAssertionIDval;
+
+#if defined(FRAMA_C) && defined(FRAMA_C_VA_WIDENING)
+  int i;
+  int lengthId = Frama_C_interval(2, 20);
+  maliciousAssertionIDattr.name = Frama_C_alloc_size(lengthId); // malloc
+  for (i = 0; i < lengthId-1; ++i)
+    maliciousAssertionIDattr.name[i] = Frama_C_char_interval(CHAR_MIN, CHAR_MAX);
+  maliciousAssertionIDattr.name[lengthId-1] = '\0';
+#endif  
 
   maliciousAssertion.type = XML_ELEMENT_NODE;
   maliciousAssertion.name = "Assertion";

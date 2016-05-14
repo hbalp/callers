@@ -12,12 +12,15 @@
 # some global definitions
 fc_parsed_data="fc_parsed.gen.sav"
 
-fc_shared_libc_pp_annot_macros="-DEOF=-1 -D__FC_FOPEN_MAX=512 -D__FC_MAX_OPEN_FILES=1024 -DF_DUPFD=1 -DF_GETFD=2 -DF_SETFD=3 -DF_GETFL=4 -DF_SETFL=5 -DF_GETLK=6 -DF_SETLK=7 -DF_SETLKW=8 -DF_GETOWN=9 -DF_SETOWN=10 -DO_CREAT=0x0200"
+fc_shared_libc_pp_annot_macros="-DEOF=-1 -D__FC_FOPEN_MAX=512 -D__FC_MAX_OPEN_FILES=1024 -DF_DUPFD=1 -DF_GETFD=2 -DF_SETFD=3 -DF_GETFL=4 -DF_SETFL=5 -DF_GETLK=6 -DF_SETLK=7 -DF_SETLKW=8 -DF_GETOWN=9 -DF_SETOWN=10 -DO_CREAT=0x0200 -DFRAMA_C_MALLOC_INDIVIDUAL -D__FC_USE_BUILTIN__"
 
 FRAMA_C_SHARE_PATH=`frama-c -print-share-path`
 FRAMA_C_LIBC_DIR="${FRAMA_C_SHARE_PATH}/libc"
-#FRAMA_C_BUILTIN_FILES="${FRAMA_C_SHARE_PATH}/libc.c" # to be used when correct
-FRAMA_C_BUILTIN_FILES=""  # replaced by a local and modified libc.c 
+# to be used when correct
+#FRAMA_C_BUILTIN_FILES="${FRAMA_C_SHARE_PATH}/libc.c"
+FRAMA_C_BUILTIN_FILES="${FRAMA_C_SHARE_PATH}/libc/stdlib.c ${FRAMA_C_SHARE_PATH}/libc/string.c"
+# replaced by a local and modified libc.c 
+#FRAMA_C_BUILTIN_FILES=""
 
 # usage: fc_main_gen ${cmd_args}
 function fc_main_gen ()
@@ -242,7 +245,9 @@ function fc_va ()
       fc_va_builtins_args="-val-builtin Frama_C_alloc_size"
       #fc_va_builtins_args="-val-builtin __FC_assert"
       #fc_va_builtins_args=""
-      time frama-c -load ${fc_parsed_data} -val -main ${main} -slevel ${slevel} ${fc_va_builtins_args} -save ${fc_analyzed_data} > ${fc_analyzis_stdout} 2> ${fc_analyzis_stderr}
-      grep "warning: Neither code nor specification for function" fc_analysis.gen.stdout
+      fc_va_cmd="time frama-c -load ${fc_parsed_data} -val -main ${main} -slevel ${slevel} ${fc_va_builtins_args} -save ${fc_analyzed_data} > ${fc_analyzis_stdout} 2> ${fc_analyzis_stderr}"
+      echo "fc_va: ${fc_va_cmd}"
+      ${fc_va_cmd}
+      grep "warning: " fc_analysis.gen.stdout
   fi
 }

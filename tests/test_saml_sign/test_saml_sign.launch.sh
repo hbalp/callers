@@ -77,9 +77,10 @@ function libxml2_config_host_moriond ()
     LIBXML2_SYS_LIB_PATH="${LIBXML2_SYS_LIB_DIR}/libxml2.so"
     
     LIBXML2_DEV_INCLUDES_DIR="/tools/exec/include/libxml2"
-    LIBXML2_DEV_LIB_SRC_DIR="/home/hbalp/hugues/work/third_parties/src/libxml2"
-    LIBXML2_DEV_LIB_INSTALL_PATH="/tools/exec/lib/libxml2.so"
-    EXTRA_DEV_LIBS_DIRS="${EXTRA_DEV_LIBS_DIRS} ${LIBXML2_DEV_LIB_SRC_DIR}"
+    LIBXML2_DEV_LIB_GDB_SRC_DIR="/home/hbalp/hugues/work/third_parties/src/libxml2_gdb"
+    LIBXML2_DEV_LIB_FC_SRC_DIR="/home/hbalp/hugues/work/third_parties/src/libxml2_fc"
+    LIBXML2_DEV_LIB_INSTALL_PATH="/tools/exec/lib/libxml2.a"
+    EXTRA_DEV_LIBS_DIRS="${EXTRA_DEV_LIBS_DIRS} ${LIBXML2_DEV_LIB_FC_SRC_DIR}"
 }
 
 function libxml2_config_host_vm ()
@@ -89,9 +90,10 @@ function libxml2_config_host_vm ()
     LIBXML2_SYS_LIB_PATH="${LIBXML2_SYS_LIB_DIR}/libxml2.so"
     
     LIBXML2_DEV_INCLUDES_DIR="/data/balp/src/tools/exec/include/libxml2"
-    LIBXML2_DEV_LIB_SRC_DIR="/data/balp/src/tools/libxml2"
-    LIBXML2_DEV_LIB_INSTALL_PATH="/data/balp/src/tools/exec/lib/libxml2.so"
-    EXTRA_DEV_LIBS_DIRS="${EXTRA_DEV_LIBS_DIRS} ${LIBXML2_DEV_LIB_SRC_DIR}"
+    LIBXML2_DEV_LIB_GDB_SRC_DIR="/data/balp/src/tools/libxml2_gdb"
+    LIBXML2_DEV_LIB_FC_SRC_DIR="/data/balp/src/tools/libxml2_fc"
+    LIBXML2_DEV_LIB_INSTALL_PATH="/data/balp/src/tools/exec/lib/libxml2.a"
+    EXTRA_DEV_LIBS_DIRS="${EXTRA_DEV_LIBS_DIRS} ${LIBXML2_DEV_LIB_FC_SRC_DIR}"
 }
 
 function cmake_config_common ()
@@ -106,11 +108,12 @@ function cmake_config_common ()
     FRAMA_C_SHARE_PATH=`frama-c -print-share-path`
     FRAMA_C_LIBC_DIR="${FRAMA_C_SHARE_PATH}/libc"
     # slevle should be upper then the sizeof XML_MEM_BREAKPOINT used as input in strcmp
-    #FRAMA_C_SLEVEL=80
+    FRAMA_C_SLEVEL=80
     #FRAMA_C_SLEVEL=30
-    FRAMA_C_SLEVEL=2
+    #FRAMA_C_SLEVEL=2
     #FRAMA_C_MODIFIED_FILES="stub/tree.c libc/libc.c libc/stdlib.c libc/setgetenv.c"
-    FRAMA_C_MODIFIED_FILES="stub/tree.c libc/stdlib.c libc/setgetenv.c"
+    #FRAMA_C_MODIFIED_FILES="stub/tree.c libc/stdlib.c libc/setgetenv.c"
+    FRAMA_C_MODIFIED_FILES="libc/setgetenv.c"
     EXTRA_DEV_LIBS_DIRS=""
     build_config_host
 }
@@ -372,8 +375,8 @@ if(SAVE_TEMPS)
 endif()
 
 if(FRAMA_C)
-  set(CMAKE_C_FLAGS    "\${CMAKE_C_FLAGS}   -DFRAMA_C -D__FC_MACHDEP_X86_64")
-  set(CMAKE_CXX_FLAGS  "\${CMAKE_CXX_FLAGS} -DFRAMA_C -D__FC_MACHDEP_X86_64")
+  set(CMAKE_C_FLAGS    "\${CMAKE_C_FLAGS}   -DFRAMA_C -D__FC_MACHDEP_X86_64") # -DFRAMA_C_MALLOC_INDIVIDUAL")
+  set(CMAKE_CXX_FLAGS  "\${CMAKE_CXX_FLAGS} -DFRAMA_C -D__FC_MACHDEP_X86_64") # -DFRAMA_C_MALLOC_INDIVIDUAL")
 endif()
 
 # add subdirectories when needed

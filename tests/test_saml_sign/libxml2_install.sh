@@ -1,27 +1,77 @@
-# download libxml2-2.9.3.tar.gz
-ici=`pwd`
-#libxml2=libxml2-2.9.3
-libxml2=libxml2
-#librootdir=${ici}
-#librootdir="/data/balp/src/tools"
-librootdir="/home/hbalp/hugues/work/third_parties/src"
-libdir="${librootdir}/${libxml2}"
-#libinstalldir="${librootdir}/exec"
-libinstalldir="/tools/exec"
+# Script managing the installation and build of the libxml2 library
+# Two available configurations: libxml2_local_install and libxml2_git_install
 
-function libxml2_workflow ()
+INSTALL_CONFIG="git"
+#INSTALL_CONFIG="local"
+
+# host dependant libxml2 config
+function libxml2_config_host ()
 {
-    # you should choose between a system install
-    libxml2_binary_workflow
-    
-    # ... or a build and install from sources
-    libxml2_source_workflow
+  #librootdir="/data/balp/src/tools"
+  librootdir="/home/hbalp/hugues/work/third_parties/src"
+  #libinstalldir="${librootdir}/exec"
+  libinstalldir="/tools/exec"
+  libxml2_local_gdb_dir="libxml2_gdb"
+  libxml2_src_gdb_config_args=""
+  libxml2_local_fc_dir="libxml2_fc"
+  #libxml2_install_cots="true"
+  libxml2_install_cots="false"
+  libxml2_autogen_config_filename=".libxml2.config.gen.sh"
 }
+
+# for install_config="local"
+function libxml2_config_local_archive ()
+{
+  libxml2_local_dir_name="libxml2"
+  libxml2_local_archive_name="libxml2-2.9.4"
+  libxml2_local_archive_fullname="${libxml2_local_archive_name}.tgz"
+}
+
+# for install_config="git"
+function libxml2_config_git_archive ()
+{
+  libxml2_git_archive_url="git://git.gnome.org/libxml2"
+}
+
+# fc build option:
+# CC=gcc CFLAGS="-save-temps -C -D__FC_MACHDEP_X86_64 -I /tools/exec/share/frama-c/libc" make
+function libxml2_config_fc_va ()
+{
+  frama_c_share_dir=`frama-c -print-share-path`
+  frama_c_libc_dir="${frama_c_share_dir}/libc"
+  libxml2_src_fc_config_args="CC=gcc CFLAGS=\"-save-temps -C -D__FC_MACHDEP_X86_64 -I ${frama_c_libc_dir}\""
+}
+
+ici=`pwd`
+
+function usage_libxml2_install()
+{
+    echo "Usage of script libxml2_install.sh"
+    echo "3 features:"
+    echo "1) System install of libxml2:";
+    echo "   > libxml2_binary_workflow";
+    echo "2) Source install of libxml2:";
+    echo "   > libxml2_source_workflow <git|local>";
+    echo "3) Frama-C builtin preprocessing of libxml2:";
+    echo "   > libxml2_fc_va_prepare <git|local>";
+    echo "4) Frama-C update preprocessing of libxml2:";
+    echo "   > libxml2_fc_preproc_update";
+    return 0;
+}
+
+# function libxml2_workflow ()
+# {
+#     # you should choose between a system install
+#     libxml2_binary_workflow
+    
+#     # ... or a build and install from sources
+#     libxml2_source_workflow
+# }
 
 function libxml2_binary_workflow ()
 {
-    cd ${librootdir}
-
+    libxml2_config_common
+    
     # Uninstall
     #libxml2_binary_uninstall
     
@@ -31,24 +81,53 @@ function libxml2_binary_workflow ()
 
 function libxml2_source_workflow ()
 {
+    install_config=$1
+    if [ -z ${install_config} ]; then
+       echo "libxml2 source install error: expected one user parameter"
+       echo "usage: libxml2_source_workflow <install_config=git|local>"
+       return 1;
+    fi
+    libxml2_config_common
     cd ${librootdir}
 
     # Uninstall
     #libxml2_source_uninstall
     
     # Install
-    libxml2_source_install
+    libxml2_source_install ${install_config}
 }
 
 function libxml2_fc_va_prepare ()
 {
+    install_config=$1
+    if [ -z ${install_config} ]; then
+       echo "libxml2 fc va error: expected one user parameter"
+       echo "usage: libxml2_fc_va_prepare <install_config=git|local>"
+       return 1;
+    fi
+    libxml2_config_common
     cd ${librootdir}
 
     # Uninstall
     #libxml2_source_uninstall
 
     # Install
-    libxml2_fc_va_preproc
+    libxml2_fc_va_preproc ${install_config}
+}
+
+function libxml2_fc_preproc_update ()
+{
+    libxml2_config_common
+    cd ${libxml2_local_fc_dir}
+    CC=gcc CFLAGS="-save-temps -C -D__FC_MACHDEP_X86_64 -I ${frama_c_libc_dir}" make
+}
+
+function libxml2_config_common ()
+{
+    libxml2_config_host
+    libxml2_config_local_archive
+    libxml2_config_git_archive
+    libxml2_config_fc_va
 }
 
 function libxml2_binary_uninstall ()
@@ -66,27 +145,60 @@ function libxml2_binary_install ()
     libxml2_system_install
 }
 
+# download or unzip a local archive according to the install_config and dest_dir parameters
+function libxml2_get_sources ()
+{
+    install_config=$1
+    dest_dir=$2
+    libdir="${librootdir}/${dest_dir}"
+    if [ ${install_config} == "git" ]; then
+      # download libxml2 sources
+      libxml2_git_master_clone ${dest_dir}
+    elif [ ${install_config} == "local" ]; then
+      # or unzip a local archive when download is not possible
+      libxml2_local_archive ${dest_dir}
+    else
+      return 1;
+    fi
+}
+
+# unzip a local archive when download is not possible
+function libxml2_local_archive ()
+{
+    dest_dir=$1
+    cd ${librootdir}
+    if [ -d ${dest_dir} ]; then
+       echo "WARNING: already existing dest_dir=${dest_dir}"
+       echo "We will overwrite it !"
+       #echo "Do you really want to overwrite it ?"
+       rm -rf ${dest_dir}
+    fi
+    tar -zxf ${libxml2_local_archive_fullname} || echo "libxml2_install ERROR: Not found tar archive ${libxml2_local_archive_fullname} in ${librootdir}"
+    mv ${libxml2_local_dir_name} ${dest_dir}
+}
+
 function libxml2_source_install ()
 {
+    install_config=$1
+
     # install COTS used by libxml2
-    libxml2_cots_install
+    libxml2_cots_install &&
 
-    # download libxml2 sources
-    #libxml2_git_master_clone
-    # or unzip a local archive when download is not possible
-    tar -zxf libxml2-2.9.3.tar.gz
-
-    # Configure
-    libxml2_config "" > .libxml2_config.stdout 2> .libxml2_config.stderr
-
-    # Build
-    libxml2_build > .libxml2_build.stdout 2> .libxml2_build.stderr
-
-    # Install built library
-    libxml2_git_master_install
+    # get the sources of libxml2
+    libxml2_get_sources ${install_config} ${libxml2_local_gdb_dir} &&
     
-    # Prepare FC analysis
-    # libxml2_fc_prepare > /dev/null 2> .libxml2_fc_prepare.stderr
+    # Configure
+    libxml2_source_config ${libxml2_src_gdb_config_args} > .libxml2_config.stdout 2> .libxml2_config.stderr &&
+    (
+      # Build
+      libxml2_gdb_build > .libxml2_build.stdout 2> .libxml2_build.stderr &&
+
+      # Install built library
+      libxml2_git_master_install
+      
+    ) ||
+
+    ( echo "libxml2 source config error; you need probably to install the COTS library libtool by using: libxml2_cots_force_install..."; return 3 ) 
 }
 
 function libxml2_source_uninstall ()
@@ -102,20 +214,20 @@ function libxml2_source_uninstall ()
 
 function libxml2_fc_va_preproc ()
 {
+    install_config=$1
+    libxml2_config_fc_va
+    
     # install COTS used by libxml2
-    #libxml2_cots_install
+    libxml2_cots_install
 
-    # download libxml2 sources
-    libxml2_git_master_clone
-    # or unzip a local archive when download is not possible
-    #tar -zxf libxml2-2.9.3.tar.gz
+    # get the sources of libxml2
+    libxml2_get_sources ${install_config} ${libxml2_local_fc_dir}
 
     # Configure
-    #libxml2_config "-save-temps -C -D__FC_MACHDEP_X86_64 -I/opt/stance/share/frama-c/libc" > .libxml2_config.stdout 2> .libxml2_config.stderr
-    libxml2_config "-save-temps -C -D__FC_MACHDEP_X86_64 -I/home/hbalp/ocamlbrew/ocaml-4.02.3/.opam/system/share/frama-c/libc" > .libxml2_config.stdout 2> .libxml2_config.stderr
+    libxml2_source_config ${libxml2_src_fc_config_args} > .libxml2_config.stdout 2> .libxml2_config.stderr
     
     # Build
-    libxml2_build > .libxml2_preproc.stdout 2> .libxml2_preproc.stderr
+    libxml2_fc_build > .libxml2_preproc.stdout 2> .libxml2_preproc.stderr
 
     # Install built library
     #libxml2_git_master_install
@@ -124,110 +236,147 @@ function libxml2_fc_va_preproc ()
     # libxml2_fc_prepare > /dev/null 2> .libxml2_fc_prepare.stderr
 }
 
+# install COTS used by libxml2 when configured
 function libxml2_cots_install ()
 {
-    # install COTS used by libxml2
+    if [ ${libxml2_install_cots} == "true" ]; then
+    	libxml2_cots_force_install
+    fi
+}
+
+function libxml2_cots_force_install ()
+{
+    echo "WARNING: We need root privileges to install COTS used by libxml2..."
     sudo apt-get install libtool
 }
 
+# uninstall COTS used by libxml2 when configured
 function libxml2_cots_uninstall ()
 {
-    # remove COTS used by libxml2
-    sudo apt-get remove libtool
+    if [ ${libxml2_install_cots} == "true" ]; then
+        echo "WARNING: We need root privileges to uninstall COTS used by libxml2..."
+	sudo apt-get remove libtool
+    fi
 }
 
 function libxml2_system_install ()
 {
+    echo "WARNING: We need root privileges to install the system library libxml2"
     sudo apt-get install libxml2-dev
 }
 
 function libxml2_system_uninstall ()
 {
+    echo "WARNING: We need root privileges to uninstall the system library libxml2"
     sudo apt-get remove libxml2-dev
 }
 
 function libxml2_git_master_clone ()
 {
     cd ${librootdir}
-    git clone git://git.gnome.org/libxml2
+    clone_dir=$1
+    git clone ${libxml2_git_archive_url} ${clone_dir}
 }
 
 function libxml2_git_master_delete ()
 {
     cd ${librootdir}
-    rm -rf ${libxml2}
+    rm -rf ${libxml2_local_clone_dir}
 }
 
 function libxml2_git_master_install ()
 {
     cd ${libdir}
+    echo "WARNING: We need root privileges to install in dir ${libinstalldir} the library libxml2 built in ${libdir}"
     sudo make install
 }
 
 function libxml2_git_master_uninstall ()
 {
     cd ${libdir}
+    echo "WARNING: We need root privileges to uninstall from dir ${libinstalldir} the library libxml2 built in ${libdir}"
     sudo make uninstall
 }
 
-function libxml2_config ()
+function libxml2_source_config ()
 {
-    cflags=$1
-    cd ${libdir}
-    autogen.sh &&
-    #autoreconf &&
-    #CFLAGS+="-save-temps -C -DSTANCE_SSO -DFRAMA_C -D__FC_MACHDEP_X86_64" ./configure --without-ftp --without-http --without-zlib --with-run-debug --with-mem-debug --prefix=${libinstalldir}
-    ##CFLAGS+="-save-temps -DSTANCE_SSO -D__FC_MACHDEP_X86_64 -I /opt/stance/share/frama-c/libc" ./configure --without-ftp --without-http --without-zlib --with-run-debug --with-mem-debug --prefix=${libinstalldir}
-    CFLAGS+="${cflags}" ./configure \
-	--prefix=/tools/exec \
-	--enable-ipv6=no \
-	--without-c14n \
-	--without-catalog \
-	--with-debug \
-	--without-docbook \
-	--without-fexceptions \
-	--without-ftp \
-	--without-history \
-	--without-html \
-	--without-http \
-	--without-iconv \
-	--without-icu \
-	--with-iso8859x \
-	--without-legacy \
-	--with-mem-debug \
-	--with-minimum \
-	--without-output \
-	--without-pattern \
-	--without-push \
-	--without-python \
-	--without-reader \
-	--without-regexps \
-	--with-run-debug \
-	--with-sax1 \
-	--without-schemas \
-	--without-schematron \
-	--without-threads \
-	--without-tree \
-	--without-valid \
-	--without-writer \
-	--without-xinclude \
-	--without-xpath \
-	--without-xptr \
-	--without-modules \
-	--without-zlib \
-	--without-lzma \
-	--without-coverage
+    cflags=$@
+    if [ -d ${libdir} ]; then
+	(
+	    echo "INFO: libdir=${libdir}" > /dev/stdout;
+	    cd ${libdir}
+	    #autogen.sh
+	    #autogen.sh &&
+	    #autoreconf &&
+	    #CFLAGS+="${cflags}" ./configure \
+	    cat > ${libxml2_autogen_config_filename} <<EOF
+#!/bin/bash \\
+${cflags} ./autogen.sh \\
+          --prefix=/tools/exec \\
+          --disable-shared \\
+          --disable-fast-install \\
+          --enable-ipv6=no \\
+          --without-c14n \\
+          --without-catalog \\
+          --with-debug \\
+          --without-docbook \\
+          --without-fexceptions \\
+          --without-ftp \\
+          --without-history \\
+          --without-html \\
+          --without-http \\
+          --without-iconv \\
+          --without-icu \\
+          --with-iso8859x \\
+          --without-legacy \\
+          --with-mem-debug \\
+          --with-minimum \\
+          --without-output \\
+          --without-pattern \\
+          --without-push \\
+          --without-python \\
+          --without-reader \\
+          --without-regexps \\
+          --with-run-debug \\
+          --with-sax1 \\
+          --without-schemas \\
+          --without-schematron \\
+          --without-threads \\
+          --without-tree \\
+          --without-valid \\
+          --without-writer \\
+          --without-xinclude \\
+          --without-xpath \\
+          --without-xptr \\
+          --without-modules \\
+          --without-zlib \\
+          --without-lzma \\
+          --without-coverage
+EOF
+	    source ${libxml2_autogen_config_filename} || ( echo "libxml2 source config error" > /dev/stderr; return 2 )
+	)
+    else
+	( echo "libxml2_install:ERROR: Not found libdir=${libdir}" > /dev/stderr; return 5 )
+	return
+    fi
+
 }
 
-function libxml2_build ()
+function libxml2_gdb_build ()
 {
   cd ${libdir}
-  make VERBOSE=yes
+  CC=clang CLFAGS="-g -O0" LDFLAGS="-g -O0" make
 }
 
-function libxml2_fc_prepare ()
+function libxml2_fc_build ()
 {
   cd ${libdir}
-  source fc_analysis.sh
-  fc_parse
+  CC=gcc CFLAGS="-O0 -save-temps -C -D__FC_MACHDEP_X86_64 -I ${frama_c_libc_dir}" make
 }
+
+# function libxml2_fc_prepare ()
+# {
+#   cd ${libdir}
+#   source fc_analysis.sh
+#   fc_parse
+# }

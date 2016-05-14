@@ -12,7 +12,10 @@
 # some global definitions
 fc_parsed_data="fc_parsed.gen.sav"
 
-fc_shared_libc_pp_annot_macros="-DEOF=-1 -D__FC_FOPEN_MAX=512 -D__FC_MAX_OPEN_FILES=1024 -DF_DUPFD=1 -DF_GETFD=2 -DF_SETFD=3 -DF_GETFL=4 -DF_SETFL=5 -DF_GETLK=6 -DF_SETLK=7 -DF_SETLKW=8 -DF_GETOWN=9 -DF_SETOWN=10 -DO_CREAT=0x0200 -DFRAMA_C_MALLOC_INDIVIDUAL -D__FC_USE_BUILTIN__"
+fc_shared_libc_pp_annot_macros="-DEOF=-1 -D__FC_FOPEN_MAX=512 -D__FC_MAX_OPEN_FILES=1024 -DF_DUPFD=1 -DF_GETFD=2 -DF_SETFD=3 -DF_GETFL=4 -DF_SETFL=5 -DF_GETLK=6 -DF_SETLK=7 -DF_SETLKW=8 -DF_GETOWN=9 -DF_SETOWN=10 -DO_CREAT=0x0200 -DFRAMA_C_MALLOC_INDIVIDUAL"
+#"-D__FC_USE_BUILTIN__"
+# WARNING: do not try to use the Frama_C_memcpy builtin function
+# cf http://lists.gforge.inria.fr/pipermail/frama-c-discuss/2009-December/001644.html
 
 FRAMA_C_SHARE_PATH=`frama-c -print-share-path`
 FRAMA_C_LIBC_DIR="${FRAMA_C_SHARE_PATH}/libc"

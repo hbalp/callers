@@ -380,7 +380,7 @@ if(FRAMA_C)
 endif()
 
 # add subdirectories when needed
-add_subdirectory(data)
+#add_subdirectory(data)
 
 # add path to header files
 #include_directories(".")

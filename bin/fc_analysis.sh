@@ -143,6 +143,7 @@ function fc_parse ()
     if [ -z $target_main_entrypoint ]; then
 	echo "fc_parse usage error: expected at least one argument"
 	echo "fc_parse <target_main_entrypoint> <fc_preproc_dirs>"
+	return 17
     fi
     shift
     fc_preproc_dirs=$@

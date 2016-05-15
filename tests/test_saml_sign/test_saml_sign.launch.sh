@@ -739,6 +739,7 @@ function cmake_callers_extract_metrics ()
    
 function fc_parse_prepare()
 {
+    source fc_analysis.sh
     cd ${ici}
     cd ${BUILD_DIR}
 
@@ -750,10 +751,11 @@ function fc_parse_prepare()
     fi
     
     BUILD_PATH="${ici}/${BUILD_DIR}"
-    source fc_analysis.sh &&
     fc_parse ${TEST_MAIN_SRC_FILE} ${BUILD_PATH} ${EXTRA_DEV_LIBS_DIRS} &&
     # launch fc_parse
     source fc_parse_preproc_files.gen.sh &&
     # launch fc-va
-    fc_va ${fc_entrypoint} ${FRAMA_C_SLEVEL} | tee fc_va.gen.stdout.stderr
+    fc_va ${fc_entrypoint} ${FRAMA_C_SLEVEL}
+    #fc_va ${fc_entrypoint} ${FRAMA_C_SLEVEL} > /dev/stdout > fc_va.gen.stdout 2> fc_va.gen.stderr
+    #fc_va ${fc_entrypoint} ${FRAMA_C_SLEVEL} | tee fc_va.gen.stdout.stderr
 }

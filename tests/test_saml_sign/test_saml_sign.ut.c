@@ -29,42 +29,15 @@ static xmlNode rootElement;
 
 #define ASSERTION_ID "123";
 
-//bool maliciousSAMLResponse; // = true;
-bool maliciousSAMLResponse; // 0: false , else : true;
-
-// Does not work because validAssertionIDval and validAssertionIDattr are deallocated when closing block before use
-/* xmlNode ut_valid_saml_assertion_init() */
-/* { */
-/*   // build the valid assertion */
-/*   xmlNode validAssertionIDval; */
-/*   validAssertionIDval.type = XML_TEXT_NODE; */
-/*   validAssertionIDval.content = ASSERTION_ID; */
-/*   validAssertionIDval.next = NULL; */
-  
-/*   xmlAttr validAssertionIDattr; */
-/*   validAssertionIDattr.type = XML_ATTRIBUTE_NODE; */
-/*   validAssertionIDattr.name = "ID"; */
-/*   validAssertionIDattr.children = &validAssertionIDval; */
-  
-/*   xmlNode validAssertion; */
-/*   validAssertion.type = XML_ELEMENT_NODE; */
-/*   validAssertion.name = "Assertion"; */
-/*   validAssertion.properties = &validAssertionIDattr; */
-
-/*   return validAssertion; */
-/* } */
+bool maliciousSAMLResponse; // 0: false , 1 : true;
 
 bool ut_saml_SignatureProfileValidator_validate(bool under_XSW_attack)
 {
   // build the valid assertion
-  //xmlNode validAssertion = ut_valid_saml_assertion_init();
-
   xmlNode validAssertion;
   xmlNode maliciousAssertion;
   signature sign;
 
-  //printf("MANUAL_CALLING_CONTEXT ? : %d\n", MANUAL_CALLING_CONTEXT);
-  //printf("ADAPTED_CALL_CONTEXT ? : %d\n", ADAPTED_CALL_CONTEXT);
 #if ADAPTED_CALL_CONTEXT
   xmlNode validAssertionIDval;
   validAssertionIDval.type = XML_TEXT_NODE;
@@ -84,25 +57,30 @@ bool ut_saml_SignatureProfileValidator_validate(bool under_XSW_attack)
   sign.parent = parent;
   sign.signedInfo.reference.URI = ASSERTION_ID;
 
-  // build the valid assertion
+  // build the malicious assertion
   xmlNode maliciousAssertionIDval;
   maliciousAssertionIDval.type = XML_TEXT_NODE;
-  maliciousAssertionIDval.content = ASSERTION_ID;
+#ifdef FRAMA_C
+#if FRAMA_C_VA_WIDENING
+  //#include "__fc_builtin.h"
+  void *Frama_C_alloc_size(size_t size);
+  char Frama_C_char_interval(char min, char max);
+  int i;
+  int lengthId = Frama_C_interval(2, 20);
+  maliciousAssertionIDval.content = Frama_C_alloc_size(lengthId); // malloc
+  for (i = 0; i < lengthId-1; ++i)
+    maliciousAssertionIDval.content[i] = Frama_C_char_interval(CHAR_MIN, CHAR_MAX);
+  maliciousAssertionIDval.content[lengthId-1] = '\0';
+#else
+  maliciousAssertionIDval.content = ASSERTION_ID;  
+#endif
+#endif
   maliciousAssertionIDval.next = NULL;
   
   xmlAttr maliciousAssertionIDattr;
   maliciousAssertionIDattr.type = XML_ATTRIBUTE_NODE;
   maliciousAssertionIDattr.name = "ID";
   maliciousAssertionIDattr.children = &maliciousAssertionIDval;
-
-#if defined(FRAMA_C) && defined(FRAMA_C_VA_WIDENING)
-  int i;
-  int lengthId = Frama_C_interval(2, 20);
-  maliciousAssertionIDattr.name = Frama_C_alloc_size(lengthId); // malloc
-  for (i = 0; i < lengthId-1; ++i)
-    maliciousAssertionIDattr.name[i] = Frama_C_char_interval(CHAR_MIN, CHAR_MAX);
-  maliciousAssertionIDattr.name[lengthId-1] = '\0';
-#endif  
 
   maliciousAssertion.type = XML_ELEMENT_NODE;
   maliciousAssertion.name = "Assertion";
@@ -117,7 +95,7 @@ bool ut_saml_SignatureProfileValidator_validate(bool under_XSW_attack)
 #endif
 
 #else
-  printf("WARNING: unverified call context !\nIt is probably malformed and will probably crash !\n");
+  printf("WARNING: unverified call context !\nIt is malformed and will probably crash !\n");
 #endif
 
   xmlDoc doc;

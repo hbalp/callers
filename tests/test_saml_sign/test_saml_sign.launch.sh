@@ -6,7 +6,7 @@
 # Common
 #
 
-function usage ()
+function usage_test_saml_sign_launch ()
 {
     echo "test_saml_sign usage:"
     echo "either:"
@@ -21,34 +21,80 @@ function usage ()
 function cmake_build_all ()
 {
     cmake_config_common
+    # cmake_build_all_gdb
+    cmake_build_all_fc
+    cd $ici
+}
+
+function cmake_build_all_gdb ()
+{
+    cmake_config_common
+    cmake_build_it_gdb
+    cmake_build_ut_gdb
+    cd $ici
+}
+
+function cmake_build_all_fc ()
+{
+    cmake_config_common
+    cmake_build_it_fc
+    # cmake_build_ut_fc
+    cd $ici
+}
+
+function cmake_build_it_gdb ()
+{
+    cmake_config_common
     # cmake_config_it_gdb_lib-sys    && cmake_build_execute
-    # # cmake_config_it_fc-va_lib-sys  && cmake_build_execute && fc_parse_prepare
-    # cmake_config_it_gdb_lib-dev    && cmake_build_execute
-    # cmake_config_it_fc-va_lib-dev  && cmake_build_execute && fc_parse_prepare
-    # # cmake_config_it_gdb_stub       && cmake_build_execute
+    cmake_config_it_gdb_lib-dev_without_xsw_countermeasure  && cmake_build_execute
+    cmake_config_it_gdb_lib-dev_with_xsw_countermeasure     && cmake_build_execute
+    # cmake_config_it_gdb_stub       && cmake_build_execute
+}
+
+function cmake_build_it_fc ()
+{
+    cmake_config_common
+    # cmake_config_it_fc-va_lib-dev_with_xsw_countermeasure   && cmake_build_execute && it_fc_main_gen && fc_parse_prepare
+    cmake_config_it_fc-va_lib-dev_with_xsw_countermeasure   && cmake_build_execute && fc_parse_prepare
     # # cmake_config_it_fc-va_stub     && cmake_build_execute && fc_parse_prepare
+    cd $ici
+}
+
+function cmake_build_ut_gdb ()
+{
     # cmake_config_ut_gdb_lib-sys    && cmake_build_execute
-    # # cmake_config_ut_fc-va_lib-sys  && cmake_build_execute && fc_parse_prepare
-    cmake_config_ut_gdb_lib-dev    && cmake_build_execute
-    cmake_config_ut_fc-va_lib-dev  && cmake_build_execute && fc_parse_prepare
+    cmake_config_ut_gdb_lib-dev_without_xsw_countermeasure  && cmake_build_execute
+    cmake_config_ut_gdb_lib-dev_with_xsw_countermeasure     && cmake_build_execute
     # cmake_config_ut_gdb_stub       && cmake_build_execute
+    cd $ici
+}
+
+function cmake_build_ut_fc ()
+{
+    cmake_config_common
+    # cmake_config_ut_fc-va_lib-sys  && cmake_build_execute && fc_parse_prepare
+    cmake_config_ut_fc-va_lib-dev_with_xsw_countermeasure    && cmake_build_execute && fc_parse_prepare
+    cmake_config_ut_fc-va-wd_lib-dev_with_xsw_countermeasure && cmake_build_execute && fc_parse_prepare
     # cmake_config_ut_fc-va_stub     && cmake_build_execute && fc_parse_prepare
     cd $ici
 }
 
-function cmake_clean_all ()
+function cmake_clean_all_fc ()
 {
     cmake_config_common
-    cmake_config_it_gdb_lib-sys    && cmake_build_clean
+    # cmake_config_it_gdb_lib-sys    && cmake_build_clean
     # cmake_config_it_fc-va_lib-sys  && cmake_build_clean
-    cmake_config_it_gdb_lib-dev    && cmake_build_clean
-    cmake_config_it_fc-va_lib-dev  && cmake_build_clean
+    # cmake_config_it_gdb_lib-dev_without_xsw_countermeasure  && cmake_build_clean
+    # cmake_config_it_gdb_lib-dev_with_xsw_countermeasure     && cmake_build_clean
+    cmake_config_it_fc-va_lib-dev_with_xsw_countermeasure   && cmake_build_clean
     # cmake_config_it_gdb_stub       && cmake_build_clean
     # cmake_config_it_fc-va_stub     && cmake_build_clean
-    cmake_config_ut_gdb_lib-sys    && cmake_build_clean
+    # cmake_config_ut_gdb_lib-sys    && cmake_build_clean
     # cmake_config_ut_fc-va_lib-sys  && cmake_build_clean
-    cmake_config_ut_gdb_lib-dev    && cmake_build_clean
-    cmake_config_ut_fc-va_lib-dev  && cmake_build_clean
+    # cmake_config_ut_gdb_lib-dev_without_xsw_countermeasure   && cmake_build_clean
+    # cmake_config_ut_gdb_lib-dev_with_xsw_countermeasure      && cmake_build_clean
+    cmake_config_ut_fc-va_lib-dev_with_xsw_countermeasure    && cmake_build_clean
+    cmake_config_ut_fc-va-wd_lib-dev_with_xsw_countermeasure && cmake_build_clean
     # cmake_config_ut_gdb_stub       && cmake_build_clean
     # cmake_config_ut_fc-va_stub     && cmake_build_clean
     cd $ici
@@ -74,7 +120,7 @@ function libxml2_config_host_moriond ()
 {
     LIBXML2_SYS_INCLUDES_DIR="/usr/include/libxml2"
     LIBXML2_SYS_LIB_DIR="/usr/lib/x86_64-linux-gnu"
-    LIBXML2_SYS_LIB_PATH="${LIBXML2_SYS_LIB_DIR}/libxml2.so"
+    LIBXML2_SYS_LIB_INSTALL_PATH="${LIBXML2_SYS_LIB_DIR}/libxml2.so"
     
     LIBXML2_DEV_INCLUDES_DIR="/tools/exec/include/libxml2"
     LIBXML2_DEV_LIB_GDB_SRC_DIR="/home/hbalp/hugues/work/third_parties/src/libxml2_gdb"
@@ -122,41 +168,61 @@ function cmake_config_common ()
 # Integration tests
 #
 
-function cmake_config_it_gdb_lib-sys ()
-{
-    BUILD_DIR="test_it_gdb_lib-sys.gen"
-    TEST_MAIN_SRC_FILE="test_saml_sign.it.c"
-    SYSTEM_LIB="ON"
-    DEV_LIB="OFF"
-    INTG_TEST="ON"
-    UNIT_TEST="OFF"
-    ADAPTED_CALL_CONTEXT="ON"
-    USE_XML_MEM_TRACE="ON"
-    USE_XML_MEM_BREAKPOINT="ON"
-    FRAMA_C="OFF"
-    LIBXML2_STUB="OFF"
-    SAVE_TEMPS="ON"
-}
+# function cmake_config_it_gdb_lib-sys_without_xsw_countermeasure ()
+# {
+#     XSW_COUNTERMEASURE="OFF"
+#     BUILD_DIR="test_it_gdb_lib-sys_without_xsw_countermeasure.gen"
+#     TEST_MAIN_SRC_FILE="test_saml_sign.it.c"
+#     SYSTEM_LIB="ON"
+#     DEV_LIB="OFF"
+#     INTG_TEST="ON"
+#     UNIT_TEST="OFF"
+#     ADAPTED_CALL_CONTEXT="ON"
+#     USE_XML_MEM_TRACE="ON"
+#     USE_XML_MEM_BREAKPOINT="ON"
+#     FRAMA_C="OFF"
+#     LIBXML2_STUB="OFF"
+#     SAVE_TEMPS="ON"
+# }
 
-function cmake_config_it_fc-va_lib-sys ()
-{
-    BUILD_DIR="test_it_fc-va_lib-sys.gen"
-    TEST_MAIN_SRC_FILE="test_saml_sign.it.c"
-    SYSTEM_LIB="ON"
-    DEV_LIB="OFF"
-    INTG_TEST="ON"
-    UNIT_TEST="OFF"
-    ADAPTED_CALL_CONTEXT="ON"
-    USE_XML_MEM_TRACE="ON"
-    USE_XML_MEM_BREAKPOINT="ON"
-    FRAMA_C="ON"
-    LIBXML2_STUB="OFF"
-    SAVE_TEMPS="ON"
-}
+# function cmake_config_it_gdb_lib-sys_with_xsw_countermeasure ()
+# {
+#     XSW_COUNTERMEASURE="ON"
+#     BUILD_DIR="test_it_gdb_lib-sys_with_xsw_countermeasure.gen"
+#     TEST_MAIN_SRC_FILE="test_saml_sign.it.c"
+#     SYSTEM_LIB="ON"
+#     DEV_LIB="OFF"
+#     INTG_TEST="ON"
+#     UNIT_TEST="OFF"
+#     ADAPTED_CALL_CONTEXT="ON"
+#     USE_XML_MEM_TRACE="ON"
+#     USE_XML_MEM_BREAKPOINT="ON"
+#     FRAMA_C="OFF"
+#     LIBXML2_STUB="OFF"
+#     SAVE_TEMPS="ON"
+# }
 
-function cmake_config_it_gdb_lib-dev ()
+# function cmake_config_it_fc-va_lib-sys_with_xsw_countermeasure ()
+# {
+#     XSW_COUNTERMEASURE="ON"
+#     BUILD_DIR="test_it_fc-va_lib-sys_with_xsw_countermeasure.gen"
+#     TEST_MAIN_SRC_FILE="test_saml_sign.it.c"
+#     SYSTEM_LIB="ON"
+#     DEV_LIB="OFF"
+#     INTG_TEST="ON"
+#     UNIT_TEST="OFF"
+#     ADAPTED_CALL_CONTEXT="ON"
+#     USE_XML_MEM_TRACE="ON"
+#     USE_XML_MEM_BREAKPOINT="ON"
+#     FRAMA_C="ON"
+#     LIBXML2_STUB="OFF"
+#     SAVE_TEMPS="ON"
+# }
+
+function cmake_config_it_gdb_lib-dev_without_xsw_countermeasure ()
 {
-    BUILD_DIR="test_it_gdb_lib-dev.gen"
+    XSW_COUNTERMEASURE="OFF"
+    BUILD_DIR="test_it_gdb_lib-dev_without_xsw_countermeasure.gen"
     TEST_MAIN_SRC_FILE="test_saml_sign.it.c"
     SYSTEM_LIB="OFF"
     DEV_LIB="ON"
@@ -170,9 +236,28 @@ function cmake_config_it_gdb_lib-dev ()
     SAVE_TEMPS="ON"
 }
 
-function cmake_config_it_fc-va_lib-dev ()
+function cmake_config_it_gdb_lib-dev_with_xsw_countermeasure ()
 {
-    BUILD_DIR="test_it_fc-va_lib-dev.gen"
+    XSW_COUNTERMEASURE="ON"
+    BUILD_DIR="test_it_gdb_lib-dev_with_xsw_countermeasure.gen"
+    TEST_MAIN_SRC_FILE="test_saml_sign.it.c"
+    SYSTEM_LIB="OFF"
+    DEV_LIB="ON"
+    INTG_TEST="ON"
+    UNIT_TEST="OFF"
+    ADAPTED_CALL_CONTEXT="ON"
+    USE_XML_MEM_TRACE="ON"
+    USE_XML_MEM_BREAKPOINT="ON"
+    FRAMA_C="OFF"
+    LIBXML2_STUB="OFF"
+    SAVE_TEMPS="ON"
+}
+
+function cmake_config_it_fc-va_lib-dev_with_xsw_countermeasure ()
+{
+    XSW_COUNTERMEASURE="ON"
+    FRAMA_C_VA_WIDENING="OFF"
+    BUILD_DIR="test_it_fc-va_lib-dev_with_xsw_countermeasure.gen"
     TEST_MAIN_SRC_FILE="test_saml_sign.it.c"
     SYSTEM_LIB="OFF"
     DEV_LIB="ON"
@@ -186,77 +271,90 @@ function cmake_config_it_fc-va_lib-dev ()
     SAVE_TEMPS="ON"
 }
 
-function cmake_config_it_gdb_stub ()
+# this function generates an fc_main for FC-VA of the inttegation test
+function it_fc_main_gen ()
 {
-    BUILD_DIR="test_it_gdb_stub.gen"
-    TEST_MAIN_SRC_FILE="test_saml_sign.it.c"
-    SYSTEM_LIB="OFF"
-    DEV_LIB="OFF"
-    INTG_TEST="ON"
-    UNIT_TEST="OFF"
-    ADAPTED_CALL_CONTEXT="ON"
-    USE_XML_MEM_TRACE="ON"
-    USE_XML_MEM_BREAKPOINT="ON"
-    FRAMA_C="OFF"
-    LIBXML2_STUB="ON"
-    SAVE_TEMPS="ON"
+    cd ${BUILD_DIR}
+    exe="../test_it_gdb_lib-dev_with_xsw_countermeasure.gen/xsw_test_saml_sign"
+    if [ -f ${exe} ]; then
+       fc_main_gen ${exe} ../data/SAMLResponse.malicious_xsw.xml
+    fi
 }
 
-function cmake_config_it_fc-va_stub ()
-{
-    BUILD_DIR="test_it_fc-va_stub.gen"
-    TEST_MAIN_SRC_FILE="test_saml_sign.it.c"
-    SYSTEM_LIB="OFF"
-    DEV_LIB="OFF"
-    INTG_TEST="ON"
-    UNIT_TEST="OFF"
-    ADAPTED_CALL_CONTEXT="ON"
-    USE_XML_MEM_TRACE="ON"
-    USE_XML_MEM_BREAKPOINT="ON"
-    FRAMA_C="ON"
-    LIBXML2_STUB="ON"
-    SAVE_TEMPS="ON"
-}
+# function cmake_config_it_gdb_stub ()
+# {
+#     XSW_COUNTERMEASURE="ON"
+#     BUILD_DIR="test_it_gdb_stub.gen"
+#     TEST_MAIN_SRC_FILE="test_saml_sign.it.c"
+#     SYSTEM_LIB="OFF"
+#     DEV_LIB="OFF"
+#     INTG_TEST="ON"
+#     UNIT_TEST="OFF"
+#     ADAPTED_CALL_CONTEXT="ON"
+#     USE_XML_MEM_TRACE="ON"
+#     USE_XML_MEM_BREAKPOINT="ON"
+#     FRAMA_C="OFF"
+#     LIBXML2_STUB="ON"
+#     SAVE_TEMPS="ON"
+# }
+
+# function cmake_config_it_fc-va_stub ()
+# {
+#     XSW_COUNTERMEASURE="ON"
+#     BUILD_DIR="test_it_fc-va_stub.gen"
+#     TEST_MAIN_SRC_FILE="test_saml_sign.it.c"
+#     SYSTEM_LIB="OFF"
+#     DEV_LIB="OFF"
+#     INTG_TEST="ON"
+#     UNIT_TEST="OFF"
+#     ADAPTED_CALL_CONTEXT="ON"
+#     USE_XML_MEM_TRACE="ON"
+#     USE_XML_MEM_BREAKPOINT="ON"
+#     FRAMA_C="ON"
+#     LIBXML2_STUB="ON"
+#     SAVE_TEMPS="ON"
+# }
 
 #
 # Unitary tests
 #
 
-function cmake_config_ut_gdb_lib-sys ()
-{
-    BUILD_DIR="test_ut_gdb_lib-sys.gen"
-    TEST_MAIN_SRC_FILE="test_saml_sign.ut.c"
-    SYSTEM_LIB="ON"
-    DEV_LIB="OFF"
-    INTG_TEST="OFF"
-    UNIT_TEST="ON"
-    ADAPTED_CALL_CONTEXT="ON"
-    USE_XML_MEM_TRACE="ON"
-    USE_XML_MEM_BREAKPOINT="ON"
-    FRAMA_C="OFF"
-    LIBXML2_STUB="OFF"
-    SAVE_TEMPS="ON"
-}
+# function cmake_config_ut_gdb_lib-sys ()
+# {
+#     BUILD_DIR="test_ut_gdb_lib-sys.gen"
+#     TEST_MAIN_SRC_FILE="test_saml_sign.ut.c"
+#     SYSTEM_LIB="ON"
+#     DEV_LIB="OFF"
+#     INTG_TEST="OFF"
+#     UNIT_TEST="ON"
+#     ADAPTED_CALL_CONTEXT="ON"
+#     USE_XML_MEM_TRACE="ON"
+#     USE_XML_MEM_BREAKPOINT="ON"
+#     FRAMA_C="OFF"
+#     LIBXML2_STUB="OFF"
+#     SAVE_TEMPS="ON"
+# }
 
-function cmake_config_ut_fc-va_lib-sys ()
-{
-    BUILD_DIR="test_ut_fc-va_lib-sys.gen"
-    TEST_MAIN_SRC_FILE="test_saml_sign.ut.c"
-    SYSTEM_LIB="ON"
-    DEV_LIB="OFF"
-    INTG_TEST="OFF"
-    UNIT_TEST="ON"
-    ADAPTED_CALL_CONTEXT="ON"
-    USE_XML_MEM_TRACE="ON"
-    USE_XML_MEM_BREAKPOINT="ON"
-    FRAMA_C="ON"
-    LIBXML2_STUB="OFF"
-    SAVE_TEMPS="ON"
-}
+# function cmake_config_ut_fc-va_lib-sys ()
+# {
+#     BUILD_DIR="test_ut_fc-va_lib-sys.gen"
+#     TEST_MAIN_SRC_FILE="test_saml_sign.ut.c"
+#     SYSTEM_LIB="ON"
+#     DEV_LIB="OFF"
+#     INTG_TEST="OFF"
+#     UNIT_TEST="ON"
+#     ADAPTED_CALL_CONTEXT="ON"
+#     USE_XML_MEM_TRACE="ON"
+#     USE_XML_MEM_BREAKPOINT="ON"
+#     FRAMA_C="ON"
+#     LIBXML2_STUB="OFF"
+#     SAVE_TEMPS="ON"
+# }
 
-function cmake_config_ut_gdb_lib-dev ()
+function cmake_config_ut_gdb_lib-dev_without_xsw_countermeasure ()
 {
-    BUILD_DIR="test_ut_gdb_lib-dev.gen"
+    XSW_COUNTERMEASURE="OFF"
+    BUILD_DIR="test_ut_gdb_lib-dev_without_xsw_countermeasure.gen"
     TEST_MAIN_SRC_FILE="test_saml_sign.ut.c"
     SYSTEM_LIB="OFF"
     DEV_LIB="ON"
@@ -270,9 +368,28 @@ function cmake_config_ut_gdb_lib-dev ()
     SAVE_TEMPS="ON"
 }
 
-function cmake_config_ut_fc-va_lib-dev ()
+function cmake_config_ut_gdb_lib-dev_with_xsw_countermeasure ()
 {
-    BUILD_DIR="test_ut_fc-va_lib-dev.gen"
+    XSW_COUNTERMEASURE="ON"
+    BUILD_DIR="test_ut_gdb_lib-dev_with_xsw_countermeasure.gen"
+    TEST_MAIN_SRC_FILE="test_saml_sign.ut.c"
+    SYSTEM_LIB="OFF"
+    DEV_LIB="ON"
+    INTG_TEST="OFF"
+    UNIT_TEST="ON"
+    ADAPTED_CALL_CONTEXT="ON"
+    USE_XML_MEM_TRACE="ON"
+    USE_XML_MEM_BREAKPOINT="ON"
+    FRAMA_C="OFF"
+    LIBXML2_STUB="OFF"
+    SAVE_TEMPS="ON"
+}
+
+function cmake_config_ut_fc-va_lib-dev_with_xsw_countermeasure ()
+{
+    XSW_COUNTERMEASURE="ON"
+    FRAMA_C_VA_WIDENING="OFF"
+    BUILD_DIR="test_ut_fc-va_lib-dev_with_xsw_countermeasure.gen"
     TEST_MAIN_SRC_FILE="test_saml_sign.ut.c"
     SYSTEM_LIB="OFF"
     DEV_LIB="ON"
@@ -286,37 +403,55 @@ function cmake_config_ut_fc-va_lib-dev ()
     SAVE_TEMPS="ON"
 }
 
-function cmake_config_ut_gdb_stub ()
+function cmake_config_ut_fc-va-wd_lib-dev_with_xsw_countermeasure ()
 {
-    BUILD_DIR="test_ut_gdb_stub.gen"
+    XSW_COUNTERMEASURE="ON"
+    FRAMA_C_VA_WIDENING="ON"
+    BUILD_DIR="test_ut_fc-va-wd_lib-dev_with_xsw_countermeasure.gen"
     TEST_MAIN_SRC_FILE="test_saml_sign.ut.c"
     SYSTEM_LIB="OFF"
-    DEV_LIB="OFF"
-    INTG_TEST="OFF"
-    UNIT_TEST="ON"
-    ADAPTED_CALL_CONTEXT="ON"
-    USE_XML_MEM_TRACE="ON"
-    USE_XML_MEM_BREAKPOINT="ON"
-    FRAMA_C="OFF"
-    LIBXML2_STUB="ON"
-    SAVE_TEMPS="ON"
-}
-
-function cmake_config_ut_fc-va_stub ()
-{
-    BUILD_DIR="test_ut_fc-va_stub.gen"
-    TEST_MAIN_SRC_FILE="test_saml_sign.ut.c"
-    SYSTEM_LIB="OFF"
-    DEV_LIB="OFF"
+    DEV_LIB="ON"
     INTG_TEST="OFF"
     UNIT_TEST="ON"
     ADAPTED_CALL_CONTEXT="ON"
     USE_XML_MEM_TRACE="ON"
     USE_XML_MEM_BREAKPOINT="ON"
     FRAMA_C="ON"
-    LIBXML2_STUB="ON"
+    LIBXML2_STUB="OFF"
     SAVE_TEMPS="ON"
 }
+
+# function cmake_config_ut_gdb_stub ()
+# {
+#     BUILD_DIR="test_ut_gdb_stub.gen"
+#     TEST_MAIN_SRC_FILE="test_saml_sign.ut.c"
+#     SYSTEM_LIB="OFF"
+#     DEV_LIB="OFF"
+#     INTG_TEST="OFF"
+#     UNIT_TEST="ON"
+#     ADAPTED_CALL_CONTEXT="ON"
+#     USE_XML_MEM_TRACE="ON"
+#     USE_XML_MEM_BREAKPOINT="ON"
+#     FRAMA_C="OFF"
+#     LIBXML2_STUB="ON"
+#     SAVE_TEMPS="ON"
+# }
+
+# function cmake_config_ut_fc-va_stub ()
+# {
+#     BUILD_DIR="test_ut_fc-va_stub.gen"
+#     TEST_MAIN_SRC_FILE="test_saml_sign.ut.c"
+#     SYSTEM_LIB="OFF"
+#     DEV_LIB="OFF"
+#     INTG_TEST="OFF"
+#     UNIT_TEST="ON"
+#     ADAPTED_CALL_CONTEXT="ON"
+#     USE_XML_MEM_TRACE="ON"
+#     USE_XML_MEM_BREAKPOINT="ON"
+#     FRAMA_C="ON"
+#     LIBXML2_STUB="ON"
+#     SAVE_TEMPS="ON"
+# }
 
 function cmake_build_generate ()
 {
@@ -332,7 +467,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ${CMAKE_EXPORT_COMPILE_COMMANDS})
 # add debug symbols
 set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE})
 
-#option(USE_CXX_EXCEPTIONS "Enable C++ exception support" ${USE_CXX_EXCEPTIONS})
+# option to activate the XSW countermeasure
+option(XSW_COUNTERMEASURE "Option to activate the XSW countermeasure" ${XSW_COUNTERMEASURE})
 
 # option to use the system library libxml2-dev
 option(SYSTEM_LIB "Use the system library libxml2" ${SYSTEM_LIB})
@@ -358,6 +494,9 @@ option(USE_XML_MEM_BREAKPOINT "Option to set the XML_MEM_BREAKPOINT environment 
 # option to activate Frama-C analysis
 option(FRAMA_C "Option to activate Frama-C VA analysis" ${FRAMA_C})
 
+# option to widen Frama-C analysis
+option(FRAMA_C_VA_WIDENING "Option to widen Frama-C VA analysis" ${FRAMA_C_VA_WIDENING})
+
 # option to stub the libxml2 library
 option(LIBXML2_STUB "Option to stub the libxml2 library" ${LIBXML2_STUB})
 
@@ -370,13 +509,18 @@ configure_file (
   )
 
 if(SAVE_TEMPS)
-  set(CMAKE_C_FLAGS   "\${CMAKE_C_FLAGS}   -save-temps -C" )
-  set(CMAKE_CXX_FLAGS "\${CMAKE_CXX_FLAGS} -save-temps -C" )
+  set(CMAKE_C_FLAGS   "\${CMAKE_C_FLAGS}   -save-temps " )
+  set(CMAKE_CXX_FLAGS "\${CMAKE_CXX_FLAGS} -save-temps " )
 endif()
 
 if(FRAMA_C)
-  set(CMAKE_C_FLAGS    "\${CMAKE_C_FLAGS}   -DFRAMA_C -D__FC_MACHDEP_X86_64") # -DFRAMA_C_MALLOC_INDIVIDUAL")
-  set(CMAKE_CXX_FLAGS  "\${CMAKE_CXX_FLAGS} -DFRAMA_C -D__FC_MACHDEP_X86_64") # -DFRAMA_C_MALLOC_INDIVIDUAL")
+  if(FRAMA_C_VA_WIDENING)
+    set(CMAKE_C_FLAGS    "\${CMAKE_C_FLAGS}   -E -C -DFRAMA_C -DFRAMA_C_VA_WIDENING -D__FC_MACHDEP_X86_64") # -DFRAMA_C_MALLOC_INDIVIDUAL")
+    set(CMAKE_CXX_FLAGS  "\${CMAKE_CXX_FLAGS} -E -C -DFRAMA_C -DFRAMA_C_VA_WIDENING -D__FC_MACHDEP_X86_64") # -DFRAMA_C_MALLOC_INDIVIDUAL")
+  else()
+    set(CMAKE_C_FLAGS    "\${CMAKE_C_FLAGS}   -E -C -DFRAMA_C -D__FC_MACHDEP_X86_64") # -DFRAMA_C_MALLOC_INDIVIDUAL")
+    set(CMAKE_CXX_FLAGS  "\${CMAKE_CXX_FLAGS} -E -C -DFRAMA_C -D__FC_MACHDEP_X86_64") # -DFRAMA_C_MALLOC_INDIVIDUAL")
+  endif()
 endif()
 
 # add subdirectories when needed
@@ -452,6 +596,7 @@ endif()
 
 EOF
 }
+#option(USE_CXX_EXCEPTIONS "Enable C++ exception support" ${USE_CXX_EXCEPTIONS})
 
 function cmake_build_execute()
 {
@@ -474,11 +619,19 @@ function fc_parse_prepare()
 {
     cd ${ici}
     cd ${BUILD_DIR}
+
+    if [ ${INTG_TEST} == "ON" ]; then
+	fc_entrypoint="fc_va_entrypoint"
+	it_fc_main_gen
+    else
+	fc_entrypoint="main"
+    fi
+    
     BUILD_PATH="${ici}/${BUILD_DIR}"
     source fc_analysis.sh
     fc_parse ${TEST_MAIN_SRC_FILE} ${BUILD_PATH} ${EXTRA_DEV_LIBS_DIRS}
     # launch fc_parse
     source fc_parse_preproc_files.gen.sh
     # launch fc-va
-    fc_va main ${FRAMA_C_SLEVEL}
+    fc_va ${fc_entrypoint} ${FRAMA_C_SLEVEL}
 }

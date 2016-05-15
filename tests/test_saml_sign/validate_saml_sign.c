@@ -51,10 +51,12 @@ bool saml_SignatureProfileValidator_validate(signaturePtr sign, xmlDocPtr doc)
 
     // Countermeasure against XSW attacks
     // Check wether signature parent node is same as assertion by ID
+#if USE_XSW_COUNTERMEASURE
     if(sign->parent == assertionByID)
+#endif
     {
       is_valid = true;
-    }
+    }    
     return is_valid;
 }
 

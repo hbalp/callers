@@ -118,6 +118,7 @@ function libxml2_fc_va_prepare ()
 function libxml2_fc_preproc_update ()
 {
     libxml2_config_common
+    cd ${librootdir}
     cd ${libxml2_local_fc_dir}
     CC=gcc CFLAGS="-save-temps -C -D__FC_MACHDEP_X86_64 -I ${frama_c_libc_dir}" make
 }

@@ -4,9 +4,11 @@
 #define ON  1
 #define OFF 0
 
+#define USE_XSW_COUNTERMEASURE  @XSW_COUNTERMEASURE@
 #define ADAPTED_CALL_CONTEXT    @ADAPTED_CALL_CONTEXT@
 #define USE_XML_MEM_TRACE       @USE_XML_MEM_TRACE@
 #define USE_XML_MEM_BREAKPOINT  @USE_XML_MEM_BREAKPOINT@
+#define FRAMA_C_VA_WIDENING     @FRAMA_C_VA_WIDENING@
 
 bool
 saml_SignatureProfileValidator_validate(signaturePtr sign, xmlDocPtr doc);

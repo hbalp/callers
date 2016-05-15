@@ -134,16 +134,24 @@ function list_files_in_dirs()
     fileext=$2
     jsondir_fileext=$3
     ignored_directories=$4
-
+    list_json_files_in_dirs=`which list_json_files_in_dirs.native`
+    if [ $? -ne 0 ]; then
+	echo "################################################################################"
+	echo "# ERROR $@: Not found OCAML backend list_json_files_in_dirs.native. Stop here !"
+	echo "# You should add to your PATH the path to callgraph OCAML backends !!!"
+	echo "################################################################################"
+	return -1
+    fi
+    
     echo "################################################################################"
     echo "# List callers json files in $root_dirpath ..."
     echo "################################################################################"
-    list_json_files_in_dirs.native ${root_dirpath} ${fileext} ${jsondir_fileext} ${ignored_directories}
+    ${list_json_files_in_dirs} ${root_dirpath} ${fileext} ${jsondir_fileext} ${ignored_directories}
     if [ $? -ne 0 ]; then
 	echo "################################################################################"
 	echo "# ERROR in list_json_files_in_dirs.native error $@. Stop here !"
 	echo "################################################################################"
-	exit -1
+	return -1
     fi
 }
 
@@ -175,7 +183,17 @@ function extract_metrics()
     echo "# List in file \"${metrics_jsonfilename}\" all symbols defined in directory \"${callers_json_rootdir}\"..."
     # echo "# DEBUG: jsondir_fileext=\"${jsondir_fileext}\""
     echo "################################################################################"
-    extract_metrics.native ${metrics_jsonfilename} ${jsondir_fileext}
+
+    ocaml_extract_metrics=`which extract_metrics.native`
+    if [ $? -ne 0 ]; then
+	echo "################################################################################"
+	echo "# ERROR $@: Not found OCAML backend extract_metrics.native.native. Stop here !"
+	echo "# You should add to your PATH the path to callgraph OCAML backends !!!"
+	echo "################################################################################"
+	return -1
+    fi
+    
+    ${ocaml_extract_metrics} ${metrics_jsonfilename} ${jsondir_fileext}
     if [ $? -ne 0 ]; then
 	echo "################################################################################"
 	echo "# ERROR in extract_metrics.native $@. Stop here !"

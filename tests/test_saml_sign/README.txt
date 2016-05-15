@@ -9,13 +9,15 @@
 # Usage of script libxml2_install.sh
 # 3 features:
 # 1) System install of libxml2:
-#    > libxml2_binary_workflow
+#    > libxml2_workflow_system_install
 # 2) Source install of libxml2:
-#    > libxml2_source_workflow <git|local>
-# 3) Frama-C builtin preprocessing of libxml2:
-#    > libxml2_fc_va_prepare <git|local>
-# 4) Frama-C update preprocessing of libxml2:
-#    > libxml2_fc_preproc_update
+#    > libxml2_workflow_sources_gdb <git|local>
+# 3) Source Callers analysis of libxml2:
+#    > libxml2_workflow_callers <git|local>
+# 4) Frama-C builtin preprocessing of libxml2:
+#    > libxml2_workflow_fc_va <git|local>
+# 5) Frama-C update preprocessing of libxml2:
+#    > libxml2_update_fc_preproc
    
 source libxml2_install.sh
 
@@ -43,7 +45,7 @@ cmake_build_all
 ################################################################################
 
 # To install the libxml2 system library
-libxml2_binary_workflow
+libxml2_workflow_system_install
 
 # To build the unitary test
 cmake_config_common
@@ -76,7 +78,7 @@ kcachegrind callgrind.out.* &
 ################################################################################
 
 # To build, fine tune configuration and install the libxml2 library without optimization and with debugging symbols
-libxml2_source_workflow local
+libxml2_workflow_sources_gdb local
 
 # To build the unitary test
 cmake_config_common
@@ -99,7 +101,7 @@ gdb --args ./test_ut_gdb_lib-dev_with_xsw_countermeasure.gen/xsw_test_saml_sign
 ################################################################################
 
 # To install and preprocess the sources of the libxml2 library
-libxml2_fc_va_prepare local
+libxml2_workflow_fc_va local
 
 # To modify some Frama-C VA parameters like the -slevel
 # edit the parameters values in script test_saml_sign.launch.sh
@@ -109,12 +111,12 @@ emacs -nw test_saml_sign.launch.sh
 source test_saml_sign.launch.sh
 
 # and then call
-libxml2_fc_va_prepare local
+libxml2_workflow_fc_va local
 
 # after successfull analysis completion, look at the results on the frama-c gui
 frama-c-gui -load fc_analyzed.gen.sav &
 
 # In case you need to edit some source files of the library,
 # you should then update the preprocessing of libxml2 as follows:
-[libxml2_fc_preproc_update]
+[libxml2_update_fc_preproc]
 

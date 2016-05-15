@@ -13,6 +13,8 @@ function libxml2_config_host ()
   libinstalldir="/tools/exec"
   libxml2_local_gdb_dir="libxml2_gdb"
   libxml2_src_gdb_config_args=""
+  libxml2_local_callers_dir="libxml2_callers"
+  libxml2_src_callers_config_args=""
   libxml2_local_fc_dir="libxml2_fc"
   #libxml2_install_cots="true"
   libxml2_install_cots="false"
@@ -47,28 +49,30 @@ ici=`pwd`
 function usage_libxml2_install()
 {
     echo "Usage of script libxml2_install.sh"
-    echo "3 features:"
+    echo "5 features:"
     echo "1) System install of libxml2:";
-    echo "   > libxml2_binary_workflow";
+    echo "   > libxml2_workflow_system_install";
     echo "2) Source install of libxml2:";
-    echo "   > libxml2_source_workflow <git|local>";
-    echo "3) Frama-C builtin preprocessing of libxml2:";
-    echo "   > libxml2_fc_va_prepare <git|local>";
-    echo "4) Frama-C update preprocessing of libxml2:";
-    echo "   > libxml2_fc_preproc_update";
+    echo "   > libxml2_workflow_sources_gdb <git|local>";
+    echo "3) Source Callers analysis of libxml2:";
+    echo "   > libxml2_workflow_sources_callers <git|local>";
+    echo "4) Frama-C builtin preprocessing of libxml2:";
+    echo "   > libxml2_workflow_fc_va <git|local>";
+    echo "5) Frama-C update preprocessing of libxml2:";
+    echo "   > libxml2_update_fc_preproc";
     return 0;
 }
 
 # function libxml2_workflow ()
 # {
 #     # you should choose between a system install
-#     libxml2_binary_workflow
+#     libxml2_workflow_system_install
     
 #     # ... or a build and install from sources
-#     libxml2_source_workflow
+#     libxml2_workflow_sources_gdb
 # }
 
-function libxml2_binary_workflow ()
+function libxml2_workflow_system_install ()
 {
     libxml2_config_common
     
@@ -79,12 +83,12 @@ function libxml2_binary_workflow ()
     libxml2_binary_install
 }
 
-function libxml2_source_workflow ()
+function libxml2_workflow_sources_gdb ()
 {
     install_config=$1
     if [ -z ${install_config} ]; then
        echo "libxml2 source install error: expected one user parameter"
-       echo "usage: libxml2_source_workflow <install_config=git|local>"
+       echo "usage: libxml2_workflow_sources_gdb <install_config=git|local>"
        return 1;
     fi
     libxml2_config_common
@@ -93,8 +97,55 @@ function libxml2_source_workflow ()
     # Uninstall
     #libxml2_source_uninstall
     
-    # Install
-    libxml2_source_install ${install_config}
+    # install COTS used by libxml2
+    libxml2_cots_install &&
+
+    # get the sources of libxml2
+    libxml2_get_sources ${install_config} ${libxml2_local_gdb_dir} &&
+    
+    # Configure
+    libxml2_source_config ${libxml2_src_gdb_config_args} > .libxml2_config.stdout 2> .libxml2_config.stderr &&
+    (
+      # Build
+      libxml2_gdb_build > .libxml2_build.stdout 2> .libxml2_build.stderr &&
+
+      # Install built library
+      libxml2_git_master_install
+      
+    ) ||
+
+    ( echo "libxml2 source config error; you need probably to install the COTS library libtool by using: libxml2_cots_force_install..."; return 3 ) 
+}
+
+function libxml2_workflow_sources_callers ()
+{
+    install_config=$1
+    if [ -z ${install_config} ]; then
+       echo "libxml2 source callers analysis error: expected one user parameter"
+       echo "usage: libxml2_workflow_sources_callers <install_config=git|local>"
+       return 1;
+    fi
+    libxml2_config_common
+    cd ${librootdir}
+
+    # Uninstall
+    #libxml2_source_uninstall
+    
+    # install COTS used by libxml2
+    libxml2_cots_install &&
+
+    # get the sources of libxml2
+    libxml2_get_sources ${install_config} ${libxml2_local_callers_dir} &&
+    
+    # Configure
+    libxml2_source_config ${libxml2_src_callers_config_args} > .libxml2_config.stdout 2> .libxml2_config.stderr &&
+    (
+      # Callers analysis
+      libxml2_callers_analysis > .libxml2_callers.stdout 2> .libxml2_callers.stderr
+      
+    ) ||
+
+    ( echo "libxml2 source callers analysis config error; you need probably to install the COTS library libtool by using: libxml2_cots_force_install..."; return 3 ) 
 }
 
 function libxml2_fc_va_prepare ()
@@ -115,7 +166,7 @@ function libxml2_fc_va_prepare ()
     libxml2_fc_va_preproc ${install_config}
 }
 
-function libxml2_fc_preproc_update ()
+function libxml2_update_fc_preproc ()
 {
     libxml2_config_common
     cd ${librootdir}
@@ -176,30 +227,6 @@ function libxml2_local_archive ()
     fi
     tar -zxf ${libxml2_local_archive_fullname} || echo "libxml2_install ERROR: Not found tar archive ${libxml2_local_archive_fullname} in ${librootdir}"
     mv ${libxml2_local_dir_name} ${dest_dir}
-}
-
-function libxml2_source_install ()
-{
-    install_config=$1
-
-    # install COTS used by libxml2
-    libxml2_cots_install &&
-
-    # get the sources of libxml2
-    libxml2_get_sources ${install_config} ${libxml2_local_gdb_dir} &&
-    
-    # Configure
-    libxml2_source_config ${libxml2_src_gdb_config_args} > .libxml2_config.stdout 2> .libxml2_config.stderr &&
-    (
-      # Build
-      libxml2_gdb_build > .libxml2_build.stdout 2> .libxml2_build.stderr &&
-
-      # Install built library
-      libxml2_git_master_install
-      
-    ) ||
-
-    ( echo "libxml2 source config error; you need probably to install the COTS library libtool by using: libxml2_cots_force_install..."; return 3 ) 
 }
 
 function libxml2_source_uninstall ()
@@ -361,6 +388,20 @@ EOF
 	return
     fi
 
+}
+
+function libxml2_callers_analysis ()
+{
+    echo "libxml2 callers analysis..."
+    export CC=clang
+    export CXX=clang++
+    export CFLAGS="-g -O0"
+    export LDFLAGS="-g -O0"
+    export CALLERS_ANALYSIS_TYPE=callers
+    cd ${libdir}
+    scan-callers --use-analyzer `which clang` -o callers make > /dev/stdout 2> /dev/stderr
+    result=$?
+    echo "retcode: ${result}"
 }
 
 function libxml2_gdb_build ()

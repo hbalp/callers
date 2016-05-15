@@ -64,8 +64,12 @@ function launch_the_analysis()
 {
     build_tool=$1
     analysis_type=$2
-    mkdir analysis
-    cd analysis
+    analysis_dir=$3
+    if [ -z ${analysis_dir} ]; then
+	analysis_dir="callers_analysis"
+    fi
+    mkdir -p ${analysis_dir}
+    cd ${analysis_dir}
     if [ $build_tool == "cmake" ]
     then
 	launch_cmake_analysis ${analysis_type}

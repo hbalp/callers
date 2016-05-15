@@ -2,6 +2,67 @@
 # @author Hugues Balp
 # This script manages both build and analysis of the test_saml_sign example
 
+################################################################################
+#                         TO BE EDITED WHEN NEEDED
+################################################################################
+
+# callers: Extract some Function Call Graph adapted to the target example and to the verification goals
+#  to be edited when needed
+#  precondition: cmake_callers_extract_metrics (or at least list_files_in_dirs)
+function cmake_callers_it_extract_fcg ()
+{
+    cd ${ici}
+    canonical_pwd=`pwd`
+    cd ${BUILD_DIR}
+    #canonical_pwd="/net/alpha.sc2.theresis.org$PWD"
+
+    ## generate callee's tree from main entry point
+    #source extract_fcg.sh callees ${canonical_pwd}/test_saml_sign.it.c "main" "int main(int, ((char)*)*)" files
+    source extract_fcg.sh callees ${canonical_pwd}/test_saml_sign.it.c "main" "int main(int, ((char)*)*)"
+    
+    ## generate caller's tree from main entry point
+    # source extract_fcg.sh callers `pwd`/test_saml_sign.c "main" "int main()" files
+
+    source callgraph_to_ecore.sh $callers_json_rootdir
+    source callgraph_to_dot.sh $callers_json_rootdir files
+
+    source process_dot_files.sh . callers
+
+    source indent_jsonfiles.sh .
+    source indent_jsonfiles.sh $callers_json_rootdir
+    cd ${ici}
+}
+
+function libxml2_config_host_moriond ()
+{
+    LIBXML2_SYS_INCLUDES_DIR="/usr/include/libxml2"
+    LIBXML2_SYS_LIB_DIR="/usr/lib/x86_64-linux-gnu"
+    LIBXML2_SYS_LIB_INSTALL_PATH="${LIBXML2_SYS_LIB_DIR}/libxml2.so"
+    
+    LIBXML2_DEV_INCLUDES_DIR="/tools/exec/include/libxml2"
+    LIBXML2_DEV_LIB_GDB_SRC_DIR="/home/hbalp/hugues/work/third_parties/src/libxml2_gdb"
+    LIBXML2_DEV_LIB_FC_SRC_DIR="/home/hbalp/hugues/work/third_parties/src/libxml2_fc"
+    LIBXML2_DEV_LIB_INSTALL_PATH="/tools/exec/lib/libxml2.a"
+    EXTRA_DEV_LIBS_DIRS="${EXTRA_DEV_LIBS_DIRS} ${LIBXML2_DEV_LIB_FC_SRC_DIR}"
+}
+
+function libxml2_config_host_vm ()
+{
+    LIBXML2_SYS_INCLUDES_DIR="/usr/include/libxml2"
+    LIBXML2_SYS_LIB_DIR="/usr/lib/x86_64-linux-gnu/libxml2.so"
+    LIBXML2_SYS_LIB_PATH="${LIBXML2_SYS_LIB_DIR}/libxml2.so"
+    
+    LIBXML2_DEV_INCLUDES_DIR="/data/balp/src/tools/exec/include/libxml2"
+    LIBXML2_DEV_LIB_GDB_SRC_DIR="/data/balp/src/tools/libxml2_gdb"
+    LIBXML2_DEV_LIB_FC_SRC_DIR="/data/balp/src/tools/libxml2_fc"
+    LIBXML2_DEV_LIB_INSTALL_PATH="/data/balp/src/tools/exec/lib/libxml2.a"
+    EXTRA_DEV_LIBS_DIRS="${EXTRA_DEV_LIBS_DIRS} ${LIBXML2_DEV_LIB_FC_SRC_DIR}"
+}
+
+################################################################################
+#                       SHOULD NOT BEEN EDITED NORMALLY
+################################################################################
+
 #
 # Common
 #
@@ -17,12 +78,13 @@ function usage_test_saml_sign_launch ()
     echo "  3: call script cmake_build_execute to generate and build the config"
     echo "  with the appropriate generated cmake file CMakeLists.txt"
 }
-
+ 
 function cmake_build_all ()
 {
     cmake_config_common
-    # cmake_build_all_gdb
+    cmake_build_all_gdb
     cmake_build_all_fc
+    cmake_build_all_callers
     cd $ici
 }
 
@@ -34,12 +96,40 @@ function cmake_build_all_gdb ()
     cd $ici
 }
 
+function cmake_build_all_callers ()
+{
+    cmake_build_it_callers
+    cd $ici
+}
+
 function cmake_build_all_fc ()
 {
     cmake_config_common
     cmake_build_it_fc
-    # cmake_build_ut_fc
+    cmake_build_ut_fc
     cd $ici
+}
+
+function cmake_config_common ()
+{
+    ici=`pwd`
+    CMAKE_MINIMUM_VERSION="2.8"
+    CMAKE_EXPORT_COMPILE_COMMANDS="ON"
+    CMAKE_BUILD_TYPE="Debug"
+    #CMAKE_BUILD_TYPE="Release"
+    USE_XML_MEM_TRACE="ON"
+    USE_XML_MEM_BREAKPOINT="ON"
+    FRAMA_C_SHARE_PATH=`frama-c -print-share-path`
+    FRAMA_C_LIBC_DIR="${FRAMA_C_SHARE_PATH}/libc"
+    # slevle should be upper then the sizeof XML_MEM_BREAKPOINT used as input in strcmp
+    FRAMA_C_SLEVEL=80
+    #FRAMA_C_SLEVEL=30
+    #FRAMA_C_SLEVEL=2
+    #FRAMA_C_MODIFIED_FILES="stub/tree.c libc/libc.c libc/stdlib.c libc/setgetenv.c"
+    #FRAMA_C_MODIFIED_FILES="stub/tree.c libc/stdlib.c libc/setgetenv.c"
+    FRAMA_C_MODIFIED_FILES="libc/setgetenv.c"
+    EXTRA_DEV_LIBS_DIRS=""
+    build_config_host
 }
 
 function cmake_build_it_gdb ()
@@ -47,8 +137,33 @@ function cmake_build_it_gdb ()
     cmake_config_common
     # cmake_config_it_gdb_lib-sys    && cmake_build_execute
     cmake_config_it_gdb_lib-dev_without_xsw_countermeasure  && cmake_build_execute
-    cmake_config_it_gdb_lib-dev_with_xsw_countermeasure     && cmake_build_execute
+    cmake_config_it_gdb_lib-dev_with_xsw_countermeasure     && cmake_build_execute && cmake_run_it_gdb
     # cmake_config_it_gdb_stub       && cmake_build_execute
+}
+
+# precondition: cmake_build_it_gdb
+function cmake_run_it_gdb ()
+{
+    cd ${BUILD_DIR}
+    
+    # To check potential memory vulnerabilities with valgrind
+    valgrind ./xsw_test_saml_sign ../data/SAMLResponse.malicious_xsw.xml
+
+    # To get the execution path with valgrind
+    valgrind --tool=callgrind --callgrind-out-file=callgrind.gen.out ./xsw_test_saml_sign ../data/SAMLResponse.malicious_xsw.xml
+    
+    kcachegrind callgrind.gen.out &
+    cd ${ici}
+}
+
+function cmake_build_it_callers ()
+{
+    cmake_config_common &&
+    cmake_config_it_callers_lib-dev &&
+    cmake_build_generate &&
+    cmake_callers_execute &&
+    cmake_callers_extract_metrics &&
+    cmake_callers_it_extract_fcg
 }
 
 function cmake_build_it_fc ()
@@ -56,6 +171,7 @@ function cmake_build_it_fc ()
     cmake_config_common
     # cmake_config_it_fc-va_lib-dev_with_xsw_countermeasure   && cmake_build_execute && it_fc_main_gen && fc_parse_prepare
     cmake_config_it_fc-va_lib-dev_with_xsw_countermeasure   && cmake_build_execute && fc_parse_prepare
+    #cmake_config_it_fc-va_lib-dev_with_xsw_countermeasure   && cmake_build_execute && ( fc_parse_prepare > ${BUILD_DIR}/fc_va.stdout  2> ${BUILD_DIR}/fc_va.stderr )
     # # cmake_config_it_fc-va_stub     && cmake_build_execute && fc_parse_prepare
     cd $ici
 }
@@ -77,6 +193,18 @@ function cmake_build_ut_fc ()
     cmake_config_ut_fc-va-wd_lib-dev_with_xsw_countermeasure && cmake_build_execute && fc_parse_prepare
     # cmake_config_ut_fc-va_stub     && cmake_build_execute && fc_parse_prepare
     cd $ici
+}
+
+function cmake_clean_all_callers ()
+{
+    cmake_config_common
+    cmake_config_it_callers_lib-dev && cmake_build_clean
+    cd ${ici}
+    rm -f *.gen.callgraph
+    rm -f *.gen.dot
+    rm -f *.gen.json
+    source callers_analysis.sh
+    callers_reset
 }
 
 function cmake_clean_all_fc ()
@@ -114,54 +242,6 @@ function build_config_host_moriond ()
 function build_config_host_vm ()
 {
     libxml2_config_host_vm
-}
-
-function libxml2_config_host_moriond ()
-{
-    LIBXML2_SYS_INCLUDES_DIR="/usr/include/libxml2"
-    LIBXML2_SYS_LIB_DIR="/usr/lib/x86_64-linux-gnu"
-    LIBXML2_SYS_LIB_INSTALL_PATH="${LIBXML2_SYS_LIB_DIR}/libxml2.so"
-    
-    LIBXML2_DEV_INCLUDES_DIR="/tools/exec/include/libxml2"
-    LIBXML2_DEV_LIB_GDB_SRC_DIR="/home/hbalp/hugues/work/third_parties/src/libxml2_gdb"
-    LIBXML2_DEV_LIB_FC_SRC_DIR="/home/hbalp/hugues/work/third_parties/src/libxml2_fc"
-    LIBXML2_DEV_LIB_INSTALL_PATH="/tools/exec/lib/libxml2.a"
-    EXTRA_DEV_LIBS_DIRS="${EXTRA_DEV_LIBS_DIRS} ${LIBXML2_DEV_LIB_FC_SRC_DIR}"
-}
-
-function libxml2_config_host_vm ()
-{
-    LIBXML2_SYS_INCLUDES_DIR="/usr/include/libxml2"
-    LIBXML2_SYS_LIB_DIR="/usr/lib/x86_64-linux-gnu/libxml2.so"
-    LIBXML2_SYS_LIB_PATH="${LIBXML2_SYS_LIB_DIR}/libxml2.so"
-    
-    LIBXML2_DEV_INCLUDES_DIR="/data/balp/src/tools/exec/include/libxml2"
-    LIBXML2_DEV_LIB_GDB_SRC_DIR="/data/balp/src/tools/libxml2_gdb"
-    LIBXML2_DEV_LIB_FC_SRC_DIR="/data/balp/src/tools/libxml2_fc"
-    LIBXML2_DEV_LIB_INSTALL_PATH="/data/balp/src/tools/exec/lib/libxml2.a"
-    EXTRA_DEV_LIBS_DIRS="${EXTRA_DEV_LIBS_DIRS} ${LIBXML2_DEV_LIB_FC_SRC_DIR}"
-}
-
-function cmake_config_common ()
-{
-    ici=`pwd`
-    CMAKE_MINIMUM_VERSION="2.8"
-    CMAKE_EXPORT_COMPILE_COMMANDS="ON"
-    CMAKE_BUILD_TYPE="Debug"
-    #CMAKE_BUILD_TYPE="Release"
-    USE_XML_MEM_TRACE="ON"
-    USE_XML_MEM_BREAKPOINT="ON"
-    FRAMA_C_SHARE_PATH=`frama-c -print-share-path`
-    FRAMA_C_LIBC_DIR="${FRAMA_C_SHARE_PATH}/libc"
-    # slevle should be upper then the sizeof XML_MEM_BREAKPOINT used as input in strcmp
-    FRAMA_C_SLEVEL=80
-    #FRAMA_C_SLEVEL=30
-    #FRAMA_C_SLEVEL=2
-    #FRAMA_C_MODIFIED_FILES="stub/tree.c libc/libc.c libc/stdlib.c libc/setgetenv.c"
-    #FRAMA_C_MODIFIED_FILES="stub/tree.c libc/stdlib.c libc/setgetenv.c"
-    FRAMA_C_MODIFIED_FILES="libc/setgetenv.c"
-    EXTRA_DEV_LIBS_DIRS=""
-    build_config_host
 }
 
 #
@@ -228,9 +308,9 @@ function cmake_config_it_gdb_lib-dev_without_xsw_countermeasure ()
     DEV_LIB="ON"
     INTG_TEST="ON"
     UNIT_TEST="OFF"
-    ADAPTED_CALL_CONTEXT="ON"
-    USE_XML_MEM_TRACE="ON"
-    USE_XML_MEM_BREAKPOINT="ON"
+    ADAPTED_CALL_CONTEXT="OFF"
+    USE_XML_MEM_TRACE="OFF"
+    USE_XML_MEM_BREAKPOINT="OFF"
     FRAMA_C="OFF"
     LIBXML2_STUB="OFF"
     SAVE_TEMPS="ON"
@@ -245,12 +325,29 @@ function cmake_config_it_gdb_lib-dev_with_xsw_countermeasure ()
     DEV_LIB="ON"
     INTG_TEST="ON"
     UNIT_TEST="OFF"
-    ADAPTED_CALL_CONTEXT="ON"
-    USE_XML_MEM_TRACE="ON"
-    USE_XML_MEM_BREAKPOINT="ON"
+    ADAPTED_CALL_CONTEXT="OFF"
+    USE_XML_MEM_TRACE="OFF"
+    USE_XML_MEM_BREAKPOINT="OFF"
     FRAMA_C="OFF"
     LIBXML2_STUB="OFF"
     SAVE_TEMPS="ON"
+}
+
+function cmake_config_it_callers_lib-dev ()
+{
+    XSW_COUNTERMEASURE="ON"
+    BUILD_DIR="test_it_callers_lib-dev.gen"
+    TEST_MAIN_SRC_FILE="test_saml_sign.it.c"
+    SYSTEM_LIB="OFF"
+    DEV_LIB="ON"
+    INTG_TEST="ON"
+    UNIT_TEST="OFF"
+    ADAPTED_CALL_CONTEXT="OFF"
+    USE_XML_MEM_TRACE="OFF"
+    USE_XML_MEM_BREAKPOINT="OFF"
+    FRAMA_C="OFF"
+    LIBXML2_STUB="OFF"
+    SAVE_TEMPS="OFF" # Important to avoid an error reported by clang during callers analysis
 }
 
 function cmake_config_it_fc-va_lib-dev_with_xsw_countermeasure ()
@@ -263,9 +360,9 @@ function cmake_config_it_fc-va_lib-dev_with_xsw_countermeasure ()
     DEV_LIB="ON"
     INTG_TEST="ON"
     UNIT_TEST="OFF"
-    ADAPTED_CALL_CONTEXT="ON"
-    USE_XML_MEM_TRACE="ON"
-    USE_XML_MEM_BREAKPOINT="ON"
+    ADAPTED_CALL_CONTEXT="OFF"
+    USE_XML_MEM_TRACE="OFF"
+    USE_XML_MEM_BREAKPOINT="OFF"
     FRAMA_C="ON"
     LIBXML2_STUB="OFF"
     SAVE_TEMPS="ON"
@@ -274,6 +371,7 @@ function cmake_config_it_fc-va_lib-dev_with_xsw_countermeasure ()
 # this function generates an fc_main for FC-VA of the inttegation test
 function it_fc_main_gen ()
 {
+    source fc_analysis.sh
     cd ${BUILD_DIR}
     exe="../test_it_gdb_lib-dev_with_xsw_countermeasure.gen/xsw_test_saml_sign"
     if [ -f ${exe} ]; then
@@ -515,11 +613,11 @@ endif()
 
 if(FRAMA_C)
   if(FRAMA_C_VA_WIDENING)
-    set(CMAKE_C_FLAGS    "\${CMAKE_C_FLAGS}   -E -C -DFRAMA_C -DFRAMA_C_VA_WIDENING -D__FC_MACHDEP_X86_64") # -DFRAMA_C_MALLOC_INDIVIDUAL")
-    set(CMAKE_CXX_FLAGS  "\${CMAKE_CXX_FLAGS} -E -C -DFRAMA_C -DFRAMA_C_VA_WIDENING -D__FC_MACHDEP_X86_64") # -DFRAMA_C_MALLOC_INDIVIDUAL")
+    set(CMAKE_C_FLAGS    "\${CMAKE_C_FLAGS}   -C -DFRAMA_C -DFRAMA_C_VA_WIDENING -D__FC_MACHDEP_X86_64") # -DFRAMA_C_MALLOC_INDIVIDUAL")
+    set(CMAKE_CXX_FLAGS  "\${CMAKE_CXX_FLAGS} -C -DFRAMA_C -DFRAMA_C_VA_WIDENING -D__FC_MACHDEP_X86_64") # -DFRAMA_C_MALLOC_INDIVIDUAL")
   else()
-    set(CMAKE_C_FLAGS    "\${CMAKE_C_FLAGS}   -E -C -DFRAMA_C -D__FC_MACHDEP_X86_64") # -DFRAMA_C_MALLOC_INDIVIDUAL")
-    set(CMAKE_CXX_FLAGS  "\${CMAKE_CXX_FLAGS} -E -C -DFRAMA_C -D__FC_MACHDEP_X86_64") # -DFRAMA_C_MALLOC_INDIVIDUAL")
+    set(CMAKE_C_FLAGS    "\${CMAKE_C_FLAGS}   -C -DFRAMA_C -D__FC_MACHDEP_X86_64") # -DFRAMA_C_MALLOC_INDIVIDUAL")
+    set(CMAKE_CXX_FLAGS  "\${CMAKE_CXX_FLAGS} -C -DFRAMA_C -D__FC_MACHDEP_X86_64") # -DFRAMA_C_MALLOC_INDIVIDUAL")
   endif()
 endif()
 
@@ -615,6 +713,30 @@ function cmake_build_clean()
     rm -rf ${BUILD_DIR}
 }
 
+function cmake_callers_execute ()
+{
+    common=`which common.sh`
+    launch_scan_build=`which launch_analysis.sh`
+
+    source $common
+    source $launch_scan_build
+
+    cd ${ici}
+    launch_the_analysis cmake callers ${BUILD_DIR}
+}
+
+# callers: Extract metrics
+#  precondition: cmake_callers_execute
+function cmake_callers_extract_metrics ()
+{
+    cd ${BUILD_DIR}
+    list_files_in_dirs $callers_json_rootdir .file.callers.gen.json dir.callers.gen.json "analysis"
+    extract_metrics metrics.callers.tmp.json
+    ydump metrics.callers.tmp.json > metrics.callers.gen.json
+    rm metrics.callers.tmp.json
+    cd ${ici}
+}
+   
 function fc_parse_prepare()
 {
     cd ${ici}
@@ -628,10 +750,10 @@ function fc_parse_prepare()
     fi
     
     BUILD_PATH="${ici}/${BUILD_DIR}"
-    source fc_analysis.sh
-    fc_parse ${TEST_MAIN_SRC_FILE} ${BUILD_PATH} ${EXTRA_DEV_LIBS_DIRS}
+    source fc_analysis.sh &&
+    fc_parse ${TEST_MAIN_SRC_FILE} ${BUILD_PATH} ${EXTRA_DEV_LIBS_DIRS} &&
     # launch fc_parse
-    source fc_parse_preproc_files.gen.sh
+    source fc_parse_preproc_files.gen.sh &&
     # launch fc-va
-    fc_va ${fc_entrypoint} ${FRAMA_C_SLEVEL}
+    fc_va ${fc_entrypoint} ${FRAMA_C_SLEVEL} | tee fc_va.gen.stdout.stderr
 }

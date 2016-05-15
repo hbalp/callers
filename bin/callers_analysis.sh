@@ -1,7 +1,7 @@
 #!/bin/bash
 #set -x
 
-function reset_callers ()
+function callers_reset ()
 {
   echo "Clean /tmp/callers..."
   rm -rf /tmp/callers

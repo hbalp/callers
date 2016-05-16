@@ -11,15 +11,12 @@
 #  precondition: cmake_callers_extract_metrics (or at least list_files_in_dirs)
 function cmake_callers_it_extract_fcg ()
 {
-    cd ${ici}
-    canonical_pwd=`pwd`
     cd ${BUILD_DIR}
-    #canonical_pwd="/net/alpha.sc2.theresis.org$PWD"
 
     ## generate callee's tree from main entry point
     #source extract_fcg.sh callees ${canonical_pwd}/test_saml_sign.it.c "main" "int main(int, ((char)*)*)" files
     source extract_fcg.sh callees ${canonical_pwd}/test_saml_sign.it.c "main" "int main(int, ((char)*)*)"
-    
+
     ## generate caller's tree from main entry point
     # source extract_fcg.sh callers `pwd`/test_saml_sign.c "main" "int main()" files
 
@@ -33,30 +30,36 @@ function cmake_callers_it_extract_fcg ()
     cd ${ici}
 }
 
+# moriond
 function libxml2_config_host_moriond ()
 {
     LIBXML2_SYS_INCLUDES_DIR="/usr/include/libxml2"
     LIBXML2_SYS_LIB_DIR="/usr/lib/x86_64-linux-gnu"
     LIBXML2_SYS_LIB_INSTALL_PATH="${LIBXML2_SYS_LIB_DIR}/libxml2.so"
-    
+
     LIBXML2_DEV_INCLUDES_DIR="/tools/exec/include/libxml2"
     LIBXML2_DEV_LIB_GDB_SRC_DIR="/home/hbalp/hugues/work/third_parties/src/libxml2_gdb"
     LIBXML2_DEV_LIB_FC_SRC_DIR="/home/hbalp/hugues/work/third_parties/src/libxml2_fc"
     LIBXML2_DEV_LIB_INSTALL_PATH="/tools/exec/lib/libxml2.a"
     EXTRA_DEV_LIBS_DIRS="${EXTRA_DEV_LIBS_DIRS} ${LIBXML2_DEV_LIB_FC_SRC_DIR}"
+
+    canonical_pwd=`pwd`
 }
 
+# vm
 function libxml2_config_host_vm ()
 {
     LIBXML2_SYS_INCLUDES_DIR="/usr/include/libxml2"
     LIBXML2_SYS_LIB_DIR="/usr/lib/x86_64-linux-gnu/libxml2.so"
     LIBXML2_SYS_LIB_PATH="${LIBXML2_SYS_LIB_DIR}/libxml2.so"
-    
+
     LIBXML2_DEV_INCLUDES_DIR="/data/balp/src/tools/exec/include/libxml2"
     LIBXML2_DEV_LIB_GDB_SRC_DIR="/data/balp/src/tools/libxml2_gdb"
     LIBXML2_DEV_LIB_FC_SRC_DIR="/data/balp/src/tools/libxml2_fc"
     LIBXML2_DEV_LIB_INSTALL_PATH="/data/balp/src/tools/exec/lib/libxml2.a"
     EXTRA_DEV_LIBS_DIRS="${EXTRA_DEV_LIBS_DIRS} ${LIBXML2_DEV_LIB_FC_SRC_DIR}"
+
+    canonical_pwd="/net/alpha.sc2.theresis.org$PWD"
 }
 
 ################################################################################
@@ -229,9 +232,15 @@ function cmake_clean_all_fc ()
 }
 
 function build_config_host()
-{    
-    build_config_host_moriond
-    # build_config_host_vm
+{
+    host=`hostname`
+    if [ ${host} == "devrte" ]; then
+        build_config_host_vm
+    elif [ ${host} == "moriond" ]; then
+        build_config_host_moriond
+    else
+        echo "ERROR: no available configuration for unknown host ${host}"
+    fi
 }
 
 function build_config_host_moriond ()

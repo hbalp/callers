@@ -1,14 +1,12 @@
 # Script managing the installation and build of the libxml2 library
 # Two available configurations: libxml2_local_install and libxml2_git_install
 
-INSTALL_CONFIG="git"
-#INSTALL_CONFIG="local"
+#INSTALL_CONFIG="git"
+INSTALL_CONFIG="local"
 
-# host dependant libxml2 config
-function libxml2_config_host ()
+# precondition: host dependant libxml2 config
+function libxml2_config_shared ()
 {
-  #librootdir="/data/balp/src/tools"
-  librootdir="/home/hbalp/hugues/work/third_parties/src"
   #libinstalldir="${librootdir}/exec"
   libinstalldir="/tools/exec"
   libxml2_local_gdb_dir="libxml2_gdb"
@@ -21,12 +19,35 @@ function libxml2_config_host ()
   libxml2_autogen_config_filename=".libxml2.config.gen.sh"
 }
 
-# for install_config="local"
-function libxml2_config_local_archive ()
+# host dependant libxml2 config
+function libxml2_config_host()
 {
+    host=`hostname`
+    if [ ${host} == "devrte" ]; then
+        libxml2_config_host_vm
+    elif [ ${host} == "moriond" ]; then
+        libxml2_config_host_moriond
+    else
+        echo "libxml2_install:ERROR: no available libxml2 configuration for unknown host ${host}"
+    fi
+}
+
+# libxml2 config for host moriond
+function libxml2_config_host_moriond ()
+{
+  librootdir="/home/hbalp/hugues/work/third_parties/src"
   libxml2_local_dir_name="libxml2"
   libxml2_local_archive_name="libxml2-2.9.4"
   libxml2_local_archive_fullname="${libxml2_local_archive_name}.tgz"
+}
+
+# libxml2 config for host devrte
+function libxml2_config_host_vm ()
+{
+  librootdir="/data/balp/src/tools"
+  libxml2_local_dir_name="libxml2"
+  libxml2_local_archive_name="libxml2-2.9.3"
+  libxml2_local_archive_fullname="${libxml2_local_archive_name}.tar.gz"
 }
 
 # for install_config="git"
@@ -177,7 +198,7 @@ function libxml2_update_fc_preproc ()
 function libxml2_config_common ()
 {
     libxml2_config_host
-    libxml2_config_local_archive
+    libxml2_config_shared
     libxml2_config_git_archive
     libxml2_config_fc_va
 }
@@ -193,7 +214,6 @@ function libxml2_binary_uninstall ()
 function libxml2_binary_install ()
 {
     libxml2_cots_install
-    
     libxml2_system_install
 }
 

@@ -37,7 +37,8 @@ function libxml2_config_host_moriond ()
 {
   librootdir="/home/hbalp/hugues/work/third_parties/src"
   libxml2_local_dir_name="libxml2"
-  libxml2_local_archive_name="libxml2-2.9.4"
+  #libxml2_local_archive_name="libxml2-2.9.4"
+  libxml2_local_archive_name="libxml2-2.9.4.1.stance"
   libxml2_local_archive_fullname="${libxml2_local_archive_name}.tgz"
 }
 

@@ -17,13 +17,32 @@ function cmake_callers_it_extract_fcg ()
     #source extract_fcg.sh callees ${canonical_pwd}/test_saml_sign.it.c "main" "int main(int, ((char)*)*)" files
     source extract_fcg.sh callees ${canonical_pwd}/test_saml_sign.it.c "main" "int main(int, ((char)*)*)"
 
-    ## generate caller's tree from main entry point
-    # source extract_fcg.sh callers `pwd`/test_saml_sign.c "main" "int main()" files
+    ## generate caller's tree from spv_validate function implementing the countermeasure against XSW attacks
+    source extract_fcg.sh callers ${canonical_pwd}/validate_saml_sign.h "spv_validate" "bool saml_SignatureProfileValidator_validate((signature)*, (_xmlDoc)*)" files
 
+    ## generate callee's tree from spv_validate function implementing the countermeasure against XSW attacks
+    source extract_fcg.sh callees ${canonical_pwd}/validate_saml_sign.c "spv_validate" "bool saml_SignatureProfileValidator_validate((signature)*, (_xmlDoc)*)" files
+
+    ## generate callee's tree from test function parsing the SAML response message
+    source extract_fcg.sh callees ${canonical_pwd}/parse_saml_response.c "parseSamlResponseFile" "(samlResponse)* parseSamlResponseFile((char)*)" files
+
+    ## generate callee's tree from xmlParseDocument function parsing the SAML response message
+    source extract_fcg.sh callees ${LIBXML2_DEV_LIB_CALLERS_SRC_DIR}/parser.c "xmlParseDocument" "int xmlParseDocument((_xmlParserCtxt)*)"
+
+    ## generate callee's tree from xmlParseFile function parsing the SAML response message
+    source extract_fcg.sh callees ${LIBXML2_DEV_LIB_CALLERS_SRC_DIR}/parser.c "xmlParseFile" "(_xmlDoc)* xmlParseFile((const char)*)"
+
+    ## generate caller's tree from xmlParseCharData function parsing the XML data (identified thanks to valgrind --tool=callgrind)
+    source extract_fcg.sh callers ${LIBXML2_DEV_LIB_CALLERS_SRC_DIR}/include/libxml/parserInternals.h "xmlParseCharData" "void xmlParseCharData((_xmlParserCtxt)*, int)"
+
+    # Only #ifdef LIBXML_READER_ENABLED
+    ## generate caller's tree from xmllint processNode function reading XML nodes of user input file
+    # source extract_fcg.sh callers ${LIBXML2_DEV_LIB_CALLERS_SRC_DIR}/xmllint.c "processNode" "void processNode((_xmlTextReader)*)" files
+    
     source callgraph_to_ecore.sh $callers_json_rootdir
     source callgraph_to_dot.sh $callers_json_rootdir files
 
-    source process_dot_files.sh . callers
+    # source process_dot_files.sh . callers
 
     source indent_jsonfiles.sh .
     source indent_jsonfiles.sh $callers_json_rootdir
@@ -36,11 +55,13 @@ function libxml2_config_host_moriond ()
     LIBXML2_SYS_INCLUDES_DIR="/usr/include/libxml2"
     LIBXML2_SYS_LIB_DIR="/usr/lib/x86_64-linux-gnu"
     LIBXML2_SYS_LIB_INSTALL_PATH="${LIBXML2_SYS_LIB_DIR}/libxml2.so"
-
+    
     LIBXML2_DEV_INCLUDES_DIR="/tools/exec/include/libxml2"
+    LIBXML2_DEV_LIB_CALLERS_SRC_DIR="/home/hbalp/hugues/work/third_parties/src/libxml2_callers"
     LIBXML2_DEV_LIB_GDB_SRC_DIR="/home/hbalp/hugues/work/third_parties/src/libxml2_gdb"
     LIBXML2_DEV_LIB_FC_SRC_DIR="/home/hbalp/hugues/work/third_parties/src/libxml2_fc"
     LIBXML2_DEV_LIB_INSTALL_PATH="/tools/exec/lib/libxml2.a"
+    
     EXTRA_DEV_LIBS_DIRS="${EXTRA_DEV_LIBS_DIRS} ${LIBXML2_DEV_LIB_FC_SRC_DIR}"
 
     canonical_pwd=`pwd`
@@ -52,11 +73,13 @@ function libxml2_config_host_vm ()
     LIBXML2_SYS_INCLUDES_DIR="/usr/include/libxml2"
     LIBXML2_SYS_LIB_DIR="/usr/lib/x86_64-linux-gnu/libxml2.so"
     LIBXML2_SYS_LIB_PATH="${LIBXML2_SYS_LIB_DIR}/libxml2.so"
-
+    
     LIBXML2_DEV_INCLUDES_DIR="/data/balp/src/tools/exec/include/libxml2"
+    LIBXML2_DEV_LIB_CALLERS_SRC_DIR="/data/balp/src/tools/libxml2_callers"
     LIBXML2_DEV_LIB_GDB_SRC_DIR="/data/balp/src/tools/libxml2_gdb"
     LIBXML2_DEV_LIB_FC_SRC_DIR="/data/balp/src/tools/libxml2_fc"
     LIBXML2_DEV_LIB_INSTALL_PATH="/data/balp/src/tools/exec/lib/libxml2.a"
+    
     EXTRA_DEV_LIBS_DIRS="${EXTRA_DEV_LIBS_DIRS} ${LIBXML2_DEV_LIB_FC_SRC_DIR}"
 
     canonical_pwd="/net/alpha.sc2.theresis.org$PWD"
@@ -86,30 +109,30 @@ function cmake_build_all ()
 {
     cmake_config_common
     cmake_build_all_gdb
-    cmake_build_all_fc
     cmake_build_all_callers
+    cmake_build_all_fc
     cd $ici
 }
 
 function cmake_build_all_gdb ()
 {
     cmake_config_common
-    cmake_build_it_gdb
-    cmake_build_ut_gdb
+    cmake_build_it_gdb > .build_it_gdb.gen.stdout 2> .build_it_gdb.stderr
+    cmake_build_ut_gdb > .build_ut_gdb.gen.stdout 2> .build_ut_gdb.stderr
     cd $ici
 }
 
 function cmake_build_all_callers ()
 {
-    cmake_build_it_callers
+    cmake_build_it_callers > .build_it_callers.gen.stdout 2> .build_it_callers.stderr
     cd $ici
 }
 
 function cmake_build_all_fc ()
 {
     cmake_config_common
-    cmake_build_it_fc
-    cmake_build_ut_fc
+    cmake_build_ut_fc > .build_ut_fc.gen.stdout 2> .build_ut_fc.stderr
+    cmake_build_it_fc > .build_it_fc.gen.stdout 2> .build_it_fc.stderr
     cd $ici
 }
 

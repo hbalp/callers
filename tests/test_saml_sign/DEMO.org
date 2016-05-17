@@ -1,0 +1,93 @@
+
+* verification of the countermeasure implementation against XSW attack
+
+** normal behaviour
+   :PROPERTIES:
+   :LOCATION: [[./test_ut_gdb_lib-dev_without_xsw_countermeasure.gen][test_ut_gdb_lib-dev_without_xsw_countermeasure.gen]]
+   :END:
+
+   1. valid SAML Response with only one assertion
+   2. successfull verification of the SAML response
+
+   Cf test_ut_gdb_lib-dev_without_xsw_countermeasure.gen
+   
+   ./test_ut_gdb_lib-dev_without_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.sane.xml
+
+** principle of XSW attack
+   :PROPERTIES:
+   :LOCATION: [[./test_ut_gdb_lib-dev_without_xsw_countermeasure.gen][test_ut_gdb_lib-dev_without_xsw_countermeasure.gen]]
+   :END:
+
+   1. malicious SAML Response with only two assertions, one valid and the other overwritting the user attributes of the valid assertion
+
+   ./test_ut_gdb_lib-dev_without_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.malicious.xml
+
+** countermeasure against XSW attack
+   :PROPERTIES:
+   :LOCATION: [[./test_ut_gdb_lib-dev_with_xsw_countermeasure.gen][test_ut_gdb_lib-dev_with_xsw_countermeasure.gen]]
+   :END:   
+
+   Cf test_ut_gdb_lib-dev_with_xsw_countermeasure.gen data/SAMLResponse.sane.xml
+   
+   Cf test_ut_gdb_lib-dev_with_xsw_countermeasure.gen data/SAMLResponse.malicious.xml
+
+** Question: is the countermeasure implementation robust enough regarding MITM XSW attacks ?
+** Frama-C Value Anaysis
+*** Integration Test	  
+    :PROPERTIES:
+    :LOCATION: [[./test_it_fc-va_lib-dev_with_xsw_countermeasure.gen][test_it_fc-va_lib-dev_with_xsw_countermeasure.gen]]
+    :END:
+
+    _Hard work to well configure the analysis._
+    => over-approximation leading to covering much more source code
+    => than the one expected to be verified for checking the countermeasure
+
+    Exemple of the recursion in the error handlers leading to a non-terminating VA.
+
+*** Unitary Test
+**** without adapted context: *of no help*
+     :PROPERTIES:
+     :LOCATION: [[./test_ut_fc-va_lib-dev_without_adapted_call_context.gen][test_ut_fc-va_lib-dev_without_adapted_call_context.gen]]
+     :END:
+     => over-approximation => unprecision => *of no help*
+**** with/without countermeasure against XSW attacks: *manual call context adaptation*
+     :PROPERTIES:
+     :LOCATION: [[./test_ut_fc-va_lib-dev_without_adapted_call_context.gen][test_ut_fc-va_lib-dev_with_xsw_countermeasure.gen]]
+     :END:
+     We need to manually adapt the call context of the unitary test to focus specifically on the remote threats
+     Cf [[./test_saml_sign.ut.c][test_saml_sign.ut.c]]
+***** one unitary test: 14 alarms
+***** widening: 23 alarms
+*** Conclusions
+
+    regarding VA:
+
+    1) The *code has both to compile and to execute correctly* before trying to analyse it (cf unadapted call context).
+       => otherwise the tool will found unappropriate defects
+
+    2) *each alarm can hide many defects* in the code so we *need to analyze each of them* to be able to provide some *guarantee*
+       example of the ut frama-c analysis without adapted context where 1 false alarm hides all other defects
+       => *a huge workload to analyse large software*
+
+    3) *Value cannot perform a full taint analysis to the user XML input*
+
+    4) *difficult to get precise analysis by covering the whole code*
+
+       => need first to *begin on subparts* and then to widen it
+
+    5) *need to help in generating adapted call contexts for local analysis on software subparts*
+       => otherwise it requires *much time to do it manually and correctly*
+       => would require many techniques: 
+       1. code generation techniques to generate the code structure of the ut main function initialising the call context 
+       2. adapted test case generation techniques like pathcrawler
+
+    6) *widening introduces quickly unprecision because relation between variables are not taken into account*
+
+    7) *Hard point*
+
+       => TLabs encourages in development of "security dedicated tools"
+
+       => However they are mostly dependant on general-purpose tools like Frama-C VA
+          that have usability issues
+
+       => so those dedicate tools inherit also from the limitations of the general purpose tools

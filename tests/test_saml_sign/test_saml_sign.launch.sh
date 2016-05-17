@@ -2,6 +2,8 @@
 # @author Hugues Balp
 # This script manages both build and analysis of the test_saml_sign example
 
+set +x
+
 ################################################################################
 #                         TO BE EDITED WHEN NEEDED
 ################################################################################
@@ -117,22 +119,22 @@ function cmake_build_all ()
 function cmake_build_all_gdb ()
 {
     cmake_config_common
-    cmake_build_it_gdb > .build_it_gdb.gen.stdout 2> .build_it_gdb.stderr
-    cmake_build_ut_gdb > .build_ut_gdb.gen.stdout 2> .build_ut_gdb.stderr
+    cmake_build_it_gdb > .build_it_gdb.gen.stdout 2> .build_it_gdb.gen.stderr
+    cmake_build_ut_gdb > .build_ut_gdb.gen.stdout 2> .build_ut_gdb.gen.stderr
     cd $ici
 }
 
 function cmake_build_all_callers ()
 {
-    cmake_build_it_callers > .build_it_callers.gen.stdout 2> .build_it_callers.stderr
+    cmake_build_it_callers > .build_it_callers.gen.stdout 2> .build_it_callers.gen.stderr
     cd $ici
 }
 
 function cmake_build_all_fc ()
 {
     cmake_config_common
-    cmake_build_ut_fc > .build_ut_fc.gen.stdout 2> .build_ut_fc.stderr
-    cmake_build_it_fc > .build_it_fc.gen.stdout 2> .build_it_fc.stderr
+    cmake_build_ut_fc > .build_ut_fc.gen.stdout 2> .build_ut_fc.gen.stderr
+    cmake_build_it_fc > .build_it_fc.gen.stdout 2> .build_it_fc.gen.stderr
     cd $ici
 }
 
@@ -205,8 +207,9 @@ function cmake_build_it_fc ()
 function cmake_build_ut_gdb ()
 {
     # cmake_config_ut_gdb_lib-sys    && cmake_build_execute
-    cmake_config_ut_gdb_lib-dev_without_xsw_countermeasure  && cmake_build_execute
-    cmake_config_ut_gdb_lib-dev_with_xsw_countermeasure     && cmake_build_execute
+    cmake_config_ut_gdb_lib-dev_without_adapted_call_context && cmake_build_execute
+    cmake_config_ut_gdb_lib-dev_without_xsw_countermeasure   && cmake_build_execute
+    cmake_config_ut_gdb_lib-dev_with_xsw_countermeasure      && cmake_build_execute
     # cmake_config_ut_gdb_stub       && cmake_build_execute
     cd $ici
 }
@@ -215,8 +218,9 @@ function cmake_build_ut_fc ()
 {
     cmake_config_common
     # cmake_config_ut_fc-va_lib-sys  && cmake_build_execute && fc_parse_prepare
-    cmake_config_ut_fc-va_lib-dev_with_xsw_countermeasure    && cmake_build_execute && fc_parse_prepare
-    cmake_config_ut_fc-va-wd_lib-dev_with_xsw_countermeasure && cmake_build_execute && fc_parse_prepare
+    cmake_config_ut_fc-va_lib-dev_without_adapted_call_context && cmake_build_execute && fc_parse_prepare
+    cmake_config_ut_fc-va_lib-dev_with_xsw_countermeasure      && cmake_build_execute && fc_parse_prepare
+    cmake_config_ut_fc-va-wd_lib-dev_with_xsw_countermeasure   && cmake_build_execute && fc_parse_prepare
     # cmake_config_ut_fc-va_stub     && cmake_build_execute && fc_parse_prepare
     cd $ici
 }
@@ -481,6 +485,23 @@ function it_fc_main_gen ()
 #     SAVE_TEMPS="ON"
 # }
 
+function cmake_config_ut_gdb_lib-dev_without_adapted_call_context ()
+{
+    XSW_COUNTERMEASURE="ON"
+    BUILD_DIR="test_ut_gdb_lib-dev_without_adapted_call_context.gen"
+    TEST_MAIN_SRC_FILE="test_saml_sign.ut.c"
+    SYSTEM_LIB="OFF"
+    DEV_LIB="ON"
+    INTG_TEST="OFF"
+    UNIT_TEST="ON"
+    ADAPTED_CALL_CONTEXT="OFF"
+    USE_XML_MEM_TRACE="ON"
+    USE_XML_MEM_BREAKPOINT="ON"
+    FRAMA_C="OFF"
+    LIBXML2_STUB="OFF"
+    SAVE_TEMPS="ON"
+}
+
 function cmake_config_ut_gdb_lib-dev_without_xsw_countermeasure ()
 {
     XSW_COUNTERMEASURE="OFF"
@@ -508,6 +529,23 @@ function cmake_config_ut_gdb_lib-dev_with_xsw_countermeasure ()
     INTG_TEST="OFF"
     UNIT_TEST="ON"
     ADAPTED_CALL_CONTEXT="ON"
+    USE_XML_MEM_TRACE="ON"
+    USE_XML_MEM_BREAKPOINT="ON"
+    FRAMA_C="OFF"
+    LIBXML2_STUB="OFF"
+    SAVE_TEMPS="ON"
+}
+
+function cmake_config_ut_fc-va_lib-dev_without_adapted_call_context ()
+{
+    XSW_COUNTERMEASURE="ON"
+    BUILD_DIR="test_ut_fc-va_lib-dev_without_adapted_call_context.gen"
+    TEST_MAIN_SRC_FILE="test_saml_sign.ut.c"
+    SYSTEM_LIB="OFF"
+    DEV_LIB="ON"
+    INTG_TEST="OFF"
+    UNIT_TEST="ON"
+    ADAPTED_CALL_CONTEXT="OFF"
     USE_XML_MEM_TRACE="ON"
     USE_XML_MEM_BREAKPOINT="ON"
     FRAMA_C="OFF"
@@ -791,3 +829,4 @@ function fc_parse_prepare()
     #fc_va ${fc_entrypoint} ${FRAMA_C_SLEVEL} > /dev/stdout > fc_va.gen.stdout 2> fc_va.gen.stderr
     #fc_va ${fc_entrypoint} ${FRAMA_C_SLEVEL} | tee fc_va.gen.stdout.stderr
 }
+

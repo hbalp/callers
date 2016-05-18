@@ -1,50 +1,155 @@
 
 * verification of the countermeasure implementation against XSW attack
-
-** normal behaviour
+** *normal behaviour*
    :PROPERTIES:
    :LOCATION: [[./test_ut_gdb_lib-dev_without_xsw_countermeasure.gen][test_ut_gdb_lib-dev_without_xsw_countermeasure.gen]]
+   :cmd: cd test_ut_gdb_lib-dev_without_xsw_countermeasure.gen; ./test_ut_gdb_lib-dev_without_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.sane.xml
+   :valid_assertion: [[./data/SAMLResponse.sane.xml][SAMLResponse.sane.xml]]
    :END:
 
-   1. valid SAML Response with only one assertion
-   2. successfull verification of the SAML response
+   1. *valid SAML Response with only one assertion*
 
-   Cf test_ut_gdb_lib-dev_without_xsw_countermeasure.gen
-   
-   ./test_ut_gdb_lib-dev_without_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.sane.xml
+   2. *successfull verification of the SAML response*
 
-** principle of XSW attack
+** *principle of XSW attack*
    :PROPERTIES:
    :LOCATION: [[./test_ut_gdb_lib-dev_without_xsw_countermeasure.gen][test_ut_gdb_lib-dev_without_xsw_countermeasure.gen]]
+   :cmd:      ./test_ut_gdb_lib-dev_without_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.malicious.xml
+   :malicious_assertion: [[./data/SAMLResponse.malicious_xsw.xml][SAMLResponse.malicious_xsw.xml]]
    :END:
 
-   1. malicious SAML Response with only two assertions, one valid and the other overwritting the user attributes of the valid assertion
+   * *remote attack model*
 
-   ./test_ut_gdb_lib-dev_without_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.malicious.xml
+     *MITM attacks* in case of _vulnerable cryptography protection_
 
-** countermeasure against XSW attack
+     => *modification of the SAML authentication token* either by:
+
+     - modifiying _user attributes_
+
+     - _adding malicious attributes_ in SAML extensions with _administrator privileges_
+
+     - _adding malicious binary payload_ in SAML extensions to exploit potential vulnerable behaviours
+
+       => could be used to bypass the countermeasure against XSW attack
+
+   * example of a *malicious SAML Response with two assertions*
+
+     *one valid* and *one malicious* overwritting the *user attributes* of the valid assertion
+
+** *countermeasure against XSW attack*
    :PROPERTIES:
    :LOCATION: [[./test_ut_gdb_lib-dev_with_xsw_countermeasure.gen][test_ut_gdb_lib-dev_with_xsw_countermeasure.gen]]
+   :src:      [[./validate_saml_sign.c][validate_saml_sign.c]]
+   :sane:     ./test_ut_gdb_lib-dev_with_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.sane.xml
+   :malicious: ./test_ut_gdb_lib-dev_with_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.malicious.xml
    :END:   
 
-   Cf test_ut_gdb_lib-dev_with_xsw_countermeasure.gen data/SAMLResponse.sane.xml
-   
-   Cf test_ut_gdb_lib-dev_with_xsw_countermeasure.gen data/SAMLResponse.malicious.xml
+    // Countermeasure against XSW attacks
+    // Check wether signature parent node is same as assertion by ID
+    #if USE_XSW_COUNTERMEASURE
+	*if ( sign->parent == assertionByID )*
+    #endif
+	{
+	  is_valid = true;
+	}    
 
-** Question: is the countermeasure implementation robust enough regarding MITM XSW attacks ?
-** Frama-C Value Anaysis
+** *Question: is the countermeasure implementation robust enough regarding MITM XSW attacks ?*
+
+   * Verification method:
+     
+     1. _Manual slicing_ of the code parsing the XML user input and validating the SAML signature
+
+        => need to build unitary tests well _adapted to the usage context and the verification goal_
+
+     2. _Value Analysis_ to detect potential bugs and undefined behaviours
+
+     3. _Analysis of alarms_ to check whether they are exploitable or not by a _remote attacker_
+
+** *Frama-C Value Anaysis*
 *** Integration Test	  
     :PROPERTIES:
     :LOCATION: [[./test_it_fc-va_lib-dev_with_xsw_countermeasure.gen][test_it_fc-va_lib-dev_with_xsw_countermeasure.gen]]
+    :stdout:   [[file:~/hugues/work/third_parties/src/llvm/tools/clang/tools/extra/callers/tests/test_saml_sign/.build_it_fc.gen.stdout::xmlLoadExternalEntity%20<-%20xmlCreateURLParserCtxt%20<-][file:~/hugues/work/third_parties/src/llvm/tools/clang/tools/extra/callers/tests/test_saml_sign/.build_it_fc.gen.stdout::xmlLoadExternalEntity <- xmlCreateURLParserCtxt <-]]**** TODO [#A]
     :END:
 
-    _Hard work to well configure the analysis._
-    => over-approximation leading to covering much more source code
-    => than the one expected to be verified for checking the countermeasure
+    * _Example of a recursion in the error handlers leading to a non-terminating VA_
 
-    Exemple of the recursion in the error handlers leading to a non-terminating VA.
+       [value] Done for function isprint
+       [value] computing for function isprint <- xmlMemContentShow <- xmlMemDisplay <- 
+				       debugmem_tag_error <- xmlReallocLoc <- 
+				       xmlMemRealloc <- __xmlRaiseError <- 
+				       __xmlLoaderErr <- *xmlNewInputFromFile* <- 
+				       xmlDefaultExternalEntityLoader <- 
+				       xmlLoadExternalEntity <- xmlCreateURLParserCtxt <- 
+				       xmlCreateFileParserCtxt <- 
+				       xmlSAXParseFileWithData <- xmlSAXParseFile <- 
+				       xmlParseFile <- parseSamlResponseFile <- main <- 
+				       fc_va_entrypoint.
+	       Called from xmlmemory.c:607.
+       [value] Done for function isprint
+       [value] computing for function isprint <- xmlMemContentShow <- xmlMemDisplay <- 
+				       debugmem_tag_error <- xmlReallocLoc <- 
+				       xmlMemRealloc <- __xmlRaiseError <- 
+				       __xmlLoaderErr <- xmlNewInputFromFile <- 
+				       xmlDefaultExternalEntityLoader <- 
+				       xmlLoadExternalEntity <- xmlCreateURLParserCtxt <- 
+				       xmlCreateFileParserCtxt <- 
+				       xmlSAXParseFileWithData <- xmlSAXParseFile <- 
+				       xmlParseFile <- parseSamlResponseFile <- main <- 
+				       fc_va_entrypoint.
+	       Called from xmlmemory.c:607.
 
+    * This error case is analyzed because of the _inprecision of_ VA 
+       when dealing with system call reading user input data from the XML external input file
+
+      /**
+      * xmlNewInputFromFile:
+      * @ctxt:  an XML parser context
+      * @filename:  the filename to use as entity
+      * 
+      * Create a new input stream based on a file or an URL.
+      * 
+      * Returns the new input stream or NULL in case of error
+      */
+      xmlParserInputPtr
+      xmlNewInputFromFile(xmlParserCtxtPtr ctxt, const char *filename) {
+      xmlParserInputBufferPtr buf;
+      xmlParserInputPtr inputStream;
+      char *directory = NULL;
+      xmlChar *URI = NULL;
+
+      if (xmlParserDebugEntities)
+      xmlGenericError(xmlGenericErrorContext,
+      "new input from file: %s\n", filename);
+      if (ctxt == NULL) return(NULL);
+      buf = *xmlParserInputBufferCreateFilename* (filename, XML_CHAR_ENCODING_NONE);
+      if (buf == NULL) {
+      if (filename == NULL)
+      __xmlLoaderErr(ctxt,
+      "failed to load external entity: NULL filename \n",
+      NULL);
+      else
+      __xmlLoaderErr(ctxt, "failed to load external entity \"%s\"\n",
+      (const char *) filename);
+      return(NULL);
+      }
+
+    * but it is _not really executed_ in the integration test where the file is well formed and parsed
+
+    * _Hard work to well configure the analysis._
+      => _over-approximation_ leading to covering much more source code
+      => than the one expected to be verified for checking the countermeasure
+
+    * So for busy developers or evaluators, they want *to focus quickly on specific parts*
+
+      _need to focus and cover less code with more local analysis while being precise enough_
+      
 *** Unitary Test
+
+    Unitary tests help to focus on specific verification goals.
+    We need for this to build an _adapted call context._
+    Otherwise the analysis produces many false alarms.
+
 **** without adapted context: *of no help*
      :PROPERTIES:
      :LOCATION: [[./test_ut_fc-va_lib-dev_without_adapted_call_context.gen][test_ut_fc-va_lib-dev_without_adapted_call_context.gen]]
@@ -52,15 +157,14 @@
      => over-approximation => unprecision => *of no help*
 **** with/without countermeasure against XSW attacks: *manual call context adaptation*
      :PROPERTIES:
-     :LOCATION: [[./test_ut_fc-va_lib-dev_without_adapted_call_context.gen][test_ut_fc-va_lib-dev_with_xsw_countermeasure.gen]]
+     :LOCATION: [[./test_saml_sign.ut.c][test_saml_sign.ut.c]]
      :END:
      We need to manually adapt the call context of the unitary test to focus specifically on the remote threats
-     Cf [[./test_saml_sign.ut.c][test_saml_sign.ut.c]]
-***** one unitary test: 14 alarms
-***** widening: 23 alarms
+***** one unitary test: 12 alarms
+***** widening: 21 alarms
 *** Conclusions
 
-    regarding VA:
+    Regarding Value Analysis:
 
     1) The *code has both to compile and to execute correctly* before trying to analyse it (cf unadapted call context).
        => otherwise the tool will found unappropriate defects
@@ -82,12 +186,3 @@
        2. adapted test case generation techniques like pathcrawler
 
     6) *widening introduces quickly unprecision because relation between variables are not taken into account*
-
-    7) *Hard point*
-
-       => TLabs encourages in development of "security dedicated tools"
-
-       => However they are mostly dependant on general-purpose tools like Frama-C VA
-          that have usability issues
-
-       => so those dedicate tools inherit also from the limitations of the general purpose tools

@@ -37,6 +37,15 @@ function cmake_callers_it_extract_fcg ()
     ## generate caller's tree from xmlParseCharData function parsing the XML data (identified thanks to valgrind --tool=callgrind)
     source extract_fcg.sh callers ${LIBXML2_DEV_LIB_CALLERS_SRC_DIR}/include/libxml/parserInternals.h "xmlParseCharData" "void xmlParseCharData((_xmlParserCtxt)*, int)"
 
+    ## generate caller's tree from xmlNewInputFromFile function creating a new input stream based on a file or an URL
+    source extract_fcg.sh callers ${LIBXML2_DEV_LIB_CALLERS_SRC_DIR}/include/libxml/parserInternals.h "xmlNewInputFromFile" "(_xmlParserInput)* xmlNewInputFromFile((_xmlParserCtxt)*, (const char)*)"
+
+    ## generate caller's tree from xmlNewInputFromFile function creating a new input stream based on a file or an URL
+    source extract_fcg.sh callers ${LIBXML2_DEV_LIB_CALLERS_SRC_DIR}/include/libxml/parser.h "xmlLoadExternalEntity"  "(_xmlParserInput)* xmlLoadExternalEntity((const char)*, (const char)*, (_xmlParserCtxt)*)"
+    
+    ## generate callee's tree from xmlNewInputFromFile function creating a new input stream based on a file or an URL
+    source extract_fcg.sh callees ${LIBXML2_DEV_LIB_CALLERS_SRC_DIR}/parserInternals.c "xmlNewInputFromFile" "(_xmlParserInput)* xmlNewInputFromFile((_xmlParserCtxt)*, (const char)*)"
+
     # Only #ifdef LIBXML_READER_ENABLED
     ## generate caller's tree from xmllint processNode function reading XML nodes of user input file
     # source extract_fcg.sh callers ${LIBXML2_DEV_LIB_CALLERS_SRC_DIR}/xmllint.c "processNode" "void processNode((_xmlTextReader)*)" files

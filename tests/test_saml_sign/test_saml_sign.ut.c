@@ -41,7 +41,8 @@ bool ut_saml_SignatureProfileValidator_validate(bool under_XSW_attack)
 #if ADAPTED_CALL_CONTEXT
   xmlNode validAssertionIDval;
   validAssertionIDval.type = XML_TEXT_NODE;
-  validAssertionIDval.content = ASSERTION_ID;
+  xmlChar *validAssertionIDval_content = ASSERTION_ID;
+  validAssertionIDval.content = validAssertionIDval_content;
   validAssertionIDval.next = NULL;
   
   xmlAttr validAssertionIDattr;
@@ -53,8 +54,6 @@ bool ut_saml_SignatureProfileValidator_validate(bool under_XSW_attack)
   validAssertion.name = "Assertion";
   validAssertion.properties = &validAssertionIDattr;
 
-  //validAssertion. = ;
-
   xmlNodePtr parent = &validAssertion;
   sign.parent = parent;
   sign.signedInfo.reference.URI = ASSERTION_ID;
@@ -62,7 +61,7 @@ bool ut_saml_SignatureProfileValidator_validate(bool under_XSW_attack)
   // build the malicious assertion
   xmlNode maliciousAssertionIDval;
   maliciousAssertionIDval.type = XML_TEXT_NODE;
-#ifdef FRAMA_C
+  //#ifdef FRAMA_C
 #if FRAMA_C_VA_WIDENING
   //#include "__fc_builtin.h"
   void *Frama_C_alloc_size(size_t size);
@@ -74,9 +73,10 @@ bool ut_saml_SignatureProfileValidator_validate(bool under_XSW_attack)
     maliciousAssertionIDval.content[i] = Frama_C_char_interval(CHAR_MIN, CHAR_MAX);
   maliciousAssertionIDval.content[lengthId-1] = '\0';
 #else
-  maliciousAssertionIDval.content = ASSERTION_ID;  
+  xmlChar *maliciousAssertionIDval_content = ASSERTION_ID;
+  maliciousAssertionIDval.content = maliciousAssertionIDval_content;
 #endif
-#endif
+  //#endif
   maliciousAssertionIDval.next = NULL;
   
   xmlAttr maliciousAssertionIDattr;

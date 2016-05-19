@@ -1,5 +1,8 @@
 
 * verification of the countermeasure implementation against XSW attack
+
+  Objective: to illustrate the tradeoffs when using VA on large-scale software.
+
 ** *normal behaviour*
    :PROPERTIES:
    :LOCATION: [[./test_ut_gdb_lib-dev_without_xsw_countermeasure.gen][test_ut_gdb_lib-dev_without_xsw_countermeasure.gen]]
@@ -99,7 +102,7 @@
 				       fc_va_entrypoint.
 	       Called from xmlmemory.c:607.
 
-    * This error case is analyzed because of the _inprecision of_ VA 
+    * This error case is covered by the analyzis because of the _inprecision of_ VA 
        when dealing with system call reading user input data from the XML external input file
 
       /**
@@ -160,7 +163,7 @@
      :LOCATION: [[./test_saml_sign.ut.c][test_saml_sign.ut.c]]
      :END:
      We need to manually adapt the call context of the unitary test to focus specifically on the remote threats
-***** one unitary test: 12 alarms
+***** one unitary test: 14 minor alarms
 ***** widening: 21 alarms
 *** Conclusions
 
@@ -180,9 +183,10 @@
        => need first to *begin on subparts* and then to widen it
 
     5) *need to help in generating adapted call contexts for local analysis on software subparts*
-       => otherwise it requires *much time to do it manually and correctly*
+       => otherwise it requires _much time to do it manually and correctly_
        => would require many techniques: 
        1. code generation techniques to generate the code structure of the ut main function initialising the call context 
        2. adapted test case generation techniques like pathcrawler
 
-    6) *widening introduces quickly unprecision because relation between variables are not taken into account*
+    6) *widening may introduce quickly unprecision*
+       because relation between variables are not taken into account

@@ -33,12 +33,29 @@ bool maliciousSAMLResponse; // 0: false , 1 : true;
 
 bool ut_saml_SignatureProfileValidator_validate(bool under_XSW_attack)
 {
-  // build the valid assertion
-  xmlNode validAssertion;
-  xmlNode maliciousAssertion;
+  xmlNode validSubject, validAssertion;
+  xmlNode maliciousSubject, maliciousAssertion;
   signature sign;
 
 #if ADAPTED_CALL_CONTEXT
+
+  // build the valid subject attributes
+  xmlNode validSubjectNameIDval;
+  validSubjectNameIDval.type = XML_TEXT_NODE;
+  xmlChar *validSubjectNameIDval_content = "Bob";
+  validSubjectNameIDval.content = validSubjectNameIDval_content;
+  validSubjectNameIDval.next = NULL;
+  
+  xmlAttr validSubjectNameIDattr;
+  validSubjectNameIDattr.type = XML_ATTRIBUTE_NODE;
+  validSubjectNameIDattr.name = "NameID";
+  validSubjectNameIDattr.children = &validSubjectNameIDval;
+
+  validSubject.type = XML_ELEMENT_NODE;
+  validSubject.name = "Subject";
+  validSubject.properties = &validSubjectNameIDattr;
+
+  // build the valid assertion
   xmlNode validAssertionIDval;
   validAssertionIDval.type = XML_TEXT_NODE;
   xmlChar *validAssertionIDval_content = ASSERTION_ID;
@@ -57,6 +74,24 @@ bool ut_saml_SignatureProfileValidator_validate(bool under_XSW_attack)
   xmlNodePtr parent = &validAssertion;
   sign.parent = parent;
   sign.signedInfo.reference.URI = ASSERTION_ID;
+  // validAssertion.children[0] = // subject tbc...;
+  // validAssertion.children[1] = // sign tbc...;
+  
+  // build the malicious subject attrbutes
+  xmlNode maliciousSubjectNameIDval;
+  maliciousSubjectNameIDval.type = XML_TEXT_NODE;
+  xmlChar *maliciousSubjectNameIDval_content = "admin";
+  maliciousSubjectNameIDval.content = maliciousSubjectNameIDval_content;
+  maliciousSubjectNameIDval.next = NULL;
+  
+  xmlAttr maliciousSubjectNameIDattr;
+  maliciousSubjectNameIDattr.type = XML_ATTRIBUTE_NODE;
+  maliciousSubjectNameIDattr.name = "NameID";
+  maliciousSubjectNameIDattr.children = &maliciousSubjectNameIDval;
+
+  maliciousSubject.type = XML_ELEMENT_NODE;
+  maliciousSubject.name = "Subject";
+  maliciousSubject.properties = &maliciousSubjectNameIDattr;
 
   // build the malicious assertion
   xmlNode maliciousAssertionIDval;

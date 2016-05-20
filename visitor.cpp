@@ -198,7 +198,7 @@ CallersAction::Visitor::printFileName(const clang::SourceRange& rangeLocation) c
 std::string
 CallersAction::Visitor::printFilePath(const clang::SourceRange& rangeLocation, std::string defaultFilePath) const {
    ASSERT(psSources);
-   //bool isValid = rangeLocation.isValid();
+   ASSERT(rangeLocation.isValid());
    auto start = psSources->getPresumedLoc(rangeLocation.getBegin());
    const char* startFile = start.getFilename();
    std::string path = defaultFilePath;
@@ -1540,20 +1540,9 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
    std::string caller_sign = printParentFunction();
    if (callee && this->isDeclarationOfInterest(*callee)) {
       MangledName caller_mangled, callee_mangled;
-      this->getMangledName(mangle_context_, callee, &callee_mangled);
       this->getMangledName(mangle_context_, pfdParent, &caller_mangled);
 
-      if (callee->getBuiltinID() > 0)
-       {
-	  this->VisitBuiltinFunction(callee);
-	  return true;
-       }
-      if (callee->isThisDeclarationADefinition())
-       {
-         callee = callee->getCanonicalDecl();
-       }
       auto parentMethod = llvm::dyn_cast<clang::CXXMethodDecl>(pfdParent);
-      auto calleeMethod = llvm::dyn_cast<clang::CXXMethodDecl>(callee);
 
       std::string caller_def_file = printParentFunctionFilePath();
       CallersData::Virtuality caller_virtuality = (parentMethod && parentMethod->isVirtual()) ? CallersData::VVirtualDefined : CallersData::VNoVirtual;
@@ -1577,9 +1566,20 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
       }
       std::string caller_nspc = printRootNamespace(*pfdParent, printQualifiedName(*pfdParent), caller_recordName);
 
+      if (callee->getBuiltinID() > 0)
+       {
+	  this->VisitBuiltinFunction(callee);
+	  return true;
+       }
+      if (callee->isThisDeclarationADefinition())
+       {
+         callee = callee->getCanonicalDecl();
+       }
       std::string callee_sign = writeFunction(*callee);
       std::string callee_name = callee->getNameAsString();
       osOut << inputFile << ": " << caller_sign << ":" << caller_mangled << " -7-> " << callee_name << ":" << callee_sign << '\n';
+      this->getMangledName(mangle_context_, callee, &callee_mangled);
+      ASSERT(callee->getSourceRange().isValid());
       std::string callee_decl_file = printFilePath(callee->getSourceRange(), caller_def_file);
       int callee_decl_begin = getStartLine(callee->getSourceRange());
       int callee_decl_end = getEndLine(callee->getSourceRange());
@@ -1589,6 +1589,8 @@ CallersAction::Visitor::VisitCallExpr(const clang::CallExpr* callExpr) {
 	}
       std::string callee_recordName = CALLERS_DEFAULT_NO_RECORD_NAME;
       std::string callee_recordFilePath = callee_decl_file;
+
+      auto calleeMethod = llvm::dyn_cast<clang::CXXMethodDecl>(callee);
       if((calleeMethod != NULL) && (calleeMethod->getParent() != NULL))
       {
         callee_recordName = printRecordName(calleeMethod->getParent());

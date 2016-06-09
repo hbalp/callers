@@ -1,3 +1,4 @@
+#!/bin/bash
 # Script managing the installation and build of the libxml2 library
 # Two available configurations: libxml2_local_install and libxml2_git_install
 
@@ -7,16 +8,16 @@ INSTALL_CONFIG="local"
 # precondition: host dependant libxml2 config
 function libxml2_config_shared ()
 {
-  #libinstalldir="${librootdir}/exec"
-  libinstalldir="/tools/exec"
-  libxml2_local_gdb_dir="libxml2_gdb"
-  libxml2_src_gdb_config_args=""
-  libxml2_local_callers_dir="libxml2_callers"
-  libxml2_src_callers_config_args=""
-  libxml2_local_fc_dir="libxml2_fc"
-  #libxml2_install_cots="true"
-  libxml2_install_cots="false"
-  libxml2_autogen_config_filename=".libxml2.config.gen.sh"
+  #export libinstalldir="${librootdir}/exec"
+  export libinstalldir="/tools/exec"
+  export libxml2_local_gdb_dir="libxml2_gdb"
+  export libxml2_src_gdb_config_args=""
+  export libxml2_local_callers_dir="libxml2_callers"
+  export libxml2_src_callers_config_args=""
+  export libxml2_local_fc_dir="libxml2_fc"
+  #export libxml2_install_cots="true"
+  export libxml2_install_cots="false"
+  export libxml2_autogen_config_filename=".libxml2.config.gen.sh"
 }
 
 # host dependant libxml2 config
@@ -35,54 +36,57 @@ function libxml2_config_host()
 # libxml2 config for host moriond
 function libxml2_config_host_moriond ()
 {
-  librootdir="/home/hbalp/hugues/work/third_parties/src"
-  libxml2_local_dir_name="libxml2"
-  #libxml2_local_archive_name="libxml2-2.9.4"
-  libxml2_local_archive_name="libxml2-2.9.4.1.stance"
-  libxml2_local_archive_fullname="${libxml2_local_archive_name}.tgz"
+  export librootdir="/home/hbalp/hugues/work/third_parties/src"
+  export libxml2_local_dir_name="libxml2"
+  #export libxml2_local_archive_name="libxml2-2.9.4"
+  export libxml2_local_archive_name="libxml2-2.9.4.1.stance"
+  echo "HBDEBUG EXPORT:" libxml2_local_archive_fullname="${libxml2_local_archive_name}.tgz"
+  export libxml2_local_archive_fullname="${libxml2_local_archive_name}.tgz"
 }
 
 # libxml2 config for host devrte
 function libxml2_config_host_vm ()
 {
-  librootdir="/data/balp/src/tools"
-  libxml2_local_dir_name="libxml2"
-  libxml2_local_archive_name="libxml2-2.9.3"
-  libxml2_local_archive_fullname="${libxml2_local_archive_name}.tar.gz"
+  export librootdir="/data/balp/src/tools"
+  export libxml2_local_dir_name="libxml2"
+  export libxml2_local_archive_name="libxml2-2.9.3"
+  export libxml2_local_archive_fullname="${libxml2_local_archive_name}.tar.gz"
 }
 
 # for install_config="git"
 function libxml2_config_git_archive ()
 {
-  libxml2_git_archive_url="git://git.gnome.org/libxml2"
+  export libxml2_git_archive_url="git://git.gnome.org/libxml2"
 }
 
 # fc build option:
 # CC=gcc CFLAGS="-save-temps -C -D__FC_MACHDEP_X86_64 -I /tools/exec/share/frama-c/libc" make
 function libxml2_config_fc_va ()
 {
-  frama_c_share_dir=`frama-c -print-share-path`
-  frama_c_libc_dir="${frama_c_share_dir}/libc"
-  libxml2_src_fc_config_args="CC=gcc CFLAGS=\"-save-temps -C -D__FC_MACHDEP_X86_64 -I ${frama_c_libc_dir}\""
+  export frama_c_share_dir=`frama-c -print-share-path`
+  export frama_c_libc_dir="${frama_c_share_dir}/libc"
+  export libxml2_src_fc_config_args="CC=gcc CFLAGS=\"-save-temps -C -D__FC_MACHDEP_X86_64 -I ${frama_c_libc_dir}\""
 }
 
 ici=`pwd`
 
 function usage_libxml2_install()
 {
-    echo "Usage of script libxml2_install.sh"
-    echo "5 features:"
-    echo "1) System install of libxml2:";
-    echo "   > libxml2_workflow_system_install";
-    echo "2) Source install of libxml2:";
-    echo "   > libxml2_workflow_sources_gdb <git|local>";
-    echo "3) Source Callers analysis of libxml2:";
-    echo "   > libxml2_workflow_sources_callers <git|local>";
-    echo "4) Frama-C builtin preprocessing of libxml2:";
-    echo "   > libxml2_workflow_fc_va <git|local>";
-    echo "5) Frama-C update preprocessing of libxml2:";
-    echo "   > libxml2_update_fc_preproc";
+    cat > /dev/stdout <<EOF
+Usage of script libxml2_install.sh
+5 features:
+1) System install of libxml2:
+   > libxml2_workflow_system_install
+2) Source install of libxml2:
+   > libxml2_workflow_sources_gdb <git|local>
+3) Source Callers analysis of libxml2:
+   > libxml2_workflow_sources_callers <git|local>
+4) Frama-C builtin preprocessing of libxml2:
+   > libxml2_workflow_fc_va <git|local>
+5) Frama-C update preprocessing of libxml2:
+   > libxml2_update_fc_preproc
     return 0;
+EOF
 }
 
 # function libxml2_workflow ()
@@ -246,7 +250,7 @@ function libxml2_local_archive ()
        #echo "Do you really want to overwrite it ?"
        rm -rf ${dest_dir}
     fi
-    tar -zxf ${libxml2_local_archive_fullname} || echo "libxml2_install ERROR: Not found tar archive ${libxml2_local_archive_fullname} in ${librootdir}"
+    tar -zxf ${libxml2_local_archive_fullname} || echo "libxml2_install ERROR: Not found tar archive \"${libxml2_local_archive_fullname}\" in \"${librootdir}\""
     mv ${libxml2_local_dir_name} ${dest_dir}
 }
 

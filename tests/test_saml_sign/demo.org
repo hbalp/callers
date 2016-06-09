@@ -190,3 +190,4 @@
 
     6) *widening may introduce quickly unprecision*
        because relation between variables are not taken into account
+

@@ -2,7 +2,7 @@
 # @author Hugues Balp
 # This script manages both build and analysis of the test_saml_sign example
 
-set +x
+#set +x
 
 ################################################################################
 #                         TO BE EDITED WHEN NEEDED
@@ -158,10 +158,12 @@ function cmake_config_common ()
     USE_XML_MEM_BREAKPOINT="ON"
     FRAMA_C_SHARE_PATH=`frama-c -print-share-path`
     FRAMA_C_LIBC_DIR="${FRAMA_C_SHARE_PATH}/libc"
-    # slevle should be upper then the sizeof XML_MEM_BREAKPOINT used as input in strcmp
+    # slevel should be upper then the sizeof XML_MEM_BREAKPOINT used as input in strcmp
     FRAMA_C_SLEVEL=80
     #FRAMA_C_SLEVEL=30
     #FRAMA_C_SLEVEL=2
+    echo "PARAM: frama-c_slevel=${FRAMA_C_SLEVEL}"
+    echo " if you want to change the slevel value, please edit the file ./test_saml_sign.launch.sh"
     #FRAMA_C_MODIFIED_FILES="stub/tree.c libc/libc.c libc/stdlib.c libc/setgetenv.c"
     #FRAMA_C_MODIFIED_FILES="stub/tree.c libc/stdlib.c libc/setgetenv.c"
     FRAMA_C_MODIFIED_FILES="libc/setgetenv.c"
@@ -822,7 +824,8 @@ function cmake_callers_extract_metrics ()
     rm metrics.callers.tmp.json
     cd ${ici}
 }
-   
+
+# frama-c Value Analysis
 function fc_parse_prepare()
 {
     source fc_analysis.sh

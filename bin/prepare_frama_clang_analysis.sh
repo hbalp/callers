@@ -249,8 +249,8 @@ function launch_clang_cpp ()
     clang_cpp_build_options="-I. -I.. -c"
 
     # build the clang_cpp ast command
-    #clang_cpp_ast_options="-I. -I.. -Xclang -ast-dump -fsyntax-only --disable-extern-template"
-    clang_cpp_ast_options="-I. -I.. -Xclang -ast-dump -fsyntax-only -E "
+    #clang_cpp_ast_options="-I. -I.. -Xclang -ast-dump -fsyntax-only --disable-extern-template -E "
+    clang_cpp_ast_options="-I. -I.. -Xclang -ast-dump -E "
     clang_cpp_astout_file="${clang_cpp_stdout_file}.ast"
     clang_cpp_ast="${clang_cpp} ${clang_cpp_ast_options} ${debug_options} ${file_build_options} \${system_includes} \${app_includes} ${cpp_file} > ${clang_cpp_astout_file}"
 
@@ -313,7 +313,7 @@ function launch_clang_c ()
 
     # build the clang ast command
     #clang_c_ast_options="-I. -I.. -Xclang -ast-dump -fsyntax-only --disable-extern-template"
-    clang_c_ast_options="-I. -I.. -Xclang -ast-dump -fsyntax-only -E "
+    clang_c_ast_options="-I. -I.. -Xclang -ast-dump -E "
     clang_c_astout_file="${clang_c_stdout_file}.ast"
     clang_c_ast="${clang_c} ${debug_options} ${clang_c_ast_options} ${file_build_options} \${system_includes} \${app_includes} ${c_file} > ${clang_c_astout_file}"
 

@@ -11,7 +11,7 @@
 # and piped to the static analyzer.
 #
 ##===----------------------------------------------------------------------===##
-# scan-build script version adapted by Hugues Balp for use with the clang Callers analysis plugin
+# scan-callers script version adapted by Hugues Balp for use with the clang Callers analysis plugin
 
 use Devel::Trace;
 use strict;
@@ -31,7 +31,7 @@ Devel::Trace::trace('on');
 
 my $Verbose = 0;       # Verbose output from this script.
 #my $Verbose = 4;       # Verbose output from this script.
-my $Prog = "scan-build";
+my $Prog = "scan-callers";
 my $BuildName;
 my $BuildDate;
 
@@ -1123,31 +1123,31 @@ OPTIONS:
 
  -plist
 
-   By default the output of scan-build is a set of HTML files. This option
+   By default the output of scan-callers is a set of HTML files. This option
    outputs the results as a set of .plist files.
 
  -plist-html
 
-   By default the output of scan-build is a set of HTML files. This option
+   By default the output of scan-callers is a set of HTML files. This option
    outputs the results as a set of HTML and .plist files.
 
  --status-bugs
 
-   By default, the exit status of scan-build is the same as the executed build
-   command. Specifying this option causes the exit status of scan-build to be 1
+   By default, the exit status of scan-callers is the same as the executed build
+   command. Specifying this option causes the exit status of scan-callers to be 1
    if it found potential bugs and 0 otherwise.
 
  --use-cc [compiler path]
  --use-cc=[compiler path]
 
-   scan-build analyzes a project by interposing a "fake compiler", which
+   scan-callers analyzes a project by interposing a "fake compiler", which
    executes a real compiler for compilation and the static analyzer for analysis.
-   Because of the current implementation of interposition, scan-build does not
+   Because of the current implementation of interposition, scan-callers does not
    know what compiler your project normally uses.  Instead, it simply overrides
    the CC environment variable, and guesses your default compiler.
 
    In the future, this interposition mechanism to be improved, but if you need
-   scan-build to use a specific compiler for *compilation* then you can use
+   scan-callers to use a specific compiler for *compilation* then you can use
    this option to specify a path to that compiler.
 
  --use-c++ [compiler path]
@@ -1157,7 +1157,7 @@ OPTIONS:
 
  -v
 
-   Enable verbose output from scan-build. A second and third '-v' increases
+   Enable verbose output from scan-callers. A second and third '-v' increases
    verbosity.
 
  -V
@@ -1188,7 +1188,7 @@ ADVANCED OPTIONS:
  --use-analyzer [Xcode|path to clang]
  --use-analyzer=[Xcode|path to clang]
 
-   scan-build uses the 'clang' executable relative to itself for static
+   scan-callers uses the 'clang' executable relative to itself for static
    analysis. One can override this behavior with this option by using the
    'clang' packaged with Xcode (on OS X) or from the PATH.
 
@@ -1316,11 +1316,11 @@ BUILD OPTIONS
 
 EXAMPLE
 
- scan-build -o /tmp/myhtmldir make -j4
+ scan-callers -o /tmp/myhtmldir make -j4
 
 The above example causes analysis reports to be deposited into a subdirectory
 of "/tmp/myhtmldir" and to run "make" with the "-j4" option. A different
-subdirectory is created each time scan-build analyzes a project. The analyzer
+subdirectory is created each time scan-callers analyzes a project. The analyzer
 should support most parallel builds, but not distributed builds.
 
 ENDTEXT
@@ -1590,7 +1590,7 @@ if (!defined $AnalyzerDiscoveryMethod) {
   }
   if (!defined $Clang || ! -x $Clang) {
     if (!$RequestDisplayHelp && !$ForceDisplayHelp) {
-      DieDiag("error: Cannot find an executable 'clang' relative to scan-build." .
+      DieDiag("error: Cannot find an executable 'clang' relative to scan-callers." .
                  "  Consider using --use-analyzer to pick a version of 'clang' to use for static analysis.\n");
     }
   }
@@ -1637,7 +1637,7 @@ $ClangVersion = HtmlEscape(`"$Clang" --version`);
 
 # Determine where results go.
 $CmdArgs = HtmlEscape(join(' ', map(ShellEscape($_), @ARGV)));
-$HtmlTitle = "${CurrentDirSuffix} - scan-build results"
+$HtmlTitle = "${CurrentDirSuffix} - scan-callers results"
   unless (defined($HtmlTitle));
 
 # Determine the output directory for the HTML reports.
@@ -1646,8 +1646,8 @@ $HtmlDir = GetHTMLRunDir($HtmlDir);
 
 # Determine the location of ccc-analyzer.
 my $AbsRealBin = Cwd::realpath($RealBin);
-my $Cmd = "$AbsRealBin/libexec/ccc-analyzer";
-my $CmdCXX = "$AbsRealBin/libexec/c++-analyzer";
+my $Cmd = "$AbsRealBin/ccc-analyzer";
+my $CmdCXX = "$AbsRealBin/c++-analyzer";
 
 # Portability: use less strict but portable check -e (file exists) instead of
 # non-portable -x (file is executable). On some windows ports -x just checks

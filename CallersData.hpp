@@ -358,7 +358,7 @@ namespace CallersData
       ~ExtFct() {}
     // protected:
       MangledName mangled = "unknownExtFctMangled";
-      std::string sign = "unknownExtFctSign";
+      std::string sign = CALLERS_NO_EXT_FCT_SIGN;
       std::string fctLoc = "unknownExtFctDeclLoc";
   };
 
@@ -397,9 +397,10 @@ namespace CallersData
           std::string recordName, std::string recordFilePath, bool is_builtin, int begin, int end);
       Fct(const Fct& copy_from_me);
       void isWellFormed();
+      void wellFormedRecord();
       ~Fct();
       MangledName mangled = "unknownFctMangledName";
-      std::string sign = "unknownFctSign";
+      std::string sign = CALLERS_NO_FCT_SIGN;
       Virtuality virtuality = VNoVirtual;
       std::string nspc = CALLERS_DEFAULT_NO_NAMESPACE_NAME;
     protected:

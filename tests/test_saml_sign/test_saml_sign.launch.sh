@@ -816,7 +816,7 @@ function cmake_callers_execute ()
 function cmake_callers_extract_metrics ()
 {
     cd ${BUILD_DIR}
-    list_files_in_dirs $callers_json_rootdir .file.callers.gen.json dir.callers.gen.json "analysis"
+    list_files_in_dirs ${callers_json_rootdir} .file.callers.gen.json dir.callers.gen.json "callers_analysis"
     extract_metrics metrics.callers.tmp.json
     ydump metrics.callers.tmp.json > metrics.callers.gen.json
     rm metrics.callers.tmp.json

@@ -1,8 +1,8 @@
 #!/bin/bash
 #set -x
 
-#canonical_pwd="$PWD"
-canonical_pwd="/net/alpha.sc2.theresis.org$PWD"
+canonical_pwd="$PWD"
+#canonical_pwd="/net/alpha.sc2.theresis.org$PWD"
 
 build_tool="cmake"
 #build_tool="scan-callers"
@@ -36,9 +36,10 @@ then
     # List generated json files
     find $callers_json_rootdir -type f -name "*.gen.json.gz" -exec gunzip {} \;
     list_files_in_dirs $callers_json_rootdir .file.callers.gen.json dir.callers.gen.json "analysis"
-
+    extract_metrics metrics.callers.gen.json
+    
     # List all defined symbols in file defined_symbols.json
-    list_defined_symbols defined_symbols.gen.json
+    #list_defined_symbols defined_symbols.gen.json
     #read_defined_symbols.native defined_symbols.json file.callers.gen.json
 
     # # add declarations to json files
@@ -73,12 +74,12 @@ then
     #source callgraph_to_dot.sh $callers_json_rootdir
     source callgraph_to_dot.sh $callers_json_rootdir files
 
-    source process_dot_files.sh . analysis/${analysis_type}
+    #source process_dot_files.sh . analysis/${analysis_type}
 
     #source indent_jsonfiles.sh .
-    source indent_jsonfiles.sh $callers_json_rootdir
+    #source indent_jsonfiles.sh $callers_json_rootdir
 
-    inkscape analysis/callers/svg/main.fcg.callees.gen.dot.svg
+    #inkscape analysis/callers/svg/main.fcg.callees.gen.dot.svg
     #inkscape analysis/callers/svg/main.fcg.callers.gen.dot.svg
     #inkscape analysis/callers/svg/printf.fcg.callers.gen.dot.svg
     #inkscape analysis/callers/svg/c.fcg.callers.gen.dot.svg

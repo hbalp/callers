@@ -10,7 +10,7 @@ function launch_scan_callers_over_cmake()
     here=$(cd `dirname "${BASH_SOURCE[0]}"` && pwd)
     #this_script=`dirname "${BASH_SOURCE[0]}"`
     analysis_type=$1
-    echo "Launch scan-callers \"${analysis_type}\" analysis..."
+    echo "Launch scan-callers \"${analysis_type}\" analysis... in dir=${here}"
     export CALLERS_ANALYSIS_TYPE="$analysis_type"
     clang=`which clang`
     # uses the scan-build script adapted for callers analysis

@@ -4,6 +4,8 @@
 
 #set +x
 
+ici=`pwd`
+
 ################################################################################
 #                         TO BE EDITED WHEN NEEDED
 ################################################################################
@@ -75,7 +77,7 @@ function libxml2_config_host_moriond ()
     
     EXTRA_DEV_LIBS_DIRS="${EXTRA_DEV_LIBS_DIRS} ${LIBXML2_DEV_LIB_FC_SRC_DIR}"
 
-    canonical_pwd=`pwd`
+    export canonical_pwd=`pwd`
 }
 
 # vm
@@ -93,7 +95,7 @@ function libxml2_config_host_vm ()
     
     EXTRA_DEV_LIBS_DIRS="${EXTRA_DEV_LIBS_DIRS} ${LIBXML2_DEV_LIB_FC_SRC_DIR}"
 
-    canonical_pwd="/net/alpha.sc2.theresis.org$PWD"
+    export canonical_pwd="/net/alpha.sc2.theresis.org$PWD"
 }
 
 ################################################################################
@@ -120,7 +122,8 @@ function cmake_build_all ()
 {
     cmake_config_common
     cmake_build_all_gdb
-    cmake_build_all_callers
+    cmake_build_all_callers_without_libxml2
+    cmake_build_all_callers_with_libxml2
     cmake_build_all_fc
     cd $ici
 }
@@ -133,9 +136,15 @@ function cmake_build_all_gdb ()
     cd $ici
 }
 
-function cmake_build_all_callers ()
+function cmake_build_all_callers_without_libxml2 ()
 {
     cmake_build_it_callers > .build_it_callers.gen.stdout 2> .build_it_callers.gen.stderr
+    cd $ici
+}
+
+function cmake_build_all_callers_with_libxml2 ()
+{
+    cmake_build_it_callers_with_libxml2 > .build_it_callers_with_libxml2.gen.stdout 2> .build_it_callers_with_libxml2.gen.stderr
     cd $ici
 }
 
@@ -149,7 +158,7 @@ function cmake_build_all_fc ()
 
 function cmake_config_common ()
 {
-    ici=`pwd`
+    cd ${ici}
     CMAKE_MINIMUM_VERSION="2.8"
     CMAKE_EXPORT_COMPILE_COMMANDS="ON"
     CMAKE_BUILD_TYPE="Debug"
@@ -205,6 +214,17 @@ function cmake_build_it_callers ()
     cmake_callers_it_extract_fcg
 }
 
+function cmake_build_it_callers_with_libxml2 ()
+{
+    libxml2_workflow_sources_callers local &&
+    cmake_config_common &&
+    cmake_config_it_callers_libxml2-dev &&
+    cmake_build_generate &&
+    cmake_callers_execute &&
+    cmake_callers_extract_metrics &&
+    cmake_callers_it_extract_fcg
+}
+    
 function cmake_build_it_fc ()
 {
     cmake_config_common
@@ -384,6 +404,23 @@ function cmake_config_it_callers_lib-dev ()
 {
     XSW_COUNTERMEASURE="ON"
     BUILD_DIR="test_it_callers_lib-dev.gen"
+    TEST_MAIN_SRC_FILE="test_saml_sign.it.c"
+    SYSTEM_LIB="OFF"
+    DEV_LIB="ON"
+    INTG_TEST="ON"
+    UNIT_TEST="OFF"
+    ADAPTED_CALL_CONTEXT="OFF"
+    USE_XML_MEM_TRACE="OFF"
+    USE_XML_MEM_BREAKPOINT="OFF"
+    FRAMA_C="OFF"
+    LIBXML2_STUB="OFF"
+    SAVE_TEMPS="OFF" # Important to avoid an error reported by clang during callers analysis
+}
+
+function cmake_config_it_callers_libxml2-dev ()
+{
+    XSW_COUNTERMEASURE="ON"
+    BUILD_DIR="test_it_callers_libxml2-dev.gen"
     TEST_MAIN_SRC_FILE="test_saml_sign.it.c"
     SYSTEM_LIB="OFF"
     DEV_LIB="ON"

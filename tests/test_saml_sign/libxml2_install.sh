@@ -5,6 +5,8 @@
 #INSTALL_CONFIG="git"
 INSTALL_CONFIG="local"
 
+ici=`pwd`
+
 # precondition: host dependant libxml2 config
 function libxml2_config_shared ()
 {
@@ -68,8 +70,6 @@ function libxml2_config_fc_va ()
   export libxml2_src_fc_config_args="CC=gcc CFLAGS=\"-save-temps -C -D__FC_MACHDEP_X86_64 -I ${frama_c_libc_dir}\""
 }
 
-ici=`pwd`
-
 function usage_libxml2_install()
 {
     cat > /dev/stdout <<EOF
@@ -130,10 +130,10 @@ function libxml2_workflow_sources_gdb ()
     libxml2_get_sources ${install_config} ${libxml2_local_gdb_dir} &&
     
     # Configure
-    libxml2_source_config ${libxml2_src_gdb_config_args} > .libxml2_config.stdout 2> .libxml2_config.stderr &&
+    libxml2_source_config ${libxml2_src_gdb_config_args} > .libxml2_config.gen.stdout 2> .libxml2_config.gen.stderr &&
     (
       # Build
-      libxml2_gdb_build > .libxml2_build.stdout 2> .libxml2_build.stderr &&
+      libxml2_gdb_build > .libxml2_build.gen.stdout 2> .libxml2_build.gen.stderr &&
 
       # Install built library
       libxml2_git_master_install
@@ -164,10 +164,10 @@ function libxml2_workflow_sources_callers ()
     libxml2_get_sources ${install_config} ${libxml2_local_callers_dir} &&
     
     # Configure
-    libxml2_source_config ${libxml2_src_callers_config_args} > .libxml2_config.stdout 2> .libxml2_config.stderr &&
+    libxml2_source_config ${libxml2_src_callers_config_args} > .libxml2_config.gen.stdout 2> .libxml2_config.gen.stderr &&
     (
       # Callers analysis
-      libxml2_callers_analysis > .libxml2_callers.stdout 2> .libxml2_callers.stderr
+      libxml2_callers_analysis > .libxml2_callers.gen.stdout 2> .libxml2_callers.gen.stderr
       
     ) ||
 
@@ -250,7 +250,13 @@ function libxml2_local_archive ()
        #echo "Do you really want to overwrite it ?"
        rm -rf ${dest_dir}
     fi
-    tar -zxf ${libxml2_local_archive_fullname} || echo "libxml2_install ERROR: Not found tar archive \"${libxml2_local_archive_fullname}\" in \"${librootdir}\""
+    if [ ! -f ${libxml2_local_archive_fullname} ]; then
+	(
+	    echo "libxml2_install ERROR: Not found tar archive \"${libxml2_local_archive_fullname}\" in \"${librootdir}\"";
+	    return 7;
+	)
+    fi
+    tar -zxf ${libxml2_local_archive_fullname}
     mv ${libxml2_local_dir_name} ${dest_dir}
 }
 
@@ -277,16 +283,16 @@ function libxml2_fc_va_preproc ()
     libxml2_get_sources ${install_config} ${libxml2_local_fc_dir}
 
     # Configure
-    libxml2_source_config ${libxml2_src_fc_config_args} > .libxml2_config.stdout 2> .libxml2_config.stderr
+    libxml2_source_config ${libxml2_src_fc_config_args} > .libxml2_config.gen.stdout 2> .libxml2_config.gen.stderr
     
     # Build
-    libxml2_fc_build > .libxml2_preproc.stdout 2> .libxml2_preproc.stderr
+    libxml2_fc_build > .libxml2_preproc.gen.stdout 2> .libxml2_preproc.gen.stderr
 
     # Install built library
     #libxml2_git_master_install
     
     # Prepare FC analysis
-    # libxml2_fc_prepare > /dev/null 2> .libxml2_fc_prepare.stderr
+    # libxml2_fc_prepare > /dev/null 2> .libxml2_fc_prepare.gen.stderr
 }
 
 # install COTS used by libxml2 when configured

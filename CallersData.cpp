@@ -1504,9 +1504,19 @@ CallersData::File::get_or_create_local_declared_function(CallersData::FctDecl *f
   std::cout << "Tries to get function \"" << fct_decl->sign
 	    << "\" declared in file \"" << decl_filepath << "\"" << std::endl;
   assertSameFile(decl_filepath, fct_decl->file);
+  
   std::set<CallersData::FctDecl>::iterator search_result;
-  CallersData::FctDecl searched_decl(fct_decl->sign, decl_filepath, fct_decl->begin, fct_decl->end);
-  search_result = this->declared->find(searched_decl);
+  if(fct_decl->is_builtin == true)
+  {
+    CallersData::FctDecl searched_decl(fct_decl->sign, decl_filepath);
+    search_result = this->declared->find(searched_decl);
+  }
+  else
+  {
+    CallersData::FctDecl searched_decl(fct_decl->sign, decl_filepath, fct_decl->begin, fct_decl->end);
+    search_result = this->declared->find(searched_decl);
+  }
+
   if(search_result != this->declared->end())
     {
       std::cout << "CallersData::File::get_or_create_local_declared_function:FOUND: The function \"" << fct_decl->sign
@@ -3476,39 +3486,50 @@ bool CallersData::operator< (const CallersData::Thread& thread1, const CallersDa
 
 /******************************************* class Fct ******************************************/
 
-CallersData::Fct::Fct(std::string sign) : sign(sign) {}
+void CallersData::Fct::isWellFormed()
+{
+  ASSERT(sign != CALLERS_NO_FCT_SIGN);
+  
+  if(is_builtin == true)
+  {
+    ASSERT(nspc == CALLERS_DEFAULT_BUILTIN_NAMESPACE);
+  }
+  else
+  {
+    ASSERT(begin != CALLERS_NO_NB_LINES);
+    ASSERT(end != CALLERS_NO_NB_LINES);
+    ASSERT(0 < begin);
+    ASSERT(end < INT_MAX);
+    ASSERT(begin <= end);
+  }
+}
+
+void CallersData::Fct::wellFormedRecord()
+{
+  ASSERT(recordName != CALLERS_DEFAULT_RECORD_NAME);
+  ASSERT(recordFilePath != CALLERS_DEFAULT_RECORD_PATH);
+  ASSERT(recordFilePath != CALLERS_DEFAULT_NO_RECORD_PATH);
+  ASSERT(recordFilePath != CALLERS_NO_FILE_PATH);
+
+  if(is_builtin == true)
+  {
+    ASSERT(recordName == CALLERS_DEFAULT_BUILTIN_RECORD_NAME);
+    ASSERT(recordFilePath != CALLERS_DEFAULT_BUILTIN_RECORD_PATH);
+  }
+}
+
+CallersData::Fct::Fct(std::string sign) : sign(sign)
+{
+  ASSERT(sign != CALLERS_NO_FCT_SIGN);
+}
 
 CallersData::Fct::Fct(std::string sign, int begin, int end) :
   sign(sign),
   begin(begin),
   end(end)
 {
-  ASSERT(begin != CALLERS_NO_NB_LINES);
-  ASSERT(end != CALLERS_NO_NB_LINES);
-  ASSERT(0 < begin);
-  ASSERT(end < INT_MAX);
-  ASSERT(begin <= end);
+  this->isWellFormed();
   this->nb_lines = end + 1 - begin;
-}
-
-void CallersData::Fct::isWellFormed()
-{
-  ASSERT(recordName != CALLERS_DEFAULT_RECORD_NAME);
-  ASSERT(recordFilePath != CALLERS_DEFAULT_RECORD_PATH);
-  ASSERT(recordFilePath != CALLERS_DEFAULT_NO_RECORD_PATH);
-  ASSERT(recordFilePath != CALLERS_NO_FILE_PATH);
-  ASSERT(begin != CALLERS_NO_NB_LINES);
-  ASSERT(end != CALLERS_NO_NB_LINES);
-  ASSERT(0 < begin);
-  ASSERT(end < INT_MAX);
-  ASSERT(begin <= end);
-
-  if(is_builtin == true)
-  {
-    ASSERT(nspc == CALLERS_DEFAULT_BUILTIN_NAMESPACE);
-    ASSERT(recordName == CALLERS_DEFAULT_BUILTIN_RECORD_NAME);
-    ASSERT(recordFilePath != CALLERS_DEFAULT_BUILTIN_RECORD_PATH);
-  }
 }
 
 CallersData::Fct::Fct(MangledName mangled, std::string sign, Virtuality is_virtual, std::string nspc,
@@ -3525,6 +3546,7 @@ CallersData::Fct::Fct(MangledName mangled, std::string sign, Virtuality is_virtu
     end(end)
 {
   this->isWellFormed();
+  this->wellFormedRecord();
   this->nb_lines = end + 1 - begin;
 }
 
@@ -4531,6 +4553,7 @@ CallersData::ExtFct::ExtFct(MangledName mangled, std::string sign, std::string f
   // {
   //   std::cout << "TO_DEBUG..." << std::endl;
   // }
+  ASSERT(sign != CALLERS_NO_EXT_FCT_SIGN);
 }
 
 CallersData::ExtFct::ExtFct(const CallersData::ExtFct& copy_from_me)

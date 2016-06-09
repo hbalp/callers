@@ -198,12 +198,14 @@ CallersAction::Visitor::printFileName(const clang::SourceRange& rangeLocation) c
 std::string
 CallersAction::Visitor::printFilePath(const clang::SourceRange& rangeLocation, std::string defaultFilePath) const {
    ASSERT(psSources);
-   ASSERT(rangeLocation.isValid());
-   auto start = psSources->getPresumedLoc(rangeLocation.getBegin());
-   const char* startFile = start.getFilename();
    std::string path = defaultFilePath;
-   if (startFile)
-     path = ::getCanonicalAbsolutePath(startFile);
+   if(rangeLocation.isValid())
+   {
+     auto start = psSources->getPresumedLoc(rangeLocation.getBegin());
+     const char* startFile = start.getFilename();
+     if (startFile)
+       path = ::getCanonicalAbsolutePath(startFile);
+   }
    return path;
 }
 
@@ -217,13 +219,19 @@ std::string CallersAction::Visitor::printCurrentPath() const
 int
 CallersAction::Visitor::getStartLine(const clang::SourceRange& rangeLocation) const {
    ASSERT(psSources);
-   auto start = psSources->getPresumedLoc(rangeLocation.getBegin());
-   return start.getLine();
+   int startLine = CALLERS_NO_LOCATION_BEGIN;
+   if(rangeLocation.isValid())
+   {
+     auto start = psSources->getPresumedLoc(rangeLocation.getBegin());
+     startLine = start.getLine();
+   }
+   return startLine;
 }
 
 int
 CallersAction::Visitor::getEndLine(const clang::SourceRange& rangeLocation) const {
    ASSERT(psSources);
+   ASSERT(rangeLocation.isValid());
    auto end = psSources->getPresumedLoc(rangeLocation.getEnd());
    return end.getLine();
 }
@@ -2070,9 +2078,9 @@ CallersAction::Visitor::VisitFunctionDecl(clang::FunctionDecl* Decl) {
 
    pfdParent = Decl;
    std::string fct_filepath = printFilePath(Decl->getSourceRange());
-   std::string fct_begin = printNumber(getStartLine(Decl->getSourceRange()));
    sParent = writeFunction(*Decl);
-
+   std::string fct_begin = printNumber(getStartLine(Decl->getSourceRange()));
+   
    bool isDefinition = Decl->isThisDeclarationADefinition();
    auto isMethodDecl = llvm::dyn_cast<clang::CXXMethodDecl>(Decl);
 

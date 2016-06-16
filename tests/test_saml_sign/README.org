@@ -158,18 +158,18 @@ function prepare_it_with_system_lib()
 function execute_it_with_system_lib()
 {
     # ... without the xsw countermeasure
-    ./test_it_gdb_lib-sys_without_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.malicious_xsw.xml
+    ./test_it_gdb_lib-sys_without_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.sane.xml
     ./test_it_gdb_lib-sys_without_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.malicious_xsw.xml
 
     # ... with the xsw countermeasure
-    ./test_it_gdb_lib-sys_with_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.sane_xsw.xml
+    ./test_it_gdb_lib-sys_with_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.sane.xml
     ./test_it_gdb_lib-sys_with_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.malicious_xsw.xml
 
     # To check potential memory vulnerabilities with valgrind
-    valgrind ./test_it_gdb_lib-sys.gen/xsw_test_saml_sign data/SAMLResponse.malicious_xsw.xml
+    valgrind ./test_it_gdb_lib-dev_with_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.malicious_xsw.xml
 
     # To get the execution path with valgrind
-    valgrind --tool=callgrind ./test_it_gdb_lib-sys.gen/xsw_test_saml_sign data/SAMLResponse.malicious_xsw.xml
+    valgrind --tool=callgrind ./test_it_gdb_lib-dev_with_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.malicious_xsw.xml
     kcachegrind callgrind.out.* &
 }
     #+END_SRC

@@ -249,9 +249,9 @@ function cmake_build_ut_fc ()
 {
     cmake_config_common
     # cmake_config_ut_fc-va_lib-sys  && cmake_build_execute && fc_parse_prepare
-    cmake_config_ut_fc-va_lib-dev_without_adapted_call_context && cmake_build_execute && fc_parse_prepare
+#    cmake_config_ut_fc-va_lib-dev_without_adapted_call_context && cmake_build_execute && fc_parse_prepare
     cmake_config_ut_fc-va_lib-dev_with_xsw_countermeasure      && cmake_build_execute && fc_parse_prepare
-    cmake_config_ut_fc-va-wd_lib-dev_with_xsw_countermeasure   && cmake_build_execute && fc_parse_prepare
+#    cmake_config_ut_fc-va-wd_lib-dev_with_xsw_countermeasure   && cmake_build_execute && fc_parse_prepare
     # cmake_config_ut_fc-va_stub     && cmake_build_execute && fc_parse_prepare
     cd $ici
 }

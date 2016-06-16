@@ -174,12 +174,12 @@ function libxml2_workflow_sources_callers ()
     ( echo "libxml2 source callers analysis config error; you need probably to install the COTS library libtool by using: libxml2_cots_force_install..."; return 3 ) 
 }
 
-function libxml2_fc_va_prepare ()
+function libxml2_workflow_fc_va ()
 {
     install_config=$1
     if [ -z ${install_config} ]; then
        echo "libxml2 fc va error: expected one user parameter"
-       echo "usage: libxml2_fc_va_prepare <install_config=git|local>"
+       echo "usage: libxml2_workflow_fc_va <install_config=git|local>"
        return 1;
     fi
     libxml2_config_common

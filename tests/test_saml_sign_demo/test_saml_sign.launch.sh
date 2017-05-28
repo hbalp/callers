@@ -121,9 +121,9 @@ function usage_test_saml_sign_launch ()
 function cmake_build_all ()
 {
     cmake_config_common
-    #cmake_build_all_gdb
-    #cmake_build_all_callers_without_libxml2
-    #cmake_build_all_callers_with_libxml2
+    cmake_build_all_gdb
+    cmake_build_all_callers_without_libxml2
+    cmake_build_all_callers_with_libxml2
     cmake_build_all_fc
     cd $ici
 }
@@ -152,7 +152,7 @@ function cmake_build_all_fc ()
 {
     cmake_config_common
     cmake_build_ut_fc > .build_ut_fc.gen.stdout 2> .build_ut_fc.gen.stderr
-    #cmake_build_it_fc > .build_it_fc.gen.stdout 2> .build_it_fc.gen.stderr
+    cmake_build_it_fc > .build_it_fc.gen.stdout 2> .build_it_fc.gen.stderr
     cd $ici
 }
 

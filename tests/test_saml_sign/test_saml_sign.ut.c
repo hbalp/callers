@@ -20,6 +20,10 @@
 #include "parse_saml_response.h"
 #include "validate_saml_sign.h"
 
+/* #ifdef FRAMA_C */
+/* #include "__fc_builtin.h" */
+/* #endif */
+
 /********************************************************************************/
 /*                                    main                                      */
 /********************************************************************************/
@@ -160,7 +164,9 @@ int main()
 {
   bool status = true;
   int maliciousSAMLResponse = 0;
+  printf("Without XSW attack:\n");
   status = status && ut_saml_SignatureProfileValidator_validate(false);
+  printf("With XSW attack:\n");
   status = status && ut_saml_SignatureProfileValidator_validate(true);
   return(status);
 }

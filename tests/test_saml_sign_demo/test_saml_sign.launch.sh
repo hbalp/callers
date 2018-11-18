@@ -237,6 +237,7 @@ function cmake_build_it_fc ()
 
 function cmake_build_ut_gdb ()
 {
+    cmake_config_common
     # cmake_config_ut_gdb_lib-sys    && cmake_build_execute
     cmake_config_ut_gdb_lib-dev_without_adapted_call_context && cmake_build_execute
     cmake_config_ut_gdb_lib-dev_without_xsw_countermeasure   && cmake_build_execute
@@ -245,14 +246,44 @@ function cmake_build_ut_gdb ()
     cd $ici
 }
 
-function cmake_build_ut_fc ()
+# function cmake_build_ut_fc ()
+# {
+#     cmake_config_common
+#     cmake_config_ut_fc-va_lib-sys  && cmake_build_execute && fc_parse_prepare
+#     cmake_config_ut_fc-va_lib-dev_without_adapted_call_context && cmake_build_execute && fc_parse_prepare
+#     cmake_config_ut_fc-va_lib-dev_without_xsw_countermeasure   && cmake_build_execute && fc_parse_prepare
+#     cmake_config_ut_fc-va_lib-dev_with_xsw_countermeasure      && cmake_build_execute && fc_parse_prepare
+#     cmake_config_ut_fc-va-wd_lib-dev_with_xsw_countermeasure   && cmake_build_execute && fc_parse_prepare
+#     cmake_config_ut_fc-va_stub     && cmake_build_execute && fc_parse_prepare
+#     cd $ici
+# }
+
+function cmake_build_ut_fc_without_adapted_call_context ()
 {
     cmake_config_common
     # cmake_config_ut_fc-va_lib-sys  && cmake_build_execute && fc_parse_prepare
-#    cmake_config_ut_fc-va_lib-dev_without_adapted_call_context && cmake_build_execute && fc_parse_prepare
+    cmake_config_ut_fc-va_lib-dev_without_adapted_call_context && cmake_build_execute && fc_parse_prepare
+    cd $ici
+}
+
+function cmake_build_ut_fc_without_xsw_countermeasure ()
+{
+    cmake_config_common
+    cmake_config_ut_fc-va_lib-dev_without_xsw_countermeasure   && cmake_build_execute && fc_parse_prepare
+    cd $ici
+}
+
+function cmake_build_ut_fc_with_xsw_countermeasure ()
+{
+    cmake_config_common
     cmake_config_ut_fc-va_lib-dev_with_xsw_countermeasure      && cmake_build_execute && fc_parse_prepare
-#    cmake_config_ut_fc-va-wd_lib-dev_with_xsw_countermeasure   && cmake_build_execute && fc_parse_prepare
-    # cmake_config_ut_fc-va_stub     && cmake_build_execute && fc_parse_prepare
+    cd $ici
+}
+
+function cmake_build_ut_fc-va-wd_with_xsw_countermeasure ()
+{
+    cmake_config_common
+    cmake_config_ut_fc-va-wd_lib-dev_with_xsw_countermeasure   && cmake_build_execute && fc_parse_prepare
     cd $ici
 }
 
@@ -282,6 +313,7 @@ function cmake_clean_all_fc ()
     # cmake_config_ut_fc-va_lib-sys  && cmake_build_clean
     # cmake_config_ut_gdb_lib-dev_without_xsw_countermeasure   && cmake_build_clean
     # cmake_config_ut_gdb_lib-dev_with_xsw_countermeasure      && cmake_build_clean
+    cmake_config_ut_fc-va_lib-dev_without_xsw_countermeasure && cmake_build_clean
     cmake_config_ut_fc-va_lib-dev_with_xsw_countermeasure    && cmake_build_clean
     cmake_config_ut_fc-va-wd_lib-dev_with_xsw_countermeasure && cmake_build_clean
     # cmake_config_ut_gdb_stub       && cmake_build_clean
@@ -586,6 +618,7 @@ function cmake_config_ut_gdb_lib-dev_with_xsw_countermeasure ()
 
 function cmake_config_ut_fc-va_lib-dev_without_adapted_call_context ()
 {
+    echo "enter function cmake_config_ut_fc-va_lib-dev_without_adapted_call_context ()"
     XSW_COUNTERMEASURE="ON"
     BUILD_DIR="test_ut_fc-va_lib-dev_without_adapted_call_context.gen"
     TEST_MAIN_SRC_FILE="test_saml_sign.ut.c"
@@ -601,8 +634,28 @@ function cmake_config_ut_fc-va_lib-dev_without_adapted_call_context ()
     SAVE_TEMPS="ON"
 }
 
+function cmake_config_ut_fc-va_lib-dev_without_xsw_countermeasure ()
+{
+    echo "enter function cmake_config_ut_fc-va_lib-dev_without_xsw_countermeasure ()"
+    XSW_COUNTERMEASURE="OFF"
+    FRAMA_C_VA_WIDENING="OFF"
+    BUILD_DIR="test_ut_fc-va_lib-dev_without_xsw_countermeasure.gen"
+    TEST_MAIN_SRC_FILE="test_saml_sign.ut.c"
+    SYSTEM_LIB="OFF"
+    DEV_LIB="ON"
+    INTG_TEST="OFF"
+    UNIT_TEST="ON"
+    ADAPTED_CALL_CONTEXT="ON"
+    USE_XML_MEM_TRACE="ON"
+    USE_XML_MEM_BREAKPOINT="ON"
+    FRAMA_C="ON"
+    LIBXML2_STUB="OFF"
+    SAVE_TEMPS="ON"
+}
+
 function cmake_config_ut_fc-va_lib-dev_with_xsw_countermeasure ()
 {
+    echo "enter function cmake_config_ut_fc-va_lib-dev_with_xsw_countermeasure ()"
     XSW_COUNTERMEASURE="ON"
     FRAMA_C_VA_WIDENING="OFF"
     BUILD_DIR="test_ut_fc-va_lib-dev_with_xsw_countermeasure.gen"
@@ -865,10 +918,21 @@ function cmake_callers_extract_metrics ()
 # frama-c Value Analysis
 function fc_parse_prepare()
 {
+    echo "enter function: fc_parse_prepare()"
     source fc_analysis.sh
     cd ${ici}
+    echo "cd ${BUILD_DIR}"
     cd ${BUILD_DIR}
-
+    if [ $? -ne 0 ];
+    then
+	echo "test_saml_sign.launch.sh:ERROR:fc_parse_prepare():unreachable BUILD_DIR=${BUILD_DIR} ! : return 17"
+	return 18
+    fi
+    if [ -z ${INTG_TEST} ];
+    then
+	echo "test_saml_sign.launch.sh:ERROR:fc_parse_prepare():INTG_TEST is undefined ! : return 12"
+	return 12
+    fi
     if [ ${INTG_TEST} == "ON" ]; then
 	fc_entrypoint="fc_va_entrypoint"
 	it_fc_main_gen

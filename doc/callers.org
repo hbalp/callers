@@ -1,6 +1,5 @@
 #+AUTHOR Hugues Balp
 #+TITLE The Callers plug-in
-#+COPYRIGHT @ THALES Communications & Security 2012 to 2015
 
 * TODO The Callers plug-in [2/7]				    :callers:
   :PROPERTIES:
@@ -23,7 +22,7 @@ The Callers plug-in
 ** DONE Aims [1/1]
    - [X] Describe the objectives of the plug-in and its relation with the security analysis of source code (what security properties are analysed)   
    #+BEGIN_SRC org :tangle callers.chap6.tcs.D4.2.2.gen.org
-* Aim
+* Aim									:aim:
    The main goal of the Callers plugin is to enable early security risks assessments based on the analysis of function calls dependencies.
 
    For example, if some vulnerabilities are found by source code analysis in the implementation of some particular function,

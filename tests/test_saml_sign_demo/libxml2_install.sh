@@ -25,6 +25,7 @@ function libxml2_config_shared ()
 # host dependant libxml2 config
 function libxml2_config_host()
 {
+    echo "enter function: libxml2_config_host ()"
     host=`hostname`
     if [ ${host} == "devrte" ]; then
         libxml2_config_host_vm
@@ -38,12 +39,14 @@ function libxml2_config_host()
 # libxml2 config for host moriond
 function libxml2_config_host_moriond ()
 {
-  export librootdir="/home/hbalp/hugues/work/third_parties/src"
-  export libxml2_local_dir_name="libxml2"
-  #export libxml2_local_archive_name="libxml2-2.9.4"
-  export libxml2_local_archive_name="libxml2-2.9.4.1.stance"
-  echo "HBDEBUG EXPORT:" libxml2_local_archive_fullname="${libxml2_local_archive_name}.tgz"
-  export libxml2_local_archive_fullname="${libxml2_local_archive_name}.tgz"
+    echo "enter function: libxml2_config_host_moriond ()"
+    export librootdir="/home/hbalp/hugues/work/third_parties/src"
+    echo "HBDEBUG EXPORT: librootdir=${librootdir}"
+    export libxml2_local_dir_name="libxml2"
+    #export libxml2_local_archive_name="libxml2-2.9.4"
+    export libxml2_local_archive_name="libxml2-2.9.4.1.stance"
+    echo "HBDEBUG EXPORT:" libxml2_local_archive_fullname="${libxml2_local_archive_name}.tgz"
+    export libxml2_local_archive_fullname="${libxml2_local_archive_name}.tgz"
 }
 
 # libxml2 config for host devrte
@@ -53,6 +56,20 @@ function libxml2_config_host_vm ()
   export libxml2_local_dir_name="libxml2"
   export libxml2_local_archive_name="libxml2-2.9.3"
   export libxml2_local_archive_fullname="${libxml2_local_archive_name}.tar.gz"
+}
+
+# host dependant libxml2 config
+function libxml2_config_host()
+{
+    echo "enter function: libxml2_config_host ()"
+    host=`hostname`
+    if [ ${host} == "devrte" ]; then
+        libxml2_config_host_vm
+    elif [ ${host} == "moriond" ]; then
+        libxml2_config_host_moriond
+    else
+        echo "libxml2_install:ERROR: no available libxml2 configuration for unknown host ${host}"
+    fi
 }
 
 # for install_config="git"
@@ -183,6 +200,7 @@ function libxml2_workflow_fc_va ()
        return 1;
     fi
     libxml2_config_common
+    echo "librootdir=${librootdir}"
     cd ${librootdir}
 
     # Uninstall
@@ -190,6 +208,7 @@ function libxml2_workflow_fc_va ()
 
     # Install
     libxml2_fc_va_preproc ${install_config}
+    return 0
 }
 
 function libxml2_update_fc_preproc ()
@@ -202,6 +221,7 @@ function libxml2_update_fc_preproc ()
 
 function libxml2_config_common ()
 {
+    echo "enter function: libxml2_config_common ()"
     libxml2_config_host
     libxml2_config_shared
     libxml2_config_git_archive
@@ -229,11 +249,12 @@ function libxml2_get_sources ()
     dest_dir=$2
     libdir="${librootdir}/${dest_dir}"
     if [ ${install_config} == "git" ]; then
-      # download libxml2 sources
-      libxml2_git_master_clone ${dest_dir}
+	# download libxml2 sources
+	libxml2_git_master_clone ${dest_dir}
     elif [ ${install_config} == "local" ]; then
-      # or unzip a local archive when download is not possible
-      libxml2_local_archive ${dest_dir}
+	# or unzip a local archive when download is not possible
+	libxml2_local_archive ${dest_dir}
+	return $?
     else
       return 1;
     fi
@@ -242,7 +263,15 @@ function libxml2_get_sources ()
 # unzip a local archive when download is not possible
 function libxml2_local_archive ()
 {
+    echo "enter function: libxml2_local_archive()"
     dest_dir=$1
+    echo "dest_dir=${dest_dir}"
+    echo "librootdir=${librootdir}"
+    echo "libxml2_local_archive_fullname=${libxml2_local_archive_fullname}"
+    if [ ! -d ${librootdir} ]; then
+	echo "Invalid librootdir=\"${librootdir}\", you need first to call function libxml2_config_host"
+	return 1;
+    fi
     cd ${librootdir}
     if [ -d ${dest_dir} ]; then
        echo "WARNING: already existing dest_dir=${dest_dir}"
@@ -250,14 +279,27 @@ function libxml2_local_archive ()
        #echo "Do you really want to overwrite it ?"
        rm -rf ${dest_dir}
     fi
-    if [ ! -f ${libxml2_local_archive_fullname} ]; then
+    echo "# verify if the local archive name is welformed: local_xml2_arch_name=\"${libxml2_local_archive_fullname}\"..."
+    if [ -z ${libxml2_local_archive_fullname} ]; then
+	(
+	    echo "libxml2_install ERROR: Null tar archive name \"${libxml2_local_archive_fullname}\" in \"${librootdir}\"";
+	    return 8;
+	)
+    fi
+
+    if [ -f ${libxml2_local_archive_fullname} ]; then
+	(
+	    tar -zxf ${libxml2_local_archive_fullname}
+	    mv ${libxml2_local_dir_name} ${dest_dir}
+	    echo "exit function: libxml2_local_archive()"
+	    return 0;
+	)
+    else
 	(
 	    echo "libxml2_install ERROR: Not found tar archive \"${libxml2_local_archive_fullname}\" in \"${librootdir}\"";
 	    return 7;
 	)
     fi
-    tar -zxf ${libxml2_local_archive_fullname}
-    mv ${libxml2_local_dir_name} ${dest_dir}
 }
 
 function libxml2_source_uninstall ()
@@ -277,22 +319,49 @@ function libxml2_fc_va_preproc ()
     libxml2_config_fc_va
     
     # install COTS used by libxml2
+    if [ $? -ne 0 ]; then
+	echo "libxml2_install:ERROR:libxml2_fc_va_preproc ():return 1"
+	return 1
+    fi
     libxml2_cots_install
 
     # get the sources of libxml2
+    if [ $? -ne 0 ]; then
+	echo "libxml2_install:ERROR:libxml2_fc_va_preproc ():return 2"
+	return 2
+    fi
     libxml2_get_sources ${install_config} ${libxml2_local_fc_dir}
-
+    
     # Configure
+    if [ $? -ne 0 ]; then
+	echo "libxml2_install:ERROR:libxml2_fc_va_preproc ():return 3"
+	return 3
+    fi
+
     libxml2_source_config ${libxml2_src_fc_config_args} > .libxml2_config.gen.stdout 2> .libxml2_config.gen.stderr
     
     # Build
+    if [ $? -ne 0 ]; then
+	echo "libxml2_install:ERROR:libxml2_fc_va_preproc ():return 4"
+	return 4
+    fi
     libxml2_fc_build > .libxml2_preproc.gen.stdout 2> .libxml2_preproc.gen.stderr
-
-    # Install built library
-    #libxml2_git_master_install
+    if [ $? -ne 0 ]; then
+        echo "libxml2_install:WARNING: libxml2_fc_build warnings"
+	return 0
+    fi
     
+    # Install built library
+    # if [ $? -ne 0 ]; then
+    #  return 5
+    # fi
+    # 	libxml2_git_master_install
     # Prepare FC analysis
+    # if [ $? -ne 0 ]; then
+    #  return 6
+    # fi
     # libxml2_fc_prepare > /dev/null 2> .libxml2_fc_prepare.gen.stderr
+
 }
 
 # install COTS used by libxml2 when configured

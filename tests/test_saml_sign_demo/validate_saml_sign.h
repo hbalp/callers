@@ -5,9 +5,9 @@
 #define OFF 0
 
 #define USE_XSW_COUNTERMEASURE  ON
-#define ADAPTED_CALL_CONTEXT    ON
-#define USE_XML_MEM_TRACE       ON
-#define USE_XML_MEM_BREAKPOINT  ON
+#define ADAPTED_CALL_CONTEXT    OFF
+#define USE_XML_MEM_TRACE       OFF
+#define USE_XML_MEM_BREAKPOINT  OFF
 #define FRAMA_C_VA_WIDENING     OFF
 
 bool

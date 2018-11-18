@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#canonical_pwd="$PWD"
-canonical_pwd="/net/alpha.sc2.theresis.org/$PWD"
+canonical_pwd="$PWD"
+#canonical_pwd="/net/alpha.sc2.theresis.org/$PWD"
 #canonical_pwd="/net/alpha.sc2.theresis.org/works$PWD"
 
 build_tool="cmake"
@@ -36,9 +36,9 @@ then
     find $callers_json_rootdir -type f -name "*.gen.json.gz" -exec gunzip {} \;
     list_files_in_dirs $callers_json_rootdir .file.callers.gen.json dir.callers.gen.json analysis
 
-    # List all defined symbols in file defined_symbols.json
-    list_defined_symbols defined_symbols.json
-    #read_defined_symbols defined_symbols.json file.callers.gen.json
+    # # List all defined symbols in file defined_symbols.json
+    # list_defined_symbols defined_symbols.json
+    # read_defined_symbols defined_symbols.json file.callers.gen.json
 
     # # add declarations to json files
     # source add_declarations.sh $callers_json_rootdir
@@ -66,8 +66,8 @@ then
     source indent_jsonfiles.sh .
     source indent_jsonfiles.sh $callers_json_rootdir
 
-    inkscape analysis/${analysis_type}/svg/main.fcg.callees.gen.dot.svg
-    #inkscape analysis/${analysis_type}/svg/main.fcg.callers.gen.dot.svg
+    # inkscape analysis/${analysis_type}_analysis/svg/main.fcg.callees.gen.dot.svg
+    # #inkscape analysis/${analysis_type}_analysis/svg/main.fcg.callers.gen.dot.svg
 
 fi
 else

@@ -29,5 +29,5 @@ int main()
 }
 
 /* Local Variables: */
-/* compile-command: "clang -g  -I /c/ProgramFiles/MinGW/include -o test_local_callgraph_c test_local_callgraph.c; valgrind --tool=callgrind ./test_local_callgraph_c" */
+/* compile-command: "clang -g -o test_local_callcycle_c test_local_callcycle.c; valgrind --tool=callgrind ./test_local_callcycle_c" */
 /* End: */

@@ -1,5 +1,5 @@
 /****
-     Copyright (C) 2015 Thales Communication & Security
+     Copyright (C) 2015
        - All Rights Reserved
      coded by Hugues Balp
 ****/

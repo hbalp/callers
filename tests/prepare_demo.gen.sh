@@ -1,10 +1,4 @@
 #!/bin/bash
-
-echo "source libxml2_install.sh..."
-source libxml2_install.sh
-echo "source test_saml_sign.launch.sh..."
-source test_saml_sign.launch.sh
-
 function usage_prepare_demo()
 {
     cat > /dev/stdout <<EOF
@@ -36,6 +30,10 @@ or
 EOF
 }
 
+source libxml2_install.sh
+
+source test_saml_sign.launch.sh
+
 function prepare_all_tests()
 {
   cmake_build_all
@@ -59,18 +57,18 @@ function prepare_it_with_system_lib()
 function execute_it_with_system_lib()
 {
     # ... without the xsw countermeasure
-    ./test_it_gdb_lib-sys_without_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.sane_xsw.xml
+    ./test_it_gdb_lib-sys_without_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.sane.xml
     ./test_it_gdb_lib-sys_without_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.malicious_xsw.xml
 
     # ... with the xsw countermeasure
-    ./test_it_gdb_lib-sys_with_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.sane_xsw.xml
+    ./test_it_gdb_lib-sys_with_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.sane.xml
     ./test_it_gdb_lib-sys_with_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.malicious_xsw.xml
 
     # To check potential memory vulnerabilities with valgrind
-    valgrind ./test_it_gdb_lib-sys.gen/xsw_test_saml_sign data/SAMLResponse.malicious_xsw.xml
+    valgrind ./test_it_gdb_lib-dev_with_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.malicious_xsw.xml
 
     # To get the execution path with valgrind
-    valgrind --tool=callgrind ./test_it_gdb_lib-sys.gen/xsw_test_saml_sign data/SAMLResponse.malicious_xsw.xml
+    valgrind --tool=callgrind ./test_it_gdb_lib-dev_with_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.malicious_xsw.xml
     kcachegrind callgrind.out.* &
 }
 
@@ -80,15 +78,13 @@ function prepare_ut_with_gdb()
    libxml2_workflow_sources_gdb local
 
    # To build the unitary test
-   if [ $? -eq 0 ]; then
-       cmake_config_common
+   cmake_config_common
 
-       cmake_config_ut_gdb_lib-dev_without_xsw_countermeasure
-       cmake_build_execute
+   cmake_config_ut_gdb_lib-dev_without_xsw_countermeasure
+   cmake_build_execute
 
-       cmake_config_ut_gdb_lib-dev_with_xsw_countermeasure
-       cmake_build_execute
-   fi
+   cmake_config_ut_gdb_lib-dev_with_xsw_countermeasure
+   cmake_build_execute
 }
 
 function execute_ut_without_xsw_countermeasure()
@@ -120,28 +116,17 @@ function prepare_callers_with_libxml2()
 
 function prepare_fc_va()
 {
-    echo "enter function: prepare_fc_va()"
-    # To Launch Frama-C Value Analysis on the unitary test
-    # source test_saml_sign.launch.sh
-    source libxml2_install.sh
-    
-    # and then call to install and preprocess the sources of the libxml2 library
-    libxml2_workflow_fc_va local
-    
-    # frama-c Value Analysis
-    if [ $? -ne 0 ]; then
-	echo "prepare_demo.gen.sh:ERROR:prepare_fc_va():return 1"
-	return 1
-    fi
-    fc_parse_prepare
-    
-    # after successfull analysis completion, look at the results on the frama-c gui
-    if [ $? -ne 0 ]; then
-	echo "prepare_demo.gen.sh:ERROR:prepare_fc_va():return 2"
-	return 2
-    fi
-    frama-c-gui -load fc_analyzed.gen.sav &    
-    echo "exit function: prepare_fc_va()"
+   # To Launch Frama-C Value Analysis on the unitary test
+   # source test_saml_sign.launch.sh
+
+   # and then call to install and preprocess the sources of the libxml2 library
+   libxml2_workflow_fc_va local
+
+   # frama-c Value Analysis
+   fc_parse_prepare
+
+   # after successfull analysis completion, look at the results on the frama-c gui
+   frama-c-gui -load fc_analyzed.gen.sav &
 }
 
 function update_fc_va()

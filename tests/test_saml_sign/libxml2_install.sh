@@ -250,14 +250,18 @@ function libxml2_local_archive ()
        #echo "Do you really want to overwrite it ?"
        rm -rf ${dest_dir}
     fi
-    if [ ! -f ${libxml2_local_archive_fullname} ]; then
+    if [ -f ${libxml2_local_archive_fullname} ]; then
+	(
+	    echo "DDDDDDDDDDDDDD: tar -zxf ${libxml2_local_archive_fullname}"
+	    tar -zxf ${libxml2_local_archive_fullname}
+	    mv ${libxml2_local_dir_name} ${dest_dir}
+	)
+    else
 	(
 	    echo "libxml2_install ERROR: Not found tar archive \"${libxml2_local_archive_fullname}\" in \"${librootdir}\"";
 	    return 7;
 	)
     fi
-    tar -zxf ${libxml2_local_archive_fullname}
-    mv ${libxml2_local_dir_name} ${dest_dir}
 }
 
 function libxml2_source_uninstall ()

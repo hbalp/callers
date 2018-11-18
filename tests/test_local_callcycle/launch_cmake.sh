@@ -17,6 +17,7 @@ analysis_type=callers
 common=`which common.sh`
 bin_dir=`dirname $common`
 launch_scan_build=`which ${bin_dir}/launch_analysis.sh`
+callers_analysis_dir="callers_analysis"
 
 # clean test
 source test_clean.sh
@@ -74,16 +75,16 @@ then
     #source callgraph_to_dot.sh $callers_json_rootdir
     source callgraph_to_dot.sh $callers_json_rootdir files
 
-    #source process_dot_files.sh . analysis/${analysis_type}
+    #source process_dot_files.sh . ${callers_analysis_dir}/${analysis_type}
 
     #source indent_jsonfiles.sh .
     #source indent_jsonfiles.sh $callers_json_rootdir
 
-    #inkscape analysis/callers/svg/main.fcg.callees.gen.dot.svg
-    #inkscape analysis/callers/svg/main.fcg.callers.gen.dot.svg
-    #inkscape analysis/callers/svg/printf.fcg.callers.gen.dot.svg
-    #inkscape analysis/callers/svg/c.fcg.callers.gen.dot.svg
-    #inkscape analysis/callers/svg/a.fcg.callers.gen.dot.svg
+    #inkscape ${callers_analysis_dir}/callers/svg/main.fcg.callees.gen.dot.svg
+    #inkscape ${callers_analysis_dir}/callers/svg/main.fcg.callers.gen.dot.svg
+    #inkscape ${callers_analysis_dir}/callers/svg/printf.fcg.callers.gen.dot.svg
+    #inkscape ${callers_analysis_dir}/callers/svg/c.fcg.callers.gen.dot.svg
+    #inkscape ${callers_analysis_dir}/callers/svg/a.fcg.callers.gen.dot.svg
 
 fi
 fi

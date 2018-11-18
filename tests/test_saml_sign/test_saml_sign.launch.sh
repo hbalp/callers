@@ -75,7 +75,7 @@ function libxml2_config_host_moriond ()
     LIBXML2_DEV_LIB_FC_SRC_DIR="/home/hbalp/hugues/work/third_parties/src/libxml2_fc"
     LIBXML2_DEV_LIB_INSTALL_PATH="/tools/exec/lib/libxml2.a"
     
-    EXTRA_DEV_LIBS_DIRS="${EXTRA_DEV_LIBS_DIRS} ${LIBXML2_DEV_LIB_FC_SRC_DIR}"
+    export EXTRA_DEV_LIBS_DIRS="${EXTRA_DEV_LIBS_DIRS} ${LIBXML2_DEV_LIB_FC_SRC_DIR}"
 
     export canonical_pwd=`pwd`
 }
@@ -93,7 +93,7 @@ function libxml2_config_host_vm ()
     LIBXML2_DEV_LIB_FC_SRC_DIR="/data/balp/src/tools/libxml2_fc"
     LIBXML2_DEV_LIB_INSTALL_PATH="/data/balp/src/tools/exec/lib/libxml2.a"
     
-    EXTRA_DEV_LIBS_DIRS="${EXTRA_DEV_LIBS_DIRS} ${LIBXML2_DEV_LIB_FC_SRC_DIR}"
+    export EXTRA_DEV_LIBS_DIRS="${EXTRA_DEV_LIBS_DIRS} ${LIBXML2_DEV_LIB_FC_SRC_DIR}"
 
     export canonical_pwd="/net/alpha.sc2.theresis.org$PWD"
 }
@@ -122,7 +122,7 @@ function cmake_build_all ()
 {
     cmake_config_common
     cmake_build_all_gdb
-    cmake_build_all_callers_without_libxml2
+    # cmake_build_all_callers_without_libxml2
     cmake_build_all_callers_with_libxml2
     cmake_build_all_fc
     cd $ici
@@ -150,9 +150,11 @@ function cmake_build_all_callers_with_libxml2 ()
 
 function cmake_build_all_fc ()
 {
+    source libxml2_install.sh
+    libxml2_workflow_fc_va local
     cmake_config_common
     cmake_build_ut_fc > .build_ut_fc.gen.stdout 2> .build_ut_fc.gen.stderr
-    cmake_build_it_fc > .build_it_fc.gen.stdout 2> .build_it_fc.gen.stderr
+    # cmake_build_it_fc > .build_it_fc.gen.stdout 2> .build_it_fc.gen.stderr
     cd $ici
 }
 
@@ -176,7 +178,7 @@ function cmake_config_common ()
     #FRAMA_C_MODIFIED_FILES="stub/tree.c libc/libc.c libc/stdlib.c libc/setgetenv.c"
     #FRAMA_C_MODIFIED_FILES="stub/tree.c libc/stdlib.c libc/setgetenv.c"
     FRAMA_C_MODIFIED_FILES="libc/setgetenv.c"
-    EXTRA_DEV_LIBS_DIRS=""
+    #EXTRA_DEV_LIBS_DIRS=""
     build_config_host
 }
 
@@ -216,6 +218,7 @@ function cmake_build_it_callers ()
 
 function cmake_build_it_callers_with_libxml2 ()
 {
+    source ./libxml2_install.sh
     libxml2_workflow_sources_callers local &&
     cmake_config_common &&
     cmake_config_it_callers_libxml2-dev &&
@@ -227,6 +230,7 @@ function cmake_build_it_callers_with_libxml2 ()
     
 function cmake_build_it_fc ()
 {
+    # libxml2_workflow_fc_va local
     cmake_config_common
     # cmake_config_it_fc-va_lib-dev_with_xsw_countermeasure   && cmake_build_execute && it_fc_main_gen && fc_parse_prepare
     cmake_config_it_fc-va_lib-dev_with_xsw_countermeasure   && cmake_build_execute && fc_parse_prepare
@@ -247,11 +251,12 @@ function cmake_build_ut_gdb ()
 
 function cmake_build_ut_fc ()
 {
-    cmake_config_common
+    cmake_config_common &&
     # cmake_config_ut_fc-va_lib-sys  && cmake_build_execute && fc_parse_prepare
-#    cmake_config_ut_fc-va_lib-dev_without_adapted_call_context && cmake_build_execute && fc_parse_prepare
-    cmake_config_ut_fc-va_lib-dev_with_xsw_countermeasure      && cmake_build_execute && fc_parse_prepare
-#    cmake_config_ut_fc-va-wd_lib-dev_with_xsw_countermeasure   && cmake_build_execute && fc_parse_prepare
+    #    cmake_config_ut_fc-va_lib-dev_without_adapted_call_context && cmake_build_execute && fc_parse_prepare
+#    echo "YYYYYYYYY cmake_config_ut_fc-va_lib-dev_with_xsw_countermeasure      && cmake_build_execute && fc_parse_prepare"
+    cmake_config_ut_fc-va_lib-dev_with_xsw_countermeasure      && cmake_build_execute && fc_parse_prepare &&
+    cmake_config_ut_fc-va-wd_lib-dev_with_xsw_countermeasure   && cmake_build_execute && fc_parse_prepare
     # cmake_config_ut_fc-va_stub     && cmake_build_execute && fc_parse_prepare
     cd $ici
 }
@@ -829,6 +834,7 @@ function cmake_build_execute()
     cd ${BUILD_DIR}
     cmake ..
     make VERBOSE=yes
+    check_error $? "cmake_buildexecute:ERROR:Ignore this error !"
     cd ${ici}
 }
 
@@ -877,12 +883,28 @@ function fc_parse_prepare()
     fi
     
     BUILD_PATH="${ici}/${BUILD_DIR}"
-    fc_parse ${TEST_MAIN_SRC_FILE} ${BUILD_PATH} ${EXTRA_DEV_LIBS_DIRS} &&
+    # echo "BBBBBBBBBBBBB fc_parse ${TEST_MAIN_SRC_FILE} ${BUILD_PATH} ${EXTRA_DEV_LIBS_DIRS}" > ~/toto
+    fc_parse ${TEST_MAIN_SRC_FILE} ${BUILD_PATH} ${EXTRA_DEV_LIBS_DIRS}
+    check_error $? "test_saml_sign.launch.sh:fc_parse_prepare:ERROR:Failed to preprocess files"
     # launch fc_parse
-    source fc_parse_preproc_files.gen.sh &&
+    source fc_parse_preproc_files.gen.sh
     # launch fc-va
     fc_va ${fc_entrypoint} ${FRAMA_C_SLEVEL}
     #fc_va ${fc_entrypoint} ${FRAMA_C_SLEVEL} > /dev/stdout > fc_va.gen.stdout 2> fc_va.gen.stderr
     #fc_va ${fc_entrypoint} ${FRAMA_C_SLEVEL} | tee fc_va.gen.stdout.stderr
+    check_error $? "test_saml_sign.launch.sh:fc_parse_prepare:ERROR:Failed to analyze files"
 }
 
+function check_error ()
+{
+    status=$1
+    err_msg=$2
+    if [ ${status} != 0 ]; then
+	cat > /dev/stderr <<EOF
+EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+${err_msg}
+EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+EOF
+	return
+    fi
+}

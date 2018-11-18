@@ -19,19 +19,19 @@ option(SYSTEM_LIB "Use the system library libxml2" OFF)
 option(DEV_LIB "Use the manual installed library libxml2" ON)
 
 # option to build the integration test
-option(INTG_TEST "Build the integration test" OFF)
+option(INTG_TEST "Build the integration test" ON)
 
 # option to build the unitary test
-option(UNIT_TEST "Build the unitary test" ON)
+option(UNIT_TEST "Build the unitary test" OFF)
 
 # option to use a wellformed call context
-option(ADAPTED_CALL_CONTEXT "Use a wellformed call context" ON)
+option(ADAPTED_CALL_CONTEXT "Use a wellformed call context" OFF)
 
 # option to set the XML_MEM_TRACE environment variable
-option(USE_XML_MEM_TRACE "Option to set the XML_MEM_TRACE environment variable" ON)
+option(USE_XML_MEM_TRACE "Option to set the XML_MEM_TRACE environment variable" OFF)
 
 # option to set the XML_MEM_BREAKPOINT environment variable
-option(USE_XML_MEM_BREAKPOINT "Option to set the XML_MEM_BREAKPOINT environment variable" ON)
+option(USE_XML_MEM_BREAKPOINT "Option to set the XML_MEM_BREAKPOINT environment variable" OFF)
 
 # option to activate Frama-C analysis
 option(FRAMA_C "Option to activate Frama-C VA analysis" OFF)
@@ -43,7 +43,7 @@ option(FRAMA_C_VA_WIDENING "Option to widen Frama-C VA analysis" )
 option(LIBXML2_STUB "Option to stub the libxml2 library" OFF)
 
 # save temporary files when needed
-option(SAVE_TEMPS "Save temporary files" ON)
+option(SAVE_TEMPS "Save temporary files" OFF)
 
 configure_file (
   "validate_saml_sign.h.in"
@@ -110,18 +110,18 @@ if(LIBXML2_STUB)
     stub/SAX.c
     stub/SAX2.c
     stub/setgetenv.c
-    test_saml_sign.ut.c)
+    test_saml_sign.it.c)
 elseif(FRAMA_C)
   if(INTG_TEST)
-    add_executable(xsw_test_saml_sign parse_saml_response.c validate_saml_sign.c libc/setgetenv.c test_saml_sign.ut.c)
+    add_executable(xsw_test_saml_sign parse_saml_response.c validate_saml_sign.c libc/setgetenv.c test_saml_sign.it.c)
   elseif(UNIT_TEST)
-    add_executable(xsw_test_saml_sign validate_saml_sign.c libc/setgetenv.c test_saml_sign.ut.c)
+    add_executable(xsw_test_saml_sign validate_saml_sign.c libc/setgetenv.c test_saml_sign.it.c)
   endif()
 else()
   if(INTG_TEST)
-    add_executable(xsw_test_saml_sign parse_saml_response.c validate_saml_sign.c test_saml_sign.ut.c)
+    add_executable(xsw_test_saml_sign parse_saml_response.c validate_saml_sign.c test_saml_sign.it.c)
   elseif(UNIT_TEST)
-    add_executable(xsw_test_saml_sign validate_saml_sign.c test_saml_sign.ut.c)
+    add_executable(xsw_test_saml_sign validate_saml_sign.c test_saml_sign.it.c)
   endif()
 endif()
 

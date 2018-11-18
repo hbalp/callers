@@ -152,13 +152,13 @@ function prepare_it_with_system_lib()
 }
     #+END_SRC
 
-*** To execute the unitary test
+*** To execute the integration tests
 
     #+BEGIN_SRC sh tangle :tangle prepare_demo.gen.sh   
 function execute_it_with_system_lib()
 {
     # ... without the xsw countermeasure
-    ./test_it_gdb_lib-sys_without_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.malicious_xsw.xml
+    ./test_it_gdb_lib-sys_without_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.sane_xsw.xml
     ./test_it_gdb_lib-sys_without_xsw_countermeasure.gen/xsw_test_saml_sign data/SAMLResponse.malicious_xsw.xml
 
     # ... with the xsw countermeasure
@@ -175,6 +175,7 @@ function execute_it_with_system_lib()
     #+END_SRC
 
 ** Build and Debug with gdb					     :gdb:ut:
+*** To execute and debug the unitary tests
 
    #+BEGIN_SRC sh tangle :tangle prepare_demo.gen.sh   
 function prepare_ut_with_gdb()

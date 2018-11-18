@@ -190,4 +190,5 @@
 
     6) *widening may introduce quickly unprecision*
        because relation between variables are not taken into account
+       (with the historical VA v1, not with the new one).
 

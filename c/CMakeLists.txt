@@ -24,6 +24,7 @@ target_compile_options(callers PRIVATE -fexceptions)
 #set_target_properties(callers PROPERTIES CXX_FLAGS "-fexceptions")
 
 target_link_libraries(callers
+  PRIVATE
   clangAST
   clangBasic
   clangDriver

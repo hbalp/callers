@@ -1,14 +1,16 @@
 #!/bin/bash
-set -x
+# set -x
 # from http://clang.llvm.org/get_started.html
 # Checkout LLVM:
 
-src_dir=/home/hbalp/hugues/work/third_parties/src
+#src_dir=${HOME}/hugues/work/third_parties/src
+src_dir=${HOME}/work/third_parties/src
 
 llvm_src_dir=${src_dir}/llvm
 
 function llvm_install ()
 {
+    mkdir -p ${llvm_src_dir}
     cd ${llvm_src_dir}
 
     #     Change directory to where you want the llvm directory placed.
@@ -49,5 +51,5 @@ function llvm_build ()
     cd build
     cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=/tools/exec -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release ../llvm
     make CXXFLAGS="-DKEY_WOW64_32KEY=0x0200 -D_GLIBCXX_HAVE_FENV_H"
-    sudo make install
+    sudo make install VERBOSE=yes
 }

@@ -100,8 +100,8 @@ ProcessArguments::process(char** argument, int& currentArgument) {
                         << "Thread model: posix\n";
               _isVersion = true;
               --currentArgument;
-              return true;
            };
+	   return true;
            // no break
          default:
             --currentArgument;
@@ -146,8 +146,8 @@ main(int argc, char** argv) {
    Argv[clang_argc]="-Qunused-arguments";
    llvm::IntrusiveRefCntPtr<clang::DiagnosticsEngine>
       Diag(&compiler.getDiagnostics());
-   clang::CompilerInvocation*
-      invocation = clang::createInvocationFromCommandLine(Argv,Diag);
+   std::shared_ptr<clang::CompilerInvocation>
+     invocation = clang::createInvocationFromCommandLine(Argv,Diag);
 
    if (!invocation) {
       std::cerr << 
@@ -163,7 +163,7 @@ main(int argc, char** argv) {
    invocation->getLangOpts()->EmitAllDecls = true;
    invocation->getLangOpts()->GNUInline = true;
    invocation->getLangOpts()->Deprecated = true;
-   invocation->getLangOpts()->ShortWChar = true;
+   //invocation->getLangOpts()->ShortWChar = true;
    invocation->getLangOpts()->ImplicitInt = false;
    // equivalent command-line option: callers -std=c++11
    // enable to analyze C++11 source code like clang version 3.7.0 (trunk 240320)
@@ -180,3 +180,6 @@ main(int argc, char** argv) {
    return 0;
 }
 
+// Local Variables:
+// compile-command: "/usr/bin/c++  -DGTEST_HAS_RTTI=0 -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -I/home/hugues/work/third_parties/src/build/tools/clang/tools/extra/callers/cpp -I/home/hugues/work/third_parties/src/llvm/tools/clang/tools/extra/callers/cpp -I/home/hugues/work/third_parties/src/llvm/tools/clang/include -I/home/hugues/work/third_parties/src/build/tools/clang/include -I/usr/include/libxml2 -I/home/hugues/work/third_parties/src/build/include -I/home/hugues/work/third_parties/src/llvm/include -I/home/hugues/work/third_parties/src/llvm/tools/clang/tools/extra/callers/cpp/..   -fPIC -fvisibility-inlines-hidden -Werror=date-time -std=c++11 -Wall -Wextra -Wno-unused-parameter -Wwrite-strings -Wcast-qual -Wno-missing-field-initializers -pedantic -Wno-long-long -Wimplicit-fallthrough -Wno-maybe-uninitialized -Wno-noexcept-type -Wdelete-non-virtual-dtor -Wno-comment -ffunction-sections -fdata-sections -fno-common -Woverloaded-virtual -fno-strict-aliasing -g    -fno-exceptions -fno-rtti -fexceptions -o callers++.cpp.o -c callers++.cpp"
+// End:

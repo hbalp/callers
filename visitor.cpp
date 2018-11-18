@@ -1489,8 +1489,10 @@ CallersAction::Visitor::VisitBuiltinFunction(const clang::FunctionDecl* fd) {
         llvm::SmallVectorImpl<char>* SearchPath = NULL;
         llvm::SmallVectorImpl<char>* RelativePath = NULL;
         clang::ModuleMap::KnownHeader *SuggestedModule = NULL;
-        bool skipPath = false;
-        const clang::FileEntry * result = ciCompilerInstance.getPreprocessor().LookupFile(FilenameLoc, Filename, isAngled, FromDir, FromFile, CurDir, SearchPath, RelativePath, SuggestedModule, skipPath);
+	bool *IsMapped = NULL;
+        bool skipCache = false;
+
+	const clang::FileEntry * result = ciCompilerInstance.getPreprocessor().LookupFile(FilenameLoc, Filename, isAngled, FromDir, FromFile, CurDir, SearchPath, RelativePath, SuggestedModule, IsMapped, skipCache);
         if(result)
           headerName = result->getName();
       }
@@ -2176,9 +2178,10 @@ CallersAction::Visitor::VisitInheritanceList(clang::CXXRecordDecl* cxxDecl,
       std::string baseName = printRecordName(base);
       clang::TagTypeKind baseTagKind = base->getTagKind();
       std::string baseNspc = printRootNamespace(*base, printQualifiedName(*base), baseName);
-      std::string baseFile = printFilePath(base->getSourceRange());
-      int baseBegin = getStartLine(base->getLocStart());
-      int baseEnd = getStartLine(base->getLocEnd());
+      clang::SourceRange baseSourceRange = base->getSourceRange();
+      std::string baseFile = printFilePath(baseSourceRange);
+      int baseBegin = getStartLine(baseSourceRange.getBegin());
+      int baseEnd = getStartLine(baseSourceRange.getEnd());
 
       CallersData::Inheritance parent(baseName, baseFile, baseBegin, baseEnd);
       record->add_base_class(parent);
@@ -2229,9 +2232,10 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
            //std::string recordName = printQualifiedName(*Decl, &isAnonymousRecord);
            std::string recordName = printRecordName(RD);
            std::string recordNspc = printRootNamespace(*RD, printQualifiedName(*RD), CALLERS_DEFAULT_NO_RECORD_NAME);
-           std::string recordFile = printFilePath(Decl->getSourceRange());
-           int recordBegin = getStartLine(Decl->getLocStart());
-           int recordEnd = getStartLine(Decl->getLocEnd());
+	   clang::SourceRange recordLoc = Decl->getSourceRange();
+           std::string recordFile = printFilePath(recordLoc);
+           int recordBegin = getStartLine(recordLoc.getBegin());
+           int recordEnd = getStartLine(recordLoc.getEnd());
 
            recordName += printTemplateKind(*Decl);
            if (!isAnonymousRecord) {
@@ -2266,3 +2270,8 @@ CallersAction::Visitor::VisitRecordDecl(clang::RecordDecl* Decl) {
    }
    return true;
 }
+
+
+// Local Variables:
+// compile-command: "/usr/bin/c++  -DGTEST_HAS_RTTI=0 -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -I/home/hugues/work/third_parties/src/build/tools/clang/tools/extra/callers/c -I/home/hugues/work/third_parties/src/llvm/tools/clang/tools/extra/callers/c -I/home/hugues/work/third_parties/src/llvm/tools/clang/include -I/home/hugues/work/third_parties/src/build/tools/clang/include -I/usr/include/libxml2 -I/home/hugues/work/third_parties/src/build/include -I/home/hugues/work/third_parties/src/llvm/include -I/home/hugues/work/third_parties/src/llvm/tools/clang/tools/extra/callers/c/..   -fPIC -fvisibility-inlines-hidden -Werror=date-time -std=c++11 -Wall -Wextra -Wno-unused-parameter -Wwrite-strings -Wcast-qual -Wno-missing-field-initializers -pedantic -Wno-long-long -Wimplicit-fallthrough -Wno-maybe-uninitialized -Wno-noexcept-type -Wdelete-non-virtual-dtor -Wno-comment -ffunction-sections -fdata-sections -fno-common -Woverloaded-virtual -fno-strict-aliasing -g    -fno-exceptions -fno-rtti -fexceptions -o visitor.cpp.o -c visitor.cpp"
+// End:

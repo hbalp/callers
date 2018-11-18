@@ -24,6 +24,7 @@ add_clang_executable(callers++
 target_compile_options(callers++ PRIVATE -fexceptions)
 
 target_link_libraries(callers++
+  PRIVATE
   clangAST
   clangBasic
   clangDriver
